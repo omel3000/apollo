@@ -8,6 +8,7 @@ from schemas import UserCreate, UserRead
 from crud import create_user, get_user_by_email, get_user_by_id, delete_user
 from auth import verify_password, create_access_token, decode_access_token
 from fastapi.security import OAuth2PasswordBearer
+from models import User
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
@@ -35,11 +36,12 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 @router.post("/login")
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
-    user = get_user_by_email(db, email=form_data.username)
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == form_data.username).first()
     if not user or not verify_password(form_data.password, user.password_hash):
-        raise HTTPException(status_code=400, detail="Nieprawidłowy email lub hasło")
-    access_token = create_access_token(data={"sub": user.email})
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Nieprawidłowe dane logowania")
+    
+    access_token = create_access_token(data={"sub": str(user.user_id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/", response_model=List[UserRead])

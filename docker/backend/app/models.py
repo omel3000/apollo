@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from database import Base
 
@@ -17,3 +17,12 @@ class User(Base):
     account_status = Column(String(50), nullable=False, default="aktywny")
     password_reset_token = Column(String(255), nullable=True)
 
+class Project(Base):
+    __tablename__ = "projects"
+
+    project_id = Column(Integer, primary_key=True)
+    project_name = Column(String(255), nullable=False)
+    description = Column(String(1000))
+    created_by_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    owner_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)  # obowiązkowe pole
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

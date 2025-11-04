@@ -18,6 +18,24 @@ class UserRead(UserBase):
     registration_date: datetime
     account_status: str
 
+class ProjectBase(BaseModel):
+    project_name: str
+    description: Optional[str]
+
+class ProjectCreate(BaseModel):
+    project_name: str
+    description: Optional[str]
+    owner_user_id: int  # wymagane pole, ID właściciela
+    # nie trzeba podawać created_by_user_id w input, bo będzie brane z tokena lub logiki backendu
+
+class ProjectRead(BaseModel):
+    project_id: int
+    project_name: str
+    description: Optional[str]
+    owner_user_id: int
+    created_by_user_id: int
+    created_at: datetime
+
     class Config:
         orm_mode = True
 
