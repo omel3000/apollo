@@ -36,6 +36,6 @@ Wejście do bazy TEST danych za pomocą:
 
 `docker exec -it postgres-db psql -U apollo -d apollo_test_db`
 
-Wejście do bazy PROD:  
+Wejście do bazy PROD:    11111111111  
 
 `docker exec -it postgres-db psql -U apollo -d apollo_prod_db`
