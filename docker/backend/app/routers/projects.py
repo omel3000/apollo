@@ -19,7 +19,10 @@ def create_new_project(
     return new_project
 
 @router.get("/", response_model=List[ProjectRead])
-def read_projects(db: Session = Depends(get_db)):
+def read_projects(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required)
+):
     projects = db.query(Project).all()
     return projects
 
