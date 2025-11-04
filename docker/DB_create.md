@@ -49,3 +49,16 @@ CREATE TABLE work_reports (
     CONSTRAINT fk_report_project FOREIGN KEY (project_id) REFERENCES projects(project_id)
 );
 
+
+
+---
+Dodano:
+
+ALTER TABLE projects
+ADD COLUMN created_by_user_id INTEGER NOT NULL;
+
+ALTER TABLE projects
+ADD CONSTRAINT fk_created_by_user FOREIGN KEY (created_by_user_id) REFERENCES users(user_id);
+
+ALTER TABLE projects
+ADD COLUMN created_at TIMESTAMP WITH TIME ZONE DEFAULT now();
