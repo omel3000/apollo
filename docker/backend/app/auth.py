@@ -1,4 +1,3 @@
-# auth.py
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from fastapi import Depends, HTTPException, status
@@ -7,17 +6,14 @@ from models import User
 from database import get_db
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-import jwt
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
 
-# Ustawienia hashowania haseł
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Sekretny klucz do JWT - w prawdziwej aplikacji przechowuj go bezpiecznie!
 SECRET_KEY = "supersekretnykluczdojwt"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 60  # ważność tokenu 1 godzina
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
 
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
@@ -29,16 +25,8 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     to_encode = data.copy()
     expire = datetime.utcnow() + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
-    # Dodaj 'sub' jako string id użytkownika
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
-def decode_access_token(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except jwt.PyJWTError:
-        return None
 
 def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     credentials_exception = HTTPException(
@@ -59,3 +47,14 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
     if user is None:
         raise credentials_exception
     return user
+
+def admin_required(current_user: User = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień")
+    return current_user
+
+def admin_or_hr_required(current_user: User = Depends(get_current_user)):
+    if current_user.role not in ("admin", "hr"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień")
+    return current_user
+

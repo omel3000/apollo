@@ -1,4 +1,3 @@
-# crud.py
 from sqlalchemy.orm import Session
 from models import User, Project
 from auth import hash_password
@@ -37,8 +36,8 @@ def create_project(db: Session, project: ProjectCreate, user_id: int):
     db_project = Project(
         project_name=project.project_name,
         description=project.description,
-        created_by_user_id=user_id,  # osoba która tworzy projekt, np. z tokena
-        owner_user_id=project.owner_user_id  # ID właściciela podany w input
+        created_by_user_id=user_id,
+        owner_user_id=project.owner_user_id
     )
     db.add(db_project)
     db.commit()

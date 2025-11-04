@@ -1,4 +1,3 @@
-# routers/users.py
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -6,26 +5,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
 from schemas import UserCreate, UserRead
 from crud import create_user, get_user_by_email, get_user_by_id, delete_user
-from auth import verify_password, create_access_token, decode_access_token
-from fastapi.security import OAuth2PasswordBearer
+from auth import verify_password, create_access_token, admin_required, get_current_user
 from models import User
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
-
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    payload = decode_access_token(token)
-    if not payload or 'sub' not in payload:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Nieprawidłowy token lub brak dostępu")
-    user = get_user_by_email(db, email=payload['sub'])
-    if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Nieznany użytkownik")
-    return user
-
-def admin_required(current_user = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień")
-    return current_user
 
 @router.post("/register", response_model=UserRead)
 def register(user: UserCreate, db: Session = Depends(get_db)):
@@ -45,12 +28,12 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/", response_model=List[UserRead])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user=Depends(admin_required)):
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
 @router.delete("/{user_id}", status_code=204)
-def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user=Depends(admin_required)):
+def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
     success = delete_user(db, user_id)
     if not success:
         raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
