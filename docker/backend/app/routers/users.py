@@ -2,11 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from fastapi.security import OAuth2PasswordRequestForm
-from app.database import get_db
-from app.schemas import UserCreate, UserRead
-from app.crud import create_user, get_user_by_email, get_user_by_id, delete_user
-from app.auth import verify_password, create_access_token, admin_required, get_current_user, admin_or_hr_required
-from app.models import User
+from database import get_db
+from schemas import UserCreate, UserRead
+from crud import create_user, get_user_by_email, get_user_by_id, delete_user
+from auth import verify_password, create_access_token, admin_required, get_current_user
+from models import User
 
 router = APIRouter()
 
@@ -23,6 +23,7 @@ def register_user(
             detail="Email already registered"
         )
     return create_user(db=db, user=user)
+
 
 @router.post("/login")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
