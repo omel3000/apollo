@@ -56,21 +56,26 @@ class WorkReportBase(BaseModel):
     description: Optional[str] = None
 
     @validator('hours_spent')
-    def hours_must_be_valid(cls, v):
-        if v < 0 or v > 24:
-            raise ValueError('Godziny muszą być z zakresu 0-24')
+    def validate_hours(cls, v):
+        if not 0 <= v <= 24:
+            raise ValueError("Godziny muszą być z zakresu 0-24")
         return v
 
     @validator('minutes_spent')
-    def minutes_must_be_valid(cls, v):
-        if v < 0 or v >= 60:
-            raise ValueError('Minuty muszą być z zakresu 0-59')
+    def validate_minutes(cls, v):
+        if not 0 <= v <= 59:
+            raise ValueError("Minuty muszą być z zakresu 0-59")
         return v
 
     @validator('minutes_spent')
-    def time_cannot_be_zero(cls, v, values):
-        if v == 0 and values.get('hours_spent', 0) == 0:
-            raise ValueError('Łączny czas pracy musi być większy niż 0 godzin i 0 minut')
+    def validate_total_time(cls, v, values):
+        if 'hours_spent' not in values:
+            return v
+        hours = values['hours_spent']
+        if hours == 24 and v > 0:
+            raise ValueError("Łączny czas nie może przekroczyć 24 godzin")
+        if hours == 0 and v == 0:
+            raise ValueError("Łączny czas pracy musi być większy niż 0 godzin i 0 minut")
         return v
 
 class WorkReportCreate(WorkReportBase):
