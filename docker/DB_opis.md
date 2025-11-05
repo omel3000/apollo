@@ -47,5 +47,6 @@
 - `project_id` (FK) – ID projektu (z projects)  
 - `work_date` – data pracy  
 - `hours_spent` – liczba przepracowanych godzin  
-- `created_at` – data dodania raportu  
+- `created_at` – data dodania raportu
+- `minutes_spent` - liczba przepracowanych minut
 
