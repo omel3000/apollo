@@ -36,6 +36,17 @@ class ProjectRead(BaseModel):
     created_by_user_id: int
     created_at: datetime
 
+class MessageBase(BaseModel):
+    title: str
+    content: str
+    is_active: Optional[bool] = True
+
+class MessageCreate(MessageBase):
+    pass
+
+class MessageRead(MessageBase):
+    message_id: int
+    created_at: datetime
+
     class Config:
         orm_mode = True
-
