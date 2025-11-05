@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from models import User, Project
+from models import User, Project, Message
 from auth import hash_password
 from schemas import UserCreate, ProjectCreate
 
@@ -44,3 +44,16 @@ def create_project(db: Session, project: ProjectCreate, user_id: int):
     db.refresh(db_project)
     return db_project
 
+def get_active_messages(db: Session):
+    return db.query(Message).filter(Message.is_active == True).all()
+
+def create_message(db: Session, message: MessageCreate):
+    db_message = Message(
+        title=message.title,
+        content=message.content,
+        is_active=message.is_active
+    )
+    db.add(db_message)
+    db.commit()
+    db.refresh(db_message)
+    return db_message

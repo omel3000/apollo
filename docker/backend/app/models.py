@@ -26,3 +26,12 @@ class Project(Base):
     created_by_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     owner_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)  # obowiązkowe pole
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    message_id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(255), nullable=False)
+    content = Column(String(2000), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    is_active = Column(Boolean, default=True)
