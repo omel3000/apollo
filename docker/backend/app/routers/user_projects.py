@@ -4,7 +4,7 @@ from typing import List
 from database import get_db
 from schemas import UserProjectCreate, UserProjectRead
 from crud import assign_user_to_project, get_assignments
-from auth import get_current_user, admin_or_hr_required
+from auth import admin_or_hr_required
 from models import User
 
 router = APIRouter()
@@ -16,7 +16,7 @@ def create_assignment(assignment: UserProjectCreate, db: Session = Depends(get_d
     return assigned
 
 @router.get("/", response_model=List[UserProjectRead])
-def read_assignments(user_id: int = None, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
-    # Pobieranie przypisań, można filtrować po user_id
-    assignments = get_assignments(db, user_id)
+def read_assignments(user_id: int = None, project_id: int = None, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
+    # Pobieranie przypisań, można filtrować po user_id i project_id
+    assignments = get_assignments(db, user_id=user_id, project_id=project_id)
     return assignments

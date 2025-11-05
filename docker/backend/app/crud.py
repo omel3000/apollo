@@ -78,13 +78,33 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
 def get_work_reports(db: Session, user_id: int):
     return db.query(WorkReport).filter(WorkReport.user_id == user_id).all()
 
-class UserProjectBase(BaseModel):
-    user_id: int
-    project_id: int
+def assign_user_to_project(db: Session, assignment: UserProjectCreate):
+    """
+    Tworzy wpis przypisania (UserProject) i zwraca dodany rekord.
+    Jeśli przypisanie (user_id, project_id) już istnieje, zwraca istniejący rekord.
+    """
+    # check for existing assignment
+    existing = db.query(UserProject).filter(
+        UserProject.user_id == assignment.user_id,
+        UserProject.project_id == assignment.project_id
+    ).first()
+    if existing:
+        return existing
 
-class UserProjectCreate(UserProjectBase):
-    pass
+    db_assignment = UserProject(
+        user_id=assignment.user_id,
+        project_id=assignment.project_id,
+        assigned_at=datetime.utcnow()
+    )
+    db.add(db_assignment)
+    db.commit()
+    db.refresh(db_assignment)
+    return db_assignment
 
-class UserProjectRead(UserProjectBase):
-    user_project_id: int
-    assigned_at: Optional[datetime]
+def get_assignments(db: Session, user_id: Optional[int] = None, project_id: Optional[int] = None):
+    q = db.query(UserProject)
+    if user_id is not None:
+        q = q.filter(UserProject.user_id == user_id)
+    if project_id is not None:
+        q = q.filter(UserProject.project_id == project_id)
+    return q.all()
