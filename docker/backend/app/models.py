@@ -45,4 +45,5 @@ class WorkReport(Base):
     work_date = Column(Date, nullable=False)
     hours_spent = Column(Integer, nullable=False, default=0)
     minutes_spent = Column(Integer, nullable=False, default=0)
+    description = Column(String(1000), nullable=True)  
     created_at = Column(DateTime(timezone=True), server_default=func.now())
