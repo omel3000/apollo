@@ -47,3 +47,11 @@ class WorkReport(Base):
     minutes_spent = Column(Integer, nullable=False, default=0)
     description = Column(String(1000), nullable=True)  
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class UserProject(Base):
+    __tablename__ = "user_projects"
+
+    user_project_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
+    assigned_at = Column(DateTime(timezone=True), server_default=func.now())

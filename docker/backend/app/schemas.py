@@ -86,5 +86,16 @@ class WorkReportRead(WorkReportBase):
     user_id: int
     created_at: datetime
 
+class UserProjectBase(BaseModel):
+    user_id: int
+    project_id: int
+
+class UserProjectCreate(UserProjectBase):
+    pass
+
+class UserProjectRead(UserProjectBase):
+    user_project_id: int
+    assigned_at: Optional[datetime]
+
     class Config:
         orm_mode = True

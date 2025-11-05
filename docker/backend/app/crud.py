@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
-from models import User, Project, Message, WorkReport
+from models import User, Project, Message, WorkReport, UserProject
 from auth import hash_password
-from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate
+from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
@@ -75,4 +75,13 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
 def get_work_reports(db: Session, user_id: int):
     return db.query(WorkReport).filter(WorkReport.user_id == user_id).all()
 
+class UserProjectBase(BaseModel):
+    user_id: int
+    project_id: int
 
+class UserProjectCreate(UserProjectBase):
+    pass
+
+class UserProjectRead(UserProjectBase):
+    user_project_id: int
+    assigned_at: Optional[datetime]
