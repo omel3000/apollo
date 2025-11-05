@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
 from schemas import UserCreate, UserRead
 from crud import create_user, get_user_by_email, get_user_by_id, delete_user
-from auth import verify_password, create_access_token, admin_required, get_current_user
+from auth import verify_password, create_access_token, admin_required, get_current_user, admin_or_hr_required
 from models import User
 
 router = APIRouter()
