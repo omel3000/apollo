@@ -75,7 +75,7 @@ class WorkReportBase(BaseModel):
             raise ValueError("Minuty muszą być z zakresu 0-59")
         return v
 
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_total_time(cls, values):
         hours = values.get('hours_spent', 0)
         minutes = values.get('minutes_spent', 0)
