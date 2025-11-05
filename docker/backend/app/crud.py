@@ -74,3 +74,5 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
 
 def get_work_reports(db: Session, user_id: int):
     return db.query(WorkReport).filter(WorkReport.user_id == user_id).all()
+
+
