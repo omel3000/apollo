@@ -16,7 +16,7 @@ def create_user(db: Session, user: UserCreate):
     db_user = User(
         first_name=user.first_name,
         last_name=user.last_name,
-        email=user.email,
+        email=user.email.lower(),
         phone_number=user.phone_number,
         password_hash=hash_password(user.password),
         role=user.role,
@@ -83,7 +83,6 @@ def assign_user_to_project(db: Session, assignment: UserProjectCreate):
     Tworzy wpis przypisania (UserProject) i zwraca dodany rekord.
     Jeśli przypisanie (user_id, project_id) już istnieje, zwraca istniejący rekord.
     """
-    # check for existing assignment
     existing = db.query(UserProject).filter(
         UserProject.user_id == assignment.user_id,
         UserProject.project_id == assignment.project_id
@@ -93,8 +92,8 @@ def assign_user_to_project(db: Session, assignment: UserProjectCreate):
 
     db_assignment = UserProject(
         user_id=assignment.user_id,
-        project_id=assignment.project_id,
-        assigned_at=datetime.utcnow()
+        project_id=assignment.project_id
+        # assigned_at left to DB default (server_default=func.now())
     )
     db.add(db_assignment)
     db.commit()

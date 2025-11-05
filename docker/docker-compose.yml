@@ -4,11 +4,10 @@ services:
     container_name: postgres-db
     restart: always
     environment:
-      POSTGRES_USER: apollo
-      POSTGRES_PASSWORD: apollo123
-      POSTGRES_DB: apollo_test_db
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-apollo}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-apollo123}
+      POSTGRES_DB: ${POSTGRES_DB:-apollo_test_db}
+    # Nie wystawiamy portu Postgresa na host (bezpieczeństwo).
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -22,7 +21,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://apollo:apollo123@postgres-db:5432/apollo_test_db
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-apollo}:${POSTGRES_PASSWORD:-apollo123}@postgres-db:5432/${POSTGRES_DB:-apollo_test_db}
     depends_on:
       - postgres-db
 

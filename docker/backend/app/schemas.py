@@ -1,5 +1,5 @@
 # schemas.py
-from pydantic import BaseModel, EmailStr, validator
+from pydantic import BaseModel, EmailStr, validator, root_validator
 from typing import Optional
 from datetime import date, datetime
 
@@ -18,6 +18,9 @@ class UserRead(UserBase):
     registration_date: datetime
     account_status: str
 
+    class Config:
+        orm_mode = True
+
 class ProjectBase(BaseModel):
     project_name: str
     description: Optional[str]
@@ -25,8 +28,7 @@ class ProjectBase(BaseModel):
 class ProjectCreate(BaseModel):
     project_name: str
     description: Optional[str]
-    owner_user_id: int  # wymagane pole, ID właściciela
-    # nie trzeba podawać created_by_user_id w input, bo będzie brane z tokena lub logiki backendu
+    owner_user_id: int
 
 class ProjectRead(BaseModel):
     project_id: int
@@ -35,6 +37,9 @@ class ProjectRead(BaseModel):
     owner_user_id: int
     created_by_user_id: int
     created_at: datetime
+
+    class Config:
+        orm_mode = True
 
 class MessageBase(BaseModel):
     title: str
@@ -47,6 +52,9 @@ class MessageCreate(MessageBase):
 class MessageRead(MessageBase):
     message_id: int
     created_at: datetime
+
+    class Config:
+        orm_mode = True
 
 class WorkReportBase(BaseModel):
     project_id: int
@@ -67,16 +75,15 @@ class WorkReportBase(BaseModel):
             raise ValueError("Minuty muszą być z zakresu 0-59")
         return v
 
-    @validator('minutes_spent')
-    def validate_total_time(cls, v, values):
-        if 'hours_spent' not in values:
-            return v
-        hours = values['hours_spent']
-        if hours == 24 and v > 0:
+    @root_validator
+    def validate_total_time(cls, values):
+        hours = values.get('hours_spent', 0)
+        minutes = values.get('minutes_spent', 0)
+        if hours == 24 and minutes > 0:
             raise ValueError("Łączny czas nie może przekroczyć 24 godzin")
-        if hours == 0 and v == 0:
+        if hours == 0 and minutes == 0:
             raise ValueError("Łączny czas pracy musi być większy niż 0 godzin i 0 minut")
-        return v
+        return values
 
 class WorkReportCreate(WorkReportBase):
     pass
@@ -85,6 +92,9 @@ class WorkReportRead(WorkReportBase):
     report_id: int
     user_id: int
     created_at: datetime
+
+    class Config:
+        orm_mode = True
 
 class UserProjectBase(BaseModel):
     user_id: int
