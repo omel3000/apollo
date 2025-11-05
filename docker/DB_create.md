@@ -38,15 +38,17 @@ CREATE TABLE user_projects (
     CONSTRAINT uc_user_project UNIQUE (user_id, project_id)
 );
 
-CREATE TABLE work_reports (
+CREATE TABLE public.work_reports (
     report_id SERIAL PRIMARY KEY,
     user_id INTEGER NOT NULL,
     project_id INTEGER NOT NULL,
     work_date DATE NOT NULL,
-    hours_spent NUMERIC(5,2) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_report_user FOREIGN KEY (user_id) REFERENCES users(user_id),
-    CONSTRAINT fk_report_project FOREIGN KEY (project_id) REFERENCES projects(project_id)
+    hours_spent INTEGER NOT NULL DEFAULT 0,
+    minutes_spent INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_hours_spent CHECK (hours_spent >= 0 AND hours_spent <= 24),
+    CONSTRAINT chk_minutes_spent CHECK (minutes_spent >= 0 AND minutes_spent < 60),
+    CONSTRAINT chk_time_not_zero CHECK ((hours_spent + minutes_spent) > 0)
 );
 
 
