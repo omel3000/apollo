@@ -1,7 +1,7 @@
 # schemas.py
-from pydantic import BaseModel, EmailStr, validator, root_validator
-from typing import Optional
+from typing import Optional, Annotated
 from datetime import date, datetime
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 class UserBase(BaseModel):
     first_name: str
@@ -9,6 +9,12 @@ class UserBase(BaseModel):
     email: EmailStr
     phone_number: Optional[str]
     role: str
+
+    @field_validator("email", mode="before")
+    def normalize_email(cls, v):
+        if isinstance(v, str):
+            return v.strip().lower()
+        return v
 
 class UserCreate(UserBase):
     password: str
@@ -18,8 +24,7 @@ class UserRead(UserBase):
     registration_date: datetime
     account_status: str
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class ProjectBase(BaseModel):
     project_name: str
@@ -38,8 +43,7 @@ class ProjectRead(BaseModel):
     created_by_user_id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class MessageBase(BaseModel):
     title: str
@@ -53,37 +57,31 @@ class MessageRead(MessageBase):
     message_id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
+
+# Use Annotated + Field for simple bounds
+Hours = Annotated[int, Field(ge=0, le=24)]
+Minutes = Annotated[int, Field(ge=0, le=59)]
 
 class WorkReportBase(BaseModel):
     project_id: int
     work_date: date
-    hours_spent: int = 0
-    minutes_spent: int = 0
+    hours_spent: Hours = 0
+    minutes_spent: Minutes = 0
     description: Optional[str] = None
 
-    @validator('hours_spent')
-    def validate_hours(cls, v):
-        if not 0 <= v <= 24:
-            raise ValueError("Godziny muszą być z zakresu 0-24")
-        return v
+    # dodatkowa normalizacja/konwersje można tu dodać jeśli potrzeba
 
-    @validator('minutes_spent')
-    def validate_minutes(cls, v):
-        if not 0 <= v <= 59:
-            raise ValueError("Minuty muszą być z zakresu 0-59")
-        return v
-
-    @root_validator(skip_on_failure=True)
-    def validate_total_time(cls, values):
-        hours = values.get('hours_spent', 0)
-        minutes = values.get('minutes_spent', 0)
+    @model_validator(mode="after")
+    def validate_total_time(self):
+        # model_validator(mode='after') wykonuje się po walidacji poszczególnych pól
+        hours = int(self.hours_spent)
+        minutes = int(self.minutes_spent)
         if hours == 24 and minutes > 0:
             raise ValueError("Łączny czas nie może przekroczyć 24 godzin")
         if hours == 0 and minutes == 0:
             raise ValueError("Łączny czas pracy musi być większy niż 0 godzin i 0 minut")
-        return values
+        return self
 
 class WorkReportCreate(WorkReportBase):
     pass
@@ -93,8 +91,7 @@ class WorkReportRead(WorkReportBase):
     user_id: int
     created_at: datetime
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
 
 class UserProjectBase(BaseModel):
     user_id: int
@@ -107,5 +104,4 @@ class UserProjectRead(UserProjectBase):
     user_project_id: int
     assigned_at: Optional[datetime]
 
-    class Config:
-        orm_mode = True
+    model_config = {"from_attributes": True}
