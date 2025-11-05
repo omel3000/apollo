@@ -27,7 +27,10 @@
 - `project_name` – nazwa projektu  
 - `description` – opis projektu (opcjonalnie)  
 - `owner_user_id` (FK) – ID użytkownika (z users), który zarządza projektem  
-- `status` – status projektu (np. aktywny, zakończony)  
+- `status` – status projektu (np. aktywny, zakończony)
+- `created_by_user_id` (FK, NOT NULL) – ID użytkownika, który utworzył projekt
+- `created_at` (TIMESTAMP, domyślnie teraz) – data i czas utworzenia projektu
+
 
 ## 4. Tabela: user_projects (przydział projektów do użytkowników)  
 *(tabela łącznikowa obsługująca relację wielu do wielu)*
