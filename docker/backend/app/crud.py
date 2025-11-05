@@ -64,7 +64,8 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
         project_id=report.project_id,
         work_date=report.work_date,
         hours_spent=report.hours_spent,
-        minutes_spent=report.minutes_spent
+        minutes_spent=report.minutes_spent,
+        description=report.description,
     )
     db.add(db_report)
     db.commit()
