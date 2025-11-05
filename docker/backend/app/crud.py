@@ -3,6 +3,7 @@ from models import User, Project, Message, WorkReport, UserProject
 from auth import hash_password
 from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate
 from pydantic import BaseModel
+from typing import Optional
 
 
 def get_user_by_email(db: Session, email: str):
