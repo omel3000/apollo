@@ -41,7 +41,11 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), c
 
 @router.delete("/{user_id}", status_code=204)
 def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
-    success = delete_user(db, user_id)
+    try:
+        success = delete_user(db, user_id)
+    except ValueError as e:
+        # np. nie można usunąć bo istnieją powiązane rekordy
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not success:
         raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
     return None

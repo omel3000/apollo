@@ -15,8 +15,11 @@ def create_new_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_or_hr_required)
 ):
-    new_project = create_project(db=db, project=project, user_id=current_user.user_id)
-    return new_project
+    try:
+        new_project = create_project(db=db, project=project, user_id=current_user.user_id)
+        return new_project
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/", response_model=List[ProjectRead])
 def read_projects(

@@ -12,8 +12,11 @@ router = APIRouter()
 @router.post("/", response_model=UserProjectRead)
 def create_assignment(assignment: UserProjectCreate, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
     # Przypisanie użytkownika do projektu - tylko admin/HR
-    assigned = assign_user_to_project(db, assignment)
-    return assigned
+    try:
+        assigned = assign_user_to_project(db, assignment)
+        return assigned
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/", response_model=List[UserProjectRead])
 def read_assignments(user_id: int = None, project_id: int = None, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
