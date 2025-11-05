@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from models import User, Project, Message, WorkReport, UserProject
 from auth import hash_password
 from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate
+from pydantic import BaseModel
+
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
