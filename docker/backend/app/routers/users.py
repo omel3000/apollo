@@ -2,21 +2,27 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from fastapi.security import OAuth2PasswordRequestForm
-from database import get_db
-from schemas import UserCreate, UserRead
-from crud import create_user, get_user_by_email, get_user_by_id, delete_user
-from auth import verify_password, create_access_token, admin_required, get_current_user
-from models import User
+from app.database import get_db
+from app.schemas import UserCreate, UserRead
+from app.crud import create_user, get_user_by_email, get_user_by_id, delete_user
+from app.auth import verify_password, create_access_token, admin_required, get_current_user, admin_or_hr_required
+from app.models import User
 
 router = APIRouter()
 
 @router.post("/register", response_model=UserRead)
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    db_user = get_user_by_email(db, email=user.email)
+def register_user(
+    user: UserCreate, 
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required)  # Add this line to require admin/hr auth
+):
+    db_user = get_user_by_email(db, user.email)
     if db_user:
-        raise HTTPException(status_code=400, detail="Email już używany")
-    new_user = create_user(db=db, user=user)
-    return new_user
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered"
+        )
+    return create_user(db=db, user=user)
 
 @router.post("/login")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
