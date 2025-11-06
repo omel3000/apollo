@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas import UserProjectCreate, UserProjectRead
-from crud import assign_user_to_project, get_assignments
+from schemas import UserProjectCreate, UserProjectRead, UserRead
+from crud import assign_user_to_project, get_assignments, get_users_assigned_to_project
 from auth import admin_or_hr_required
 from models import User
 
@@ -23,3 +23,11 @@ def read_assignments(user_id: int = None, project_id: int = None, db: Session = 
     # Pobieranie przypisań, można filtrować po user_id i project_id
     assignments = get_assignments(db, user_id=user_id, project_id=project_id)
     return assignments
+
+@router.get("/assigned_users/{project_id}", response_model=List[UserRead])
+def get_assigned_users(project_id: int, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
+    """
+    Zwraca listę użytkowników przypisanych do danego projektu (tylko admin/HR).
+    """
+    users = get_users_assigned_to_project(db, project_id)
+    return users

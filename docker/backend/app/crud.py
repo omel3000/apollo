@@ -428,3 +428,11 @@ def update_project(db: Session, project_id: int, project_update: ProjectUpdate):
     db.commit()
     db.refresh(project)
     return project
+
+def get_users_assigned_to_project(db: Session, project_id: int):
+    """
+    Zwraca listę użytkowników przypisanych do danego projektu.
+    """
+    user_ids = db.query(UserProject.user_id).filter(UserProject.project_id == project_id).subquery()
+    users = db.query(User).filter(User.user_id.in_(user_ids)).all()
+    return users
