@@ -7,6 +7,7 @@ from crud import create_work_report, get_work_reports, delete_work_report, updat
 from auth import get_current_user, can_manage_work_report
 from models import User
 from datetime import date
+import models  
 
 router = APIRouter()
 
