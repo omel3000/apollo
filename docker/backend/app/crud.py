@@ -96,6 +96,33 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
     if assignment is None:
         raise ValueError(f"Użytkownik o id {user_id} nie jest przypisany do projektu o id {report.project_id}.")
 
+    # Sprawdź łączny czas pracy w danym dniu
+    existing_time = db.query(
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
+    ).filter(
+        WorkReport.user_id == user_id,
+        WorkReport.work_date == report.work_date
+    ).first()
+    
+    existing_hours = existing_time[0] or 0
+    existing_minutes = existing_time[1] or 0
+    
+    # Przelicz wszystko na minuty dla łatwiejszego porównania
+    total_existing_minutes = (existing_hours * 60) + existing_minutes
+    new_minutes = (report.hours_spent * 60) + report.minutes_spent
+    total_minutes = total_existing_minutes + new_minutes
+    
+    # 24 godziny = 1440 minut
+    if total_minutes > 1440:
+        total_hours = total_minutes // 60
+        total_mins = total_minutes % 60
+        raise ValueError(
+            f"Nie można dodać raportu. Łączny czas pracy w dniu {report.work_date} "
+            f"przekroczyłby 24 godziny ({total_hours}h {total_mins}min). "
+            f"Aktualnie zarejestrowano: {existing_hours}h {existing_minutes}min."
+        )
+
     db_report = WorkReport(
         user_id=user_id,
         project_id=report.project_id,
@@ -152,16 +179,45 @@ def delete_work_report(db: Session, report_id: int):
 
 def update_work_report(db: Session, report_id: int, report_data: WorkReportCreate):
     db_report = db.query(WorkReport).filter(WorkReport.report_id == report_id).first()
-    if db_report:
-        db_report.hours_spent = report_data.hours_spent
-        db_report.minutes_spent = report_data.minutes_spent
-        db_report.description = report_data.description
-        db_report.work_date = report_data.work_date  # Update work_date
-        db_report.project_id = report_data.project_id  # Update project_id
-        db.commit()
-        db.refresh(db_report)
-        return db_report
-    return None
+    if not db_report:
+        return None
+    
+    # Sprawdź łączny czas pracy w danym dniu (bez uwzględniania aktualnie edytowanego raportu)
+    existing_time = db.query(
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
+    ).filter(
+        WorkReport.user_id == db_report.user_id,
+        WorkReport.work_date == report_data.work_date,
+        WorkReport.report_id != report_id  # Wyklucz edytowany raport
+    ).first()
+    
+    existing_hours = existing_time[0] or 0
+    existing_minutes = existing_time[1] or 0
+    
+    # Przelicz wszystko na minuty
+    total_existing_minutes = (existing_hours * 60) + existing_minutes
+    new_minutes = (report_data.hours_spent * 60) + report_data.minutes_spent
+    total_minutes = total_existing_minutes + new_minutes
+    
+    # 24 godziny = 1440 minut
+    if total_minutes > 1440:
+        total_hours = total_minutes // 60
+        total_mins = total_minutes % 60
+        raise ValueError(
+            f"Nie można zaktualizować raportu. Łączny czas pracy w dniu {report_data.work_date} "
+            f"przekroczyłby 24 godziny ({total_hours}h {total_mins}min). "
+            f"Aktualnie zarejestrowano (bez tego raportu): {existing_hours}h {existing_minutes}min."
+        )
+    
+    db_report.hours_spent = report_data.hours_spent
+    db_report.minutes_spent = report_data.minutes_spent
+    db_report.description = report_data.description
+    db_report.work_date = report_data.work_date
+    db_report.project_id = report_data.project_id
+    db.commit()
+    db.refresh(db_report)
+    return db_report
 
 def get_work_reports(db: Session, user_id: int, work_date: Optional[date] = None):
     query = db.query(WorkReport).filter(WorkReport.user_id == user_id)

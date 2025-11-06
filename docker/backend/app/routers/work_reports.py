@@ -32,10 +32,13 @@ def delete_work_report_endpoint(report_id: int, db: Session = Depends(get_db), c
 
 @router.put("/{report_id}", response_model=WorkReportRead)
 def update_work_report_endpoint(report_id: int, report: WorkReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    updated_report = update_work_report(db, report_id, report)
-    if not updated_report:
-        raise HTTPException(status_code=404, detail="Report not found")
-    return updated_report
+    try:
+        updated_report = update_work_report(db, report_id, report)
+        if not updated_report:
+            raise HTTPException(status_code=404, detail="Report not found")
+        return updated_report
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.post("/monthly_summary", response_model=MonthlySummary)
 def get_monthly_summary_endpoint(
