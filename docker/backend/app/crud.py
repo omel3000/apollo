@@ -196,17 +196,32 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
         WorkReport.work_date < end_date
     ).group_by(WorkReport.project_id).all()
 
-    daily_hours = db.query(
+    daily_summaries = db.query(
         WorkReport.work_date,
+        WorkReport.project_id,
         func.sum(WorkReport.hours_spent)
     ).filter(
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
         WorkReport.work_date < end_date
-    ).group_by(WorkReport.work_date).all()
+    ).group_by(WorkReport.work_date, WorkReport.project_id).all()
+
+    daily_summary_dict = {}
+    for work_date, project_id, hours in daily_summaries:
+        if work_date not in daily_summary_dict:
+            daily_summary_dict[work_date] = {"total_hours": 0, "project_hours": {}}
+        daily_summary_dict[work_date]["total_hours"] += hours
+        daily_summary_dict[work_date]["project_hours"][project_id] = (
+            daily_summary_dict[work_date]["project_hours"].get(project_id, 0) + hours
+        )
+
+    daily_hours = [
+        {"date": str(work_date), "total_hours": summary["total_hours"], "project_hours": summary["project_hours"]}
+        for work_date, summary in daily_summary_dict.items()
+    ]
 
     return {
         "total_hours": total_hours,
         "project_hours": {project_id: hours for project_id, hours in project_hours},
-        "daily_hours": [{"date": str(work_date), "hours": hours} for work_date, hours in daily_hours]
+        "daily_hours": daily_hours
     }
