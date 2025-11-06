@@ -32,6 +32,12 @@ def register_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already registered"
         )
+    # Blokada: tylko admin może nadawać rolę 'admin'
+    if user.role and str(user.role).lower() == "admin" and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tylko administrator może nadawać rolę 'admin'"
+        )
     return create_user(db=db, user=user)
 
 
@@ -108,6 +114,12 @@ def change_password(
 @router.put("/{user_id}", response_model=UserRead)
 def update_user_endpoint(user_id: int, user: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
     """Edycja danych użytkownika - dostępna dla admin/HR"""
+    # Blokada: tylko admin może ustawić rolę na 'admin'
+    if user.role is not None and str(user.role).lower() == "admin" and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tylko administrator może nadawać rolę 'admin'"
+        )
     try:
         updated = update_user(db, user_id, user)
         return updated
