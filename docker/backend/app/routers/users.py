@@ -4,9 +4,19 @@ from typing import List
 from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
 from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest, UserUpdate
-from crud import create_user, get_user_by_email, get_user_by_id, delete_user, change_user_email, change_user_password, update_user
+from crud import (
+    create_user, get_user_by_email, get_user_by_id, delete_user,
+    change_user_email, change_user_password, update_user,
+    get_users_with_time_in_month, get_user_monthly_projects_summary,
+    get_user_project_detailed_report,
+)
 from auth import verify_password, create_access_token, admin_required, get_current_user, admin_or_hr_required
 from models import User
+from schemas import (
+    UsersMonthlyActiveRequest, UserMonthlyTotalTime,
+    UserMonthlyProjectsRequest, UserProjectMonthlySummary,
+    UserProjectDetailedRequest, UserProjectDetailedReport,
+)
 
 router = APIRouter()
 
@@ -101,6 +111,42 @@ def update_user_endpoint(user_id: int, user: UserUpdate, db: Session = Depends(g
     try:
         updated = update_user(db, user_id, user)
         return updated
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.post("/monthly_active_users", response_model=List[UserMonthlyTotalTime])
+def users_monthly_active_endpoint(
+    request: UsersMonthlyActiveRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required),
+):
+    """
+    Lista użytkowników z jakimkolwiek czasem w miesiącu + łączny czas (pomija 0).
+    """
+    return get_users_with_time_in_month(db, request.month, request.year)
+
+@router.post("/monthly_projects", response_model=List[UserProjectMonthlySummary])
+def user_monthly_projects_endpoint(
+    request: UserMonthlyProjectsRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required),
+):
+    """
+    Lista projektów dla użytkownika w danym miesiącu + suma czasu per projekt.
+    """
+    return get_user_monthly_projects_summary(db, request.user_id, request.month, request.year)
+
+@router.post("/user_project_detailed", response_model=UserProjectDetailedReport)
+def user_project_detailed_endpoint(
+    request: UserProjectDetailedRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required),
+):
+    """
+    Szczegóły: dni/raporty dla użytkownika w projekcie w danym miesiącu.
+    """
+    try:
+        return get_user_project_detailed_report(db, request.project_id, request.user_id, request.month, request.year)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

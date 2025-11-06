@@ -211,3 +211,25 @@ class UserProjectDetailedReport(BaseModel):
     month: int
     year: int
     reports: List[WorkReportDetail]
+
+class UsersMonthlyActiveRequest(BaseModel):
+    month: int
+    year: int
+
+class UserMonthlyTotalTime(BaseModel):
+    user_id: int
+    first_name: str
+    last_name: str
+    total_hours: int
+    total_minutes: int
+
+class UserMonthlyProjectsRequest(BaseModel):
+    user_id: int
+    month: int
+    year: int
+
+class UserProjectMonthlySummary(BaseModel):
+    project_id: int
+    project_name: str
+    total_hours: int
+    total_minutes: int

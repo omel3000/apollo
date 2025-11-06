@@ -586,3 +586,83 @@ def get_user_project_detailed_report(db: Session, project_id: int, user_id: int,
         "year": year,
         "reports": reports_list
     }
+
+def get_users_with_time_in_month(db: Session, month: int, year: int):
+    """
+    Zwraca listę użytkowników, którzy raportowali czas w danym miesiącu (sumy > 0),
+    wraz z łącznym czasem (godziny + minuty znormalizowane).
+    """
+    start_date = date(year, month, 1)
+    end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+
+    rows = (
+        db.query(
+            WorkReport.user_id,
+            User.first_name,
+            User.last_name,
+            func.sum(WorkReport.hours_spent).label("h"),
+            func.sum(WorkReport.minutes_spent).label("m"),
+        )
+        .join(User, User.user_id == WorkReport.user_id)
+        .filter(WorkReport.work_date >= start_date, WorkReport.work_date < end_date)
+        .group_by(WorkReport.user_id, User.first_name, User.last_name)
+        .having((func.coalesce(func.sum(WorkReport.hours_spent), 0) + func.coalesce(func.sum(WorkReport.minutes_spent), 0)) > 0)
+        .order_by(User.last_name, User.first_name)
+        .all()
+    )
+
+    result = []
+    for user_id, first_name, last_name, hours, minutes in rows:
+        hours = hours or 0
+        minutes = minutes or 0
+        total_hours = hours + (minutes // 60)
+        total_minutes = minutes % 60
+        result.append({
+            "user_id": user_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "total_hours": total_hours,
+            "total_minutes": total_minutes,
+        })
+    return result
+
+def get_user_monthly_projects_summary(db: Session, user_id: int, month: int, year: int):
+    """
+    Zwraca listę projektów, w których użytkownik raportował czas w danym miesiącu,
+    z łącznym czasem per projekt (godziny + minuty znormalizowane).
+    """
+    start_date = date(year, month, 1)
+    end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+
+    rows = (
+        db.query(
+            Project.project_id,
+            Project.project_name,
+            func.sum(WorkReport.hours_spent).label("h"),
+            func.sum(WorkReport.minutes_spent).label("m"),
+        )
+        .join(Project, Project.project_id == WorkReport.project_id)
+        .filter(
+            WorkReport.user_id == user_id,
+            WorkReport.work_date >= start_date,
+            WorkReport.work_date < end_date,
+        )
+        .group_by(Project.project_id, Project.project_name)
+        .having((func.coalesce(func.sum(WorkReport.hours_spent), 0) + func.coalesce(func.sum(WorkReport.minutes_spent), 0)) > 0)
+        .order_by(Project.project_name.asc())
+        .all()
+    )
+
+    result = []
+    for project_id, project_name, hours, minutes in rows:
+        hours = hours or 0
+        minutes = minutes or 0
+        total_hours = hours + (minutes // 60)
+        total_minutes = minutes % 60
+        result.append({
+            "project_id": project_id,
+            "project_name": project_name,
+            "total_hours": total_hours,
+            "total_minutes": total_minutes,
+        })
+    return result
