@@ -5,11 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Logowanie</title>
   <link rel="stylesheet" href="style.css" />
+  <script src="auth.js" defer></script>
 </head>
 <body>
   <main class="card" role="main">
     <h1 class="title">Apollo</h1>
-    <form method="post" action="#" aria-label="Formularz logowania">
+    <form id="loginForm" aria-label="Formularz logowania">
       <label for="login">Login</label>
       <input id="login" name="login" type="text" autocomplete="username" required autofocus />
 
@@ -17,6 +18,7 @@
       <input id="haslo" name="haslo" type="password" autocomplete="current-password" required />
 
       <button type="submit" class="btn">Zaloguj</button>
+      <p id="errorMessage" class="error-message" style="display: none; color: red; text-align: center; margin-top: 1rem;"></p>
     </form>
   </main>
 </body>
