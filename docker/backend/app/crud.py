@@ -155,6 +155,8 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
         db_report.hours_spent = report_data.hours_spent
         db_report.minutes_spent = report_data.minutes_spent
         db_report.description = report_data.description
+        db_report.work_date = report_data.work_date  # Update work_date
+        db_report.project_id = report_data.project_id  # Update project_id
         db.commit()
         db.refresh(db_report)
         return db_report

@@ -84,7 +84,8 @@ class WorkReportBase(BaseModel):
         return self
 
 class WorkReportCreate(WorkReportBase):
-    pass
+    project_id: int  # Ensure project_id is included
+    work_date: date  # Ensure work_date is included
 
 class WorkReportRead(WorkReportBase):
     report_id: int
