@@ -109,12 +109,14 @@ class UserProjectRead(UserProjectBase):
 
 class DailySummary(BaseModel):
     date: str
-    total_hours: float
-    project_hours: Dict[int, float]  # Dictionary with project_id as key and hours as value
+    total_hours: int
+    total_minutes: int
+    project_hours: Dict[int, Dict[str, int]]  # Dictionary with project_id as key and dict with hours and minutes
 
 class MonthlySummary(BaseModel):
-    total_hours: float
-    project_hours: dict
+    total_hours: int
+    total_minutes: int
+    project_hours: Dict[int, Dict[str, int]]  # Dictionary with project_id as key and dict with hours and minutes
     daily_hours: List[DailySummary]  # List of DailySummary objects
 
 class MonthlySummaryRequest(BaseModel):

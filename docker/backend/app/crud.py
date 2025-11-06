@@ -181,25 +181,47 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     start_date = date(year, month, 1)
     end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
 
-    total_hours = db.query(func.sum(WorkReport.hours_spent)).filter(
+    # Pobierz sumę godzin i minut dla całego miesiąca
+    total_time = db.query(
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
+    ).filter(
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
         WorkReport.work_date < end_date
-    ).scalar() or 0
+    ).first()
+    
+    total_hours_raw = total_time[0] or 0
+    total_minutes_raw = total_time[1] or 0
+    # Przelicz minuty na godziny
+    total_hours = total_hours_raw + (total_minutes_raw // 60)
+    total_minutes = total_minutes_raw % 60
 
-    project_hours = db.query(
+    # Pobierz sumę godzin i minut dla każdego projektu
+    project_time = db.query(
         WorkReport.project_id,
-        func.sum(WorkReport.hours_spent)
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
     ).filter(
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
         WorkReport.work_date < end_date
     ).group_by(WorkReport.project_id).all()
 
+    project_hours = {}
+    for project_id, hours, minutes in project_time:
+        hours = hours or 0
+        minutes = minutes or 0
+        total_h = hours + (minutes // 60)
+        total_m = minutes % 60
+        project_hours[project_id] = {"hours": total_h, "minutes": total_m}
+
+    # Pobierz dane dzienne z podziałem na projekty
     daily_summaries = db.query(
         WorkReport.work_date,
         WorkReport.project_id,
-        func.sum(WorkReport.hours_spent)
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
     ).filter(
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
@@ -207,21 +229,49 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     ).group_by(WorkReport.work_date, WorkReport.project_id).all()
 
     daily_summary_dict = {}
-    for work_date, project_id, hours in daily_summaries:
+    for work_date, project_id, hours, minutes in daily_summaries:
+        hours = hours or 0
+        minutes = minutes or 0
+        
         if work_date not in daily_summary_dict:
-            daily_summary_dict[work_date] = {"total_hours": 0, "project_hours": {}}
+            daily_summary_dict[work_date] = {
+                "total_hours": 0,
+                "total_minutes": 0,
+                "project_hours": {}
+            }
+        
+        # Oblicz godziny i minuty dla projektu
+        proj_total_h = hours + (minutes // 60)
+        proj_total_m = minutes % 60
+        daily_summary_dict[work_date]["project_hours"][project_id] = {
+            "hours": proj_total_h,
+            "minutes": proj_total_m
+        }
+        
+        # Dodaj do sumy dziennej
         daily_summary_dict[work_date]["total_hours"] += hours
-        daily_summary_dict[work_date]["project_hours"][project_id] = (
-            daily_summary_dict[work_date]["project_hours"].get(project_id, 0) + hours
-        )
+        daily_summary_dict[work_date]["total_minutes"] += minutes
+
+    # Przelicz minuty na godziny w sumie dziennej
+    for work_date in daily_summary_dict:
+        total_h = daily_summary_dict[work_date]["total_hours"]
+        total_m = daily_summary_dict[work_date]["total_minutes"]
+        daily_summary_dict[work_date]["total_hours"] = total_h + (total_m // 60)
+        daily_summary_dict[work_date]["total_minutes"] = total_m % 60
 
     daily_hours = [
-        {"date": str(work_date), "total_hours": summary["total_hours"], "project_hours": summary["project_hours"]}
-        for work_date, summary in daily_summary_dict.items()
+        {
+            "date": str(work_date),
+            "total_hours": summary["total_hours"],
+            "total_minutes": summary["total_minutes"],
+            "project_hours": summary["project_hours"]
+        }
+        for work_date, summary in sorted(daily_summary_dict.items())
     ]
 
     return {
         "total_hours": total_hours,
-        "project_hours": {project_id: hours for project_id, hours in project_hours},
+        "total_minutes": total_minutes,
+        "project_hours": project_hours,
         "daily_hours": daily_hours
     }
