@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel użytkownika - Apollo</title>
+    <!-- osadzony favicon aby uniknąć żądania /favicon.ico -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iI2U2N2Y3MSIvPjx0ZXh0IHg9IjQiIHk9IjEyIiBmb250LXNpemU9IjExIiBmaWxsPSIjZmZmIj5BOzwvdGV4dD48L3N2Zz4=">
+    <link rel="stylesheet" href="../style.css">
+    <script src="../auth.js" defer></script>
+</head>
+<body class="loaded">
+    <div class="top-bar">
+        <div class="top-right">
+            <button class="icon-btn">⚙️</button>
+            <button class="icon-btn logout" onclick="logout()">⎋</button>
+        </div>
+    </div>
+
+    <div class="user-container">
+        <div class="message-box">
+            <p>Witaj w panelu użytkownika!</p>
+        </div>
+
+        <aside class="side-menu">
+            <div class="menu-box">Rejestracja czasu pracy</div>
+            <div class="menu-box">Podsumowania</div>
+        </aside>
+    </div>
+</body>
+</html>
