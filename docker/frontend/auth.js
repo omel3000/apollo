@@ -1,7 +1,7 @@
 // Weryfikacja tokenu przez backend
 async function verifyToken(token) {
     try {
-        const response = await fetch('/users/', {
+        const response = await fetch('/users/me', {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${token}`

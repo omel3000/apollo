@@ -34,6 +34,11 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db:
     access_token = create_access_token(data={"sub": str(user.user_id)})
     return {"access_token": access_token, "token_type": "bearer"}
 
+@router.get("/me", response_model=UserRead)
+def read_current_user(current_user: User = Depends(get_current_user)):
+    """Endpoint zwracający dane zalogowanego użytkownika - dostępny dla wszystkich zalogowanych"""
+    return current_user
+
 @router.get("/", response_model=List[UserRead])
 def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
     users = db.query(User).offset(skip).limit(limit).all()
