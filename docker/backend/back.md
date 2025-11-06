@@ -50,7 +50,7 @@ Aplikacja wymaga następujących bibliotek:
   - `phone_number`: Numer telefonu (opcjonalny).
   - `password`: Hasło użytkownika.
   - `role`: Rola użytkownika (np. user, HR, admin).
-- **Dostęp:** Tylko dla niezalogowanych użytkowników.
+- **Dostęp:** Tylko dla zalogowanych użytkowników z rolą admin lub HR.
 - **Odpowiedź:** Zwraca dane nowo utworzonego użytkownika.
 
 #### Logowanie
@@ -59,7 +59,7 @@ Aplikacja wymaga następujących bibliotek:
   - `username`: Adres email użytkownika.
   - `password`: Hasło użytkownika.
 - **Dostęp:** Dla wszystkich użytkowników.
-- **Odpowiedź:** Zwraca token dostępu.
+- **Odpowiedź:** Zwraca token dostępu (access_token) oraz typ tokenu (bearer).
 
 #### Odczyt danych zalogowanego użytkownika
 - **Endpoint:** `GET /users/me`
