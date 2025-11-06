@@ -1,5 +1,5 @@
 # schemas.py
-from typing import Optional, Annotated
+from typing import Optional, Annotated, List
 from datetime import date, datetime
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
@@ -106,3 +106,12 @@ class UserProjectRead(UserProjectBase):
     assigned_at: Optional[datetime]
 
     model_config = {"from_attributes": True}
+
+class MonthlySummary(BaseModel):
+    total_hours: float
+    project_hours: dict
+    daily_hours: List[dict]  # List of dictionaries with date and hours worked
+
+class MonthlySummaryRequest(BaseModel):
+    month: int  # Month as an integer (1-12)
+    year: int   # Year as an integer

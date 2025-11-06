@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from models import User, Project, Message, WorkReport, UserProject
 from auth import hash_password
 from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate
@@ -175,3 +176,37 @@ def get_assignments(db: Session, user_id: Optional[int] = None, project_id: Opti
     if project_id is not None:
         q = q.filter(UserProject.project_id == project_id)
     return q.all()
+
+def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
+    start_date = date(year, month, 1)
+    end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+
+    total_hours = db.query(func.sum(WorkReport.hours_spent)).filter(
+        WorkReport.user_id == user_id,
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).scalar() or 0
+
+    project_hours = db.query(
+        WorkReport.project_id,
+        func.sum(WorkReport.hours_spent)
+    ).filter(
+        WorkReport.user_id == user_id,
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).group_by(WorkReport.project_id).all()
+
+    daily_hours = db.query(
+        WorkReport.work_date,
+        func.sum(WorkReport.hours_spent)
+    ).filter(
+        WorkReport.user_id == user_id,
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).group_by(WorkReport.work_date).all()
+
+    return {
+        "total_hours": total_hours,
+        "project_hours": {project_id: hours for project_id, hours in project_hours},
+        "daily_hours": [{"date": str(work_date), "hours": hours} for work_date, hours in daily_hours]
+    }

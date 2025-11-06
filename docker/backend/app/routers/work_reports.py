@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
-from schemas import WorkReportCreate, WorkReportRead
-from crud import create_work_report, get_work_reports, delete_work_report, update_work_report
+from schemas import WorkReportCreate, WorkReportRead, MonthlySummary, MonthlySummaryRequest
+from crud import create_work_report, get_work_reports, delete_work_report, update_work_report, get_monthly_summary
 from auth import get_current_user
 from models import User
 from datetime import date
@@ -36,3 +36,12 @@ def update_work_report_endpoint(report_id: int, report: WorkReportCreate, db: Se
     if not updated_report:
         raise HTTPException(status_code=404, detail="Report not found")
     return updated_report
+
+@router.post("/monthly_summary", response_model=MonthlySummary)
+def get_monthly_summary_endpoint(
+    request: MonthlySummaryRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    summary = get_monthly_summary(db, current_user.user_id, request.month, request.year)
+    return summary
