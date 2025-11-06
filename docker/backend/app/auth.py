@@ -61,3 +61,11 @@ def admin_or_hr_required(current_user: User = Depends(get_current_user)):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień")
     return current_user
 
+def can_manage_work_report(current_user: User, report_user_id: int):
+    # Może admin, hr lub właściciel raportu
+    if current_user.role in ("admin", "hr"):
+        return True
+    if current_user.user_id == report_user_id:
+        return True
+    return False
+

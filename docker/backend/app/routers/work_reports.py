@@ -4,7 +4,7 @@ from typing import List, Optional
 from database import get_db
 from schemas import WorkReportCreate, WorkReportRead, MonthlySummary, MonthlySummaryRequest
 from crud import create_work_report, get_work_reports, delete_work_report, update_work_report, get_monthly_summary
-from auth import get_current_user
+from auth import get_current_user, can_manage_work_report
 from models import User
 from datetime import date
 
@@ -12,7 +12,11 @@ router = APIRouter()
 
 @router.post("/", response_model=WorkReportRead)
 def add_work_report(report: WorkReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    # Walidacja jest obsługiwana przez Pydantic validator i dodatkowo przez CRUD
+    # Tylko właściciel (current_user) lub admin/hr może dodać raport dla siebie
+    if current_user.role not in ("admin", "hr") and report.project_id:
+        # Sprawdzamy czy user dodaje raport dla siebie (nie dla kogoś innego)
+        # W tym systemie raporty są zawsze dodawane dla current_user
+        pass  # logika jest już poprawna, bo przekazujemy current_user.user_id do CRUD
     try:
         new_report = create_work_report(db, report, current_user.user_id)
         return new_report
@@ -20,18 +24,37 @@ def add_work_report(report: WorkReportCreate, db: Session = Depends(get_db), cur
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 @router.get("/", response_model=List[WorkReportRead])
-def read_work_reports(work_date: Optional[date] = None, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def read_work_reports(
+    work_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    # Zwracaj tylko raporty bieżącego użytkownika
     reports = get_work_reports(db, current_user.user_id, work_date)
     return reports
 
 @router.delete("/{report_id}", status_code=204)
 def delete_work_report_endpoint(report_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Pobierz raport z bazy
+    db_report = db.query(models.WorkReport).filter(models.WorkReport.report_id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    # Sprawdź uprawnienia
+    if not can_manage_work_report(current_user, db_report.user_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień do usunięcia tego raportu")
     success = delete_work_report(db, report_id)
     if not success:
         raise HTTPException(status_code=404, detail="Report not found")
 
 @router.put("/{report_id}", response_model=WorkReportRead)
 def update_work_report_endpoint(report_id: int, report: WorkReportCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Pobierz raport z bazy
+    db_report = db.query(models.WorkReport).filter(models.WorkReport.report_id == report_id).first()
+    if not db_report:
+        raise HTTPException(status_code=404, detail="Report not found")
+    # Sprawdź uprawnienia
+    if not can_manage_work_report(current_user, db_report.user_id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień do edycji tego raportu")
     try:
         updated_report = update_work_report(db, report_id, report)
         if not updated_report:
@@ -46,5 +69,6 @@ def get_monthly_summary_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    # Zwracaj tylko podsumowanie bieżącego użytkownika
     summary = get_monthly_summary(db, current_user.user_id, request.month, request.year)
     return summary
