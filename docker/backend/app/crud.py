@@ -5,7 +5,7 @@ from auth import hash_password
 from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, date
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
@@ -141,8 +141,30 @@ def assign_user_to_project(db: Session, assignment: UserProjectCreate):
     db.refresh(db_assignment)
     return db_assignment
 
-def get_work_reports(db: Session, user_id: int):
-    return db.query(WorkReport).filter(WorkReport.user_id == user_id).all()
+def delete_work_report(db: Session, report_id: int):
+    db_report = db.query(WorkReport).filter(WorkReport.report_id == report_id).first()
+    if db_report:
+        db.delete(db_report)
+        db.commit()
+        return True
+    return False
+
+def update_work_report(db: Session, report_id: int, report_data: WorkReportCreate):
+    db_report = db.query(WorkReport).filter(WorkReport.report_id == report_id).first()
+    if db_report:
+        db_report.hours_spent = report_data.hours_spent
+        db_report.minutes_spent = report_data.minutes_spent
+        db_report.description = report_data.description
+        db.commit()
+        db.refresh(db_report)
+        return db_report
+    return None
+
+def get_work_reports(db: Session, user_id: int, work_date: Optional[date] = None):
+    query = db.query(WorkReport).filter(WorkReport.user_id == user_id)
+    if work_date:
+        query = query.filter(WorkReport.work_date == work_date)
+    return query.all()
 
 def get_assignments(db: Session, user_id: Optional[int] = None, project_id: Optional[int] = None):
     q = db.query(UserProject)
