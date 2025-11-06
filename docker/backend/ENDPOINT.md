@@ -22,6 +22,7 @@
 | **PROJEKTY** |
 | POST | `/projects` | Tworzenie nowego projektu | ❌ | ✅ | ✅ | ❌ |
 | GET | `/projects` | Odczyt wszystkich projektów | ❌ | ✅ | ✅ | ❌ |
+| PUT | `/projects/{project_id}` | Aktualizacja projektu | ❌ | ✅ | ✅ | ❌ |
 | **KOMUNIKATY** |
 | GET | `/messages` | Odczyt aktywnych komunikatów | ✅ | ✅ | ✅ | ❌ |
 | POST | `/messages` | Tworzenie nowego komunikatu | ❌ | ❌ | ✅ | ❌ |

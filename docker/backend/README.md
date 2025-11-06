@@ -110,6 +110,17 @@ Aplikacja wymaga następujących bibliotek:
 - **Dostęp:** Tylko dla użytkowników z rolą admin lub HR.
 - **Odpowiedź:** Zwraca listę wszystkich projektów.
 
+#### Aktualizacja projektu
+- **Endpoint:** `PUT /projects/{project_id}`
+- **Parametry ścieżki:**
+  - `project_id`: ID projektu do zaktualizowania.
+- **Dane opcjonalne:**
+  - `project_name`: Nowa nazwa projektu.
+  - `description`: Nowy opis projektu.
+  - `owner_user_id`: Nowy ID właściciela projektu.
+- **Dostęp:** Tylko dla użytkowników z rolą admin lub HR.
+- **Odpowiedź:** Zwraca zaktualizowane dane projektu.
+
 ### Komunikaty
 #### Odczyt komunikatów
 - **Endpoint:** `GET /messages`

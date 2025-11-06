@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from models import User, Project, Message, WorkReport, UserProject
 from auth import hash_password
-from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate
+from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date
@@ -402,3 +402,29 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
     db.commit()
     db.refresh(user)
     return user
+
+def update_project(db: Session, project_id: int, project_update: ProjectUpdate):
+    """
+    Aktualizuje dane projektu (admin/hr).
+    Sprawdza czy nowy właściciel istnieje jeśli jest zmieniany.
+    """
+    project = db.query(Project).filter(Project.project_id == project_id).first()
+    if not project:
+        raise ValueError("Projekt nie istnieje")
+
+    # jeśli owner_user_id jest podany — sprawdź czy użytkownik istnieje
+    if project_update.owner_user_id is not None:
+        owner = get_user_by_id(db, project_update.owner_user_id)
+        if owner is None:
+            raise ValueError(f"Użytkownik właściciel o id {project_update.owner_user_id} nie istnieje")
+        project.owner_user_id = project_update.owner_user_id
+
+    # aktualizuj inne pola tylko gdy są przekazane
+    if project_update.project_name is not None:
+        project.project_name = project_update.project_name
+    if project_update.description is not None:
+        project.description = project_update.description
+
+    db.commit()
+    db.refresh(project)
+    return project

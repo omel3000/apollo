@@ -45,6 +45,11 @@ class ProjectRead(BaseModel):
 
     model_config = {"from_attributes": True}
 
+class ProjectUpdate(BaseModel):
+    project_name: Optional[str] = None
+    description: Optional[str] = None
+    owner_user_id: Optional[int] = None
+
 class MessageBase(BaseModel):
     title: str
     content: str
