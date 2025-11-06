@@ -26,6 +26,11 @@ class UserRead(UserBase):
 
     model_config = {"from_attributes": True}
 
+class UserShortRead(BaseModel):
+    user_id: int
+    first_name: str
+    last_name: str
+
 class ProjectBase(BaseModel):
     project_name: str
     description: Optional[str]

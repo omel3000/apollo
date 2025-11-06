@@ -431,8 +431,13 @@ def update_project(db: Session, project_id: int, project_update: ProjectUpdate):
 
 def get_users_assigned_to_project(db: Session, project_id: int):
     """
-    Zwraca listę użytkowników przypisanych do danego projektu.
+    Zwraca listę użytkowników przypisanych do danego projektu (tylko niezbędne pola).
     """
-    user_ids_select = select(UserProject.user_id).where(UserProject.project_id == project_id)
-    users = db.query(User).filter(User.user_id.in_(user_ids_select)).all()
-    return users
+    rows = (
+        db.query(User.user_id, User.first_name, User.last_name)
+        .join(UserProject, User.user_id == UserProject.user_id)
+        .filter(UserProject.project_id == project_id)
+        .order_by(User.last_name, User.first_name)
+        .all()
+    )
+    return [{"user_id": r.user_id, "first_name": r.first_name, "last_name": r.last_name} for r in rows]
