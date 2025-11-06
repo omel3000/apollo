@@ -108,10 +108,14 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
     existing_hours = existing_time[0] or 0
     existing_minutes = existing_time[1] or 0
     
+    # Przelicz istniejący czas na prawidłowy format (godziny i minuty)
+    existing_total_minutes = (existing_hours * 60) + existing_minutes
+    existing_display_hours = existing_total_minutes // 60
+    existing_display_minutes = existing_total_minutes % 60
+    
     # Przelicz wszystko na minuty dla łatwiejszego porównania
-    total_existing_minutes = (existing_hours * 60) + existing_minutes
     new_minutes = (report.hours_spent * 60) + report.minutes_spent
-    total_minutes = total_existing_minutes + new_minutes
+    total_minutes = existing_total_minutes + new_minutes
     
     # 24 godziny = 1440 minut
     if total_minutes > 1440:
@@ -120,7 +124,7 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
         raise ValueError(
             f"Nie można dodać raportu. Łączny czas pracy w dniu {report.work_date} "
             f"przekroczyłby 24 godziny ({total_hours}h {total_mins}min). "
-            f"Aktualnie zarejestrowano: {existing_hours}h {existing_minutes}min."
+            f"Aktualnie zarejestrowano: {existing_display_hours}h {existing_display_minutes}min."
         )
 
     db_report = WorkReport(
@@ -195,10 +199,14 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
     existing_hours = existing_time[0] or 0
     existing_minutes = existing_time[1] or 0
     
+    # Przelicz istniejący czas na prawidłowy format (godziny i minuty)
+    existing_total_minutes = (existing_hours * 60) + existing_minutes
+    existing_display_hours = existing_total_minutes // 60
+    existing_display_minutes = existing_total_minutes % 60
+    
     # Przelicz wszystko na minuty
-    total_existing_minutes = (existing_hours * 60) + existing_minutes
     new_minutes = (report_data.hours_spent * 60) + report_data.minutes_spent
-    total_minutes = total_existing_minutes + new_minutes
+    total_minutes = existing_total_minutes + new_minutes
     
     # 24 godziny = 1440 minut
     if total_minutes > 1440:
@@ -207,7 +215,7 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
         raise ValueError(
             f"Nie można zaktualizować raportu. Łączny czas pracy w dniu {report_data.work_date} "
             f"przekroczyłby 24 godziny ({total_hours}h {total_mins}min). "
-            f"Aktualnie zarejestrowano (bez tego raportu): {existing_hours}h {existing_minutes}min."
+            f"Aktualnie zarejestrowano (bez tego raportu): {existing_display_hours}h {existing_display_minutes}min."
         )
     
     db_report.hours_spent = report_data.hours_spent
