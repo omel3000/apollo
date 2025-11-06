@@ -1,18 +1,22 @@
 // Sprawdzanie czy użytkownik jest zalogowany
 function checkAuth() {
     const token = localStorage.getItem('token');
-    if (!token) {
-        // Jeśli nie jesteśmy na stronie logowania, przekieruj
-        if (!window.location.pathname.endsWith('/index.html') && !window.location.pathname.endsWith('/')) {
-            window.location.href = '/index.html';
-        }
+    const path = window.location.pathname;
+    const isLoginPage = path === '/index.html' || path === '/';
+    const isStartPage = path.includes('/start/');
+
+    if (!token && !isLoginPage) {
+        // Brak tokenu i nie jesteśmy na stronie logowania - przekieruj do logowania
+        window.location.href = '/index.html';
         return false;
     }
     
-    // Jeśli jesteśmy zalogowani i na stronie logowania, przekieruj do panelu
-    if (window.location.pathname.endsWith('/index.html') || window.location.pathname.endsWith('/')) {
+    if (token && isLoginPage) {
+        // Mamy token i jesteśmy na stronie logowania - przekieruj do panelu
         window.location.href = '/start/';
+        return true;
     }
+
     return true;
 }
 
