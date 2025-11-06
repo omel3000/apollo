@@ -534,3 +534,55 @@ def get_project_monthly_summary_with_users(db: Session, project_id: int, month: 
         "total_minutes": total_minutes,
         "users": users_list
     }
+
+def get_user_project_detailed_report(db: Session, project_id: int, user_id: int, month: int, year: int):
+    """
+    Zwraca szczegółową listę raportów pracy użytkownika w danym projekcie w danym miesiącu.
+    Posortowane chronologicznie.
+    """
+    start_date = date(year, month, 1)
+    end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+
+    # Pobierz informacje o użytkowniku
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError(f"Użytkownik o id {user_id} nie istnieje")
+
+    # Pobierz szczegółowe raporty
+    reports = db.query(
+        WorkReport.work_date,
+        Project.project_name,
+        WorkReport.description,
+        WorkReport.hours_spent,
+        WorkReport.minutes_spent
+    ).join(
+        Project, WorkReport.project_id == Project.project_id
+    ).filter(
+        WorkReport.project_id == project_id,
+        WorkReport.user_id == user_id,
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).order_by(
+        WorkReport.work_date.asc()
+    ).all()
+
+    reports_list = [
+        {
+            "work_date": r.work_date,
+            "project_name": r.project_name,
+            "description": r.description,
+            "hours_spent": r.hours_spent,
+            "minutes_spent": r.minutes_spent
+        }
+        for r in reports
+    ]
+
+    return {
+        "project_id": project_id,
+        "user_id": user_id,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "month": month,
+        "year": year,
+        "reports": reports_list
+    }

@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas import ProjectCreate, ProjectRead, ProjectUpdate, ProjectMonthlySummaryRequest, ProjectMonthlySummary, ProjectMonthlySummaryWithUsers
-from crud import create_project, update_project, get_project_monthly_summary, get_project_monthly_summary_with_users
+from schemas import ProjectCreate, ProjectRead, ProjectUpdate, ProjectMonthlySummaryRequest, ProjectMonthlySummary, ProjectMonthlySummaryWithUsers, UserProjectDetailedRequest, UserProjectDetailedReport
+from crud import create_project, update_project, get_project_monthly_summary, get_project_monthly_summary_with_users, get_user_project_detailed_report
 from auth import get_current_user, admin_or_hr_required
 from models import User, Project
 
@@ -66,4 +66,20 @@ def get_project_monthly_summary_with_users_endpoint(
     """
     summary = get_project_monthly_summary_with_users(db, request.project_id, request.month, request.year)
     return summary
+
+@router.post("/user_detailed_report", response_model=UserProjectDetailedReport)
+def get_user_project_detailed_report_endpoint(
+    request: UserProjectDetailedRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required)
+):
+    """
+    Zwraca szczegółową listę raportów pracy użytkownika w projekcie w danym miesiącu (admin/HR).
+    Lista zawiera: datę, projekt, opis pracy, zaraportowany czas - posortowane chronologicznie.
+    """
+    try:
+        report = get_user_project_detailed_report(db, request.project_id, request.user_id, request.month, request.year)
+        return report
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

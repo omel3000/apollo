@@ -189,3 +189,25 @@ class ProjectMonthlySummaryWithUsers(BaseModel):
     total_hours: int
     total_minutes: int
     users: List[UserProjectTime]
+
+class UserProjectDetailedRequest(BaseModel):
+    project_id: int
+    user_id: int
+    month: int  # Month as an integer (1-12)
+    year: int   # Year as an integer
+
+class WorkReportDetail(BaseModel):
+    work_date: date
+    project_name: str
+    description: Optional[str]
+    hours_spent: int
+    minutes_spent: int
+
+class UserProjectDetailedReport(BaseModel):
+    project_id: int
+    user_id: int
+    first_name: str
+    last_name: str
+    month: int
+    year: int
+    reports: List[WorkReportDetail]
