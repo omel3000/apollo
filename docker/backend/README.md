@@ -83,6 +83,18 @@ Aplikacja wymaga następujących bibliotek:
 - **Dostęp:** Tylko dla zalogowanych użytkowników.
 - **Odpowiedź:** Zwraca komunikat o powodzeniu operacji.
 
+#### Lista wszystkich użytkowników
+- **Endpoint:** `GET /users/`
+- **Dostęp:** Tylko dla zalogowanych użytkowników z rolą admin lub HR.
+- **Odpowiedź:** Zwraca listę wszystkich użytkowników w systemie.
+
+#### Usuwanie użytkownika
+- **Endpoint:** `DELETE /users/{user_id}`
+- **Parametry ścieżki:**
+  - `user_id`: ID użytkownika do usunięcia.
+- **Dostęp:** Tylko dla zalogowanych użytkowników z rolą admin lub HR.
+- **Odpowiedź:** Zwraca komunikat o powodzeniu operacji.
+
 ### Projekty
 #### Tworzenie nowego projektu
 - **Endpoint:** `POST /projects`
@@ -130,6 +142,37 @@ Aplikacja wymaga następujących bibliotek:
   - `work_date`: Data pracy (opcjonalna).
 - **Dostęp:** Tylko dla zalogowanych użytkowników.
 - **Odpowiedź:** Zwraca listę raportów pracy dla zalogowanego użytkownika.
+
+#### Aktualizacja raportu pracy
+- **Endpoint:** `PUT /work_reports/{report_id}`
+- **Parametry ścieżki:**
+  - `report_id`: ID raportu do zaktualizowania.
+- **Dane wymagane:**
+  - `project_id`: ID projektu.
+  - `work_date`: Data pracy.
+  - `hours_spent`: Liczba przepracowanych godzin (0-24).
+  - `minutes_spent`: Liczba przepracowanych minut (0-59).
+  - `description`: Opis (opcjonalny).
+- **Dostęp:** Tylko dla zalogowanych użytkowników (możliwość edycji tylko własnych raportów lub przez admin/HR).
+- **Odpowiedź:** Zwraca zaktualizowane dane raportu.
+- **Uwagi:** 
+  - Łączny czas pracy w danym dniu nie może przekroczyć 24 godzin.
+  - Użytkownik musi być przypisany do projektu, aby móc edytować raport dla tego projektu.
+
+#### Usuwanie raportu pracy
+- **Endpoint:** `DELETE /work_reports/{report_id}`
+- **Parametry ścieżki:**
+  - `report_id`: ID raportu do usunięcia.
+- **Dostęp:** Tylko dla zalogowanych użytkowników (możliwość usunięcia tylko własnych raportów lub przez admin/HR).
+- **Odpowiedź:** Status 204 (No Content) - brak zawartości przy sukcesie.
+
+#### Miesięczne podsumowanie raportów
+- **Endpoint:** `POST /work_reports/monthly_summary`
+- **Dane wymagane:**
+  - `year`: Rok (np. 2025).
+  - `month`: Miesiąc (1-12).
+- **Dostęp:** Tylko dla zalogowanych użytkowników.
+- **Odpowiedź:** Zwraca podsumowanie przepracowanych godzin w danym miesiącu, pogrupowane według projektów.
 
 ### Przydziały użytkowników do projektów
 #### Przypisanie użytkownika do projektu
