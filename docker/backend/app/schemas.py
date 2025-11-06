@@ -162,3 +162,30 @@ class ChangePasswordRequest(BaseModel):
         if self.new_password != self.confirm_new_password:
             raise ValueError("Nowe hasła nie są identyczne")
         return self
+
+class ProjectMonthlySummaryRequest(BaseModel):
+    project_id: int
+    month: int  # Month as an integer (1-12)
+    year: int   # Year as an integer
+
+class ProjectMonthlySummary(BaseModel):
+    project_id: int
+    month: int
+    year: int
+    total_hours: int
+    total_minutes: int
+
+class UserProjectTime(BaseModel):
+    user_id: int
+    first_name: str
+    last_name: str
+    total_hours: int
+    total_minutes: int
+
+class ProjectMonthlySummaryWithUsers(BaseModel):
+    project_id: int
+    month: int
+    year: int
+    total_hours: int
+    total_minutes: int
+    users: List[UserProjectTime]

@@ -441,3 +441,96 @@ def get_users_assigned_to_project(db: Session, project_id: int):
         .all()
     )
     return [{"user_id": r.user_id, "first_name": r.first_name, "last_name": r.last_name} for r in rows]
+
+def get_project_monthly_summary(db: Session, project_id: int, month: int, year: int):
+    """
+    Zwraca łączną sumę godzin przepracowanych w danym projekcie w danym miesiącu.
+    """
+    start_date = date(year, month, 1)
+    end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+
+    # Pobierz sumę godzin i minut dla projektu
+    total_time = db.query(
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
+    ).filter(
+        WorkReport.project_id == project_id,
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).first()
+    
+    total_hours_raw = total_time[0] or 0
+    total_minutes_raw = total_time[1] or 0
+    
+    # Przelicz minuty na godziny (np. 90 minut = 1h 30min)
+    total_hours = total_hours_raw + (total_minutes_raw // 60)
+    total_minutes = total_minutes_raw % 60
+
+    return {
+        "project_id": project_id,
+        "month": month,
+        "year": year,
+        "total_hours": total_hours,
+        "total_minutes": total_minutes
+    }
+
+def get_project_monthly_summary_with_users(db: Session, project_id: int, month: int, year: int):
+    """
+    Zwraca łączną sumę godzin + listę użytkowników z ich czasem dla danego projektu w miesiącu.
+    """
+    start_date = date(year, month, 1)
+    end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+
+    # Pobierz sumę godzin i minut dla każdego użytkownika w projekcie
+    user_time = db.query(
+        WorkReport.user_id,
+        User.first_name,
+        User.last_name,
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
+    ).join(
+        User, WorkReport.user_id == User.user_id
+    ).filter(
+        WorkReport.project_id == project_id,
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).group_by(
+        WorkReport.user_id, User.first_name, User.last_name
+    ).all()
+
+    users_list = []
+    total_hours_all = 0
+    total_minutes_all = 0
+
+    for user_id, first_name, last_name, hours, minutes in user_time:
+        hours = hours or 0
+        minutes = minutes or 0
+        
+        # Przelicz na format godziny + minuty
+        user_hours = hours + (minutes // 60)
+        user_minutes = minutes % 60
+        
+        users_list.append({
+            "user_id": user_id,
+            "first_name": first_name,
+            "last_name": last_name,
+            "total_hours": user_hours,
+            "total_minutes": user_minutes
+        })
+        
+        # Dodaj do sumy całkowitej
+        total_hours_all += hours
+        total_minutes_all += minutes
+
+    # Przelicz łączną sumę na format godziny + minuty
+    total_hours = total_hours_all + (total_minutes_all // 60)
+    total_minutes = total_minutes_all % 60
+
+    return {
+        "project_id": project_id,
+        "month": month,
+        "year": year,
+        "total_hours": total_hours,
+        "total_minutes": total_minutes,
+        "users": users_list
+    }
