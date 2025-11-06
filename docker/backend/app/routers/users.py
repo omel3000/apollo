@@ -56,7 +56,7 @@ def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
 
 @router.get("/", response_model=List[UserRead])
-def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
+def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
     users = db.query(User).offset(skip).limit(limit).all()
     return users
 
