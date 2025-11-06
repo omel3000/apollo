@@ -3,21 +3,42 @@ function checkAuth() {
     const token = localStorage.getItem('token');
     const path = window.location.pathname;
     const isLoginPage = path === '/index.html' || path === '/';
-    const isStartPage = path.includes('/start/');
+    const isStartPage = path === '/start' || path === '/start/' || path.includes('/start/');
 
-    if (!token && !isLoginPage) {
-        // Brak tokenu i nie jesteśmy na stronie logowania - przekieruj do logowania
-        window.location.href = '/index.html';
-        return false;
-    }
-    
     if (token && isLoginPage) {
         // Mamy token i jesteśmy na stronie logowania - przekieruj do panelu
         window.location.href = '/start/';
         return true;
     }
 
+    if (!token) {
+        if (isStartPage) {
+            // Na /start/ — pokaż komunikat o braku zalogowania zamiast przekierowywać
+            renderStartUnauthenticated();
+            return false;
+        }
+        if (!isLoginPage) {
+            // Brak tokenu i nie jesteśmy na stronie logowania ani start - przekieruj do logowania
+            window.location.href = '/index.html';
+            return false;
+        }
+    }
+
     return true;
+}
+
+function renderStartUnauthenticated() {
+    const main = document.getElementById('mainCard') || document.querySelector('main.card');
+    if (!main) return;
+    main.innerHTML = `
+      <h1 class="title">Panel Apollo</h1>
+      <p>Nie jesteś zalogowany, zaloguj się</p>
+      <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
+        <button id="toLogin" class="btn">Przejdź do logowania</button>
+      </div>
+    `;
+    const btn = document.getElementById('toLogin');
+    if (btn) btn.addEventListener('click', () => window.location.href = '/index.html');
 }
 
 // Obsługa logowania
