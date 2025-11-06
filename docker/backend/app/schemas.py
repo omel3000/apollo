@@ -122,3 +122,18 @@ class MonthlySummary(BaseModel):
 class MonthlySummaryRequest(BaseModel):
     month: int  # Month as an integer (1-12)
     year: int   # Year as an integer
+
+class ChangeEmailRequest(BaseModel):
+    new_email: EmailStr
+    current_password: str
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+    confirm_new_password: str
+    
+    @model_validator(mode="after")
+    def passwords_match(self):
+        if self.new_password != self.confirm_new_password:
+            raise ValueError("Nowe hasła nie są identyczne")
+        return self

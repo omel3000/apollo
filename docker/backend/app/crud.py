@@ -339,3 +339,34 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
         "project_hours": project_hours,
         "daily_hours": daily_hours
     }
+
+def change_user_email(db: Session, user_id: int, new_email: str):
+    """
+    Zmienia email użytkownika. Sprawdza czy nowy email nie jest już zajęty.
+    """
+    # Sprawdź czy nowy email nie jest już używany
+    existing_user = get_user_by_email(db, new_email.lower())
+    if existing_user and existing_user.user_id != user_id:
+        raise ValueError("Ten adres email jest już używany przez innego użytkownika")
+    
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError("Użytkownik nie istnieje")
+    
+    user.email = new_email.lower()
+    db.commit()
+    db.refresh(user)
+    return user
+
+def change_user_password(db: Session, user_id: int, new_password: str):
+    """
+    Zmienia hasło użytkownika.
+    """
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError("Użytkownik nie istnieje")
+    
+    user.password_hash = hash_password(new_password)
+    db.commit()
+    db.refresh(user)
+    return user

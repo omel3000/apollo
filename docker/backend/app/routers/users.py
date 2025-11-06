@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
-from schemas import UserCreate, UserRead
-from crud import create_user, get_user_by_email, get_user_by_id, delete_user
+from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest
+from crud import create_user, get_user_by_email, get_user_by_id, delete_user, change_user_email, change_user_password
 from auth import verify_password, create_access_token, admin_required, get_current_user, admin_or_hr_required
 from models import User
 
@@ -54,4 +54,44 @@ def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_us
     if not success:
         raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
     return None
+
+@router.put("/me/change-email", response_model=UserRead)
+def change_email(
+    request: ChangeEmailRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Zmiana adresu email - dostępna tylko dla zalogowanego użytkownika"""
+    # Weryfikuj hasło
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowe hasło"
+        )
+    
+    try:
+        updated_user = change_user_email(db, current_user.user_id, request.new_email)
+        return updated_user
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/me/change-password")
+def change_password(
+    request: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Zmiana hasła - dostępna tylko dla zalogowanego użytkownika"""
+    # Weryfikuj aktualne hasło
+    if not verify_password(request.current_password, current_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Nieprawidłowe aktualne hasło"
+        )
+    
+    try:
+        change_user_password(db, current_user.user_id, request.new_password)
+        return {"message": "Hasło zostało zmienione pomyślnie"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
