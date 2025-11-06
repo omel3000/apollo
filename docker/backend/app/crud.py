@@ -3,7 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func
 from models import User, Project, Message, WorkReport, UserProject
 from auth import hash_password
-from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate
+from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime, date
@@ -367,6 +367,38 @@ def change_user_password(db: Session, user_id: int, new_password: str):
         raise ValueError("Użytkownik nie istnieje")
     
     user.password_hash = hash_password(new_password)
+    db.commit()
+    db.refresh(user)
+    return user
+
+def update_user(db: Session, user_id: int, user_update: UserUpdate):
+    """
+    Aktualizuje dane użytkownika (admin/hr).
+    Sprawdza unikalność email jeśli jest zmieniany.
+    """
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError("Użytkownik nie istnieje")
+
+    # jeśli email jest podany i różny — sprawdź unikalność
+    if user_update.email:
+        existing = get_user_by_email(db, user_update.email.lower())
+        if existing and existing.user_id != user_id:
+            raise ValueError("Ten adres email jest już używany przez innego użytkownika")
+        user.email = user_update.email.lower()
+
+    # aktualizuj inne pola tylko gdy są przekazane
+    if user_update.first_name is not None:
+        user.first_name = user_update.first_name
+    if user_update.last_name is not None:
+        user.last_name = user_update.last_name
+    if user_update.phone_number is not None:
+        user.phone_number = user_update.phone_number
+    if user_update.role is not None:
+        user.role = user_update.role
+    if user_update.account_status is not None:
+        user.account_status = user_update.account_status
+
     db.commit()
     db.refresh(user)
     return user

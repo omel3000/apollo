@@ -3,8 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
-from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest
-from crud import create_user, get_user_by_email, get_user_by_id, delete_user, change_user_email, change_user_password
+from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest, UserUpdate
+from crud import create_user, get_user_by_email, get_user_by_id, delete_user, change_user_email, change_user_password, update_user
 from auth import verify_password, create_access_token, admin_required, get_current_user, admin_or_hr_required
 from models import User
 
@@ -92,6 +92,15 @@ def change_password(
     try:
         change_user_password(db, current_user.user_id, request.new_password)
         return {"message": "Hasło zostało zmienione pomyślnie"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/{user_id}", response_model=UserRead)
+def update_user_endpoint(user_id: int, user: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
+    """Edycja danych użytkownika - dostępna dla admin/HR"""
+    try:
+        updated = update_user(db, user_id, user)
+        return updated
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

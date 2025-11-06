@@ -107,6 +107,21 @@ class UserProjectRead(UserProjectBase):
 
     model_config = {"from_attributes": True}
 
+# Now add update schema
+class UserUpdate(BaseModel):
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+    role: Optional[str] = None
+    account_status: Optional[str] = None
+
+    @field_validator("email", mode="before")
+    def normalize_email(cls, v):
+        if isinstance(v, str):
+            return v.strip().lower()
+        return v
+
 class DailySummary(BaseModel):
     date: str
     total_hours: int
