@@ -22,6 +22,8 @@ function checkAuth() {
             window.location.href = '/index.html';
             return false;
         }
+    } else if (isStartPage) {
+        showAuthorizedContent();
     }
 
     return true;
@@ -30,6 +32,11 @@ function checkAuth() {
 function renderStartUnauthenticated() {
     const main = document.getElementById('mainCard') || document.querySelector('main.card');
     if (!main) return;
+    
+    // Ukryj loading
+    const loadingState = document.getElementById('loadingState');
+    if (loadingState) loadingState.style.display = 'none';
+    
     main.innerHTML = `
       <h1 class="title">Panel Apollo</h1>
       <p>Nie jesteś zalogowany, zaloguj się</p>
@@ -39,6 +46,14 @@ function renderStartUnauthenticated() {
     `;
     const btn = document.getElementById('toLogin');
     if (btn) btn.addEventListener('click', () => window.location.href = '/index.html');
+}
+
+function showAuthorizedContent() {
+    const loadingState = document.getElementById('loadingState');
+    const mainContent = document.getElementById('mainContent');
+    
+    if (loadingState) loadingState.style.display = 'none';
+    if (mainContent) mainContent.classList.remove('content-hidden');
 }
 
 // Obsługa logowania
