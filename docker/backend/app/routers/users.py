@@ -61,11 +61,19 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), c
     return users
 
 @router.delete("/{user_id}", status_code=204)
-def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(admin_required)):
+def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
+    # Tylko admin może usuwać użytkowników z rolą 'admin'
+    target = get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
+    if target.role == "admin" and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tylko administrator może usuwać użytkowników z rolą 'admin'"
+        )
     try:
         success = delete_user(db, user_id)
     except ValueError as e:
-        # np. nie można usunąć bo istnieją powiązane rekordy
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not success:
         raise HTTPException(status_code=404, detail="Użytkownik nie znaleziony")
@@ -114,7 +122,16 @@ def change_password(
 @router.put("/{user_id}", response_model=UserRead)
 def update_user_endpoint(user_id: int, user: UserUpdate, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
     """Edycja danych użytkownika - dostępna dla admin/HR"""
-    # Blokada: tylko admin może ustawić rolę na 'admin'
+    # Tylko admin może edytować konto użytkownika z rolą 'admin'
+    target = get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Użytkownik nie istnieje")
+    if target.role == "admin" and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tylko administrator może edytować użytkownika z rolą 'admin'"
+        )
+    # Tylko admin może ustawić rolę na 'admin'
     if user.role is not None and str(user.role).lower() == "admin" and current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
