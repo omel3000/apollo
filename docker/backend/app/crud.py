@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func
+from sqlalchemy import func, select  # dodano select
 from models import User, Project, Message, WorkReport, UserProject
 from auth import hash_password
 from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate
@@ -433,6 +433,6 @@ def get_users_assigned_to_project(db: Session, project_id: int):
     """
     Zwraca listę użytkowników przypisanych do danego projektu.
     """
-    user_ids_select = db.query(UserProject.user_id).filter(UserProject.project_id == project_id).select()
+    user_ids_select = select(UserProject.user_id).where(UserProject.project_id == project_id)
     users = db.query(User).filter(User.user_id.in_(user_ids_select)).all()
     return users
