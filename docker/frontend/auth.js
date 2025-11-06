@@ -31,10 +31,7 @@ async function checkAuth() {
             
             if (isStartPage) {
                 renderStartUnauthenticated();
-                document.body.classList.add('loaded');
-                return false;
-            }
-            if (!isLoginPage) {
+            } else if (!isLoginPage) {
                 window.location.href = '/index.html';
                 return false;
             }
@@ -44,23 +41,21 @@ async function checkAuth() {
                 window.location.href = '/start/';
                 return true;
             }
+            // Token OK, pokaż stronę
             document.body.classList.add('loaded');
             return true;
         }
+    } else {
+        // Brak tokenu
+        if (isStartPage) {
+            renderStartUnauthenticated();
+        } else if (!isLoginPage) {
+            window.location.href = '/index.html';
+            return false;
+        }
     }
 
-    // Brak tokenu
-    if (isStartPage) {
-        renderStartUnauthenticated();
-        document.body.classList.add('loaded');
-        return false;
-    }
-    
-    if (!isLoginPage) {
-        window.location.href = '/index.html';
-        return false;
-    }
-
+    // Pokaż stronę (dla strony logowania lub po pokazaniu komunikatu)
     document.body.classList.add('loaded');
     return false;
 }
