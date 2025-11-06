@@ -4,205 +4,140 @@
 1. [Wprowadzenie](#wprowadzenie)
 2. [Struktura projektu](#struktura-projektu)
 3. [Zależności](#zależności)
-4. [Endpointy API](#endpointy-api)
+4. [Konfiguracja i uruchomienie](#konfiguracja-i-uruchomienie)
+5. [Role i uprawnienia](#role-i-uprawnienia)
+6. [Zasady walidacji czasu](#zasady-walidacji-czasu)
+7. [Endpointy API (skrót) + szczegóły w ENDPOINT.md](#endpointy-api-skrót--szczegóły-w-endpointmd)
    - [Użytkownicy](#użytkownicy)
    - [Projekty](#projekty)
    - [Komunikaty](#komunikaty)
    - [Raporty pracy](#raporty-pracy)
    - [Przydziały użytkowników do projektów](#przydziały-użytkowników-do-projektów)
-5. [Inne informacje](#inne-informacje)
+   - [Raporty projektowe (nowe)](#raporty-projektowe-nowe)
+   - [Raporty użytkowników (nowe)](#raporty-użytkowników-nowe)
+8. [Inne informacje](#inne-informacje)
 
 ## Wprowadzenie
-Backend aplikacji Apollo jest zbudowany przy użyciu frameworka FastAPI i służy do zarządzania użytkownikami, projektami oraz raportami pracy. Aplikacja korzysta z bazy danych PostgreSQL.
+Backend aplikacji Apollo jest zbudowany w oparciu o FastAPI i obsługuje zarządzanie użytkownikami, projektami, przypisaniami do projektów oraz raportami pracy. Autoryzacja oparta jest o JWT.
 
 ## Struktura projektu
-Projekt składa się z następujących plików i folderów:
-- `main.py` - główny plik uruchamiający aplikację.
-- `database.py` - konfiguracja bazy danych.
-- `models.py` - definicje modeli bazodanowych.
-- `schemas.py` - definicje schematów danych (Pydantic).
-- `crud.py` - operacje CRUD na bazie danych.
-- `auth.py` - logika autoryzacji i uwierzytelniania.
-- `routers/` - folder z definicjami endpointów API.
+- `main.py` – start aplikacji i rejestracja routerów
+- `database.py` – konfiguracja połączenia z bazą (PostgreSQL)
+- `models.py` – modele SQLAlchemy
+- `schemas.py` – schematy Pydantic (wejście/wyjście)
+- `crud.py` – logika bazodanowa i agregacje raportów
+- `auth.py` – hashowanie haseł, JWT, zależności ról
+- `routers/`
+  - `users.py` – logowanie, CRUD użytkowników, raporty użytkowników (nowe)
+  - `projects.py` – CRUD projektów, raporty projektowe (nowe)
+  - `work_reports.py` – CRUD raportów pracy + miesięczne podsumowanie
+  - `messages.py` – komunikaty
+  - `user_projects.py` – przypisania użytkowników do projektów + assigned_users (nowe)
+- `ENDPOINT.md` – pełna macierz endpointów i uprawnień (aktualna)
 
 ## Zależności
-Aplikacja wymaga następujących bibliotek:
-- FastAPI
-- Uvicorn
-- SQLAlchemy
-- Psycopg2-binary
-- Pydantic
-- Alembic
-- Python-multipart
-- PyJWT
-- Bcrypt
-- Passlib
+- fastapi, uvicorn
+- sqlalchemy, psycopg2-binary
+- pydantic[email]
+- python-multipart
+- python-jose[cryptography] (JWT)
+- passlib[bcrypt], bcrypt (hashowanie haseł)
+- alembic (migracje – opcjonalnie)
 
-## Endpointy API
+## Konfiguracja i uruchomienie
+- Zmiennie środowiskowe w pliku `.env` (ładowane przez docker-compose):
+  - `DATABASE_URL`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
+  - `SECRET_KEY`, `ACCESS_TOKEN_EXPIRE_MINUTES`
+- Start (Docker):
+  - `docker-compose up -d`
+  - Backend: `http://localhost:8000`
+  - Nginx (frontend + proxy /users/*): `http://localhost/`
 
-### Użytkownicy
-#### Rejestracja użytkownika
-- **Endpoint:** `POST /users/register`
-- **Dane wymagane:** 
-  - `first_name`: Imię użytkownika.
-  - `last_name`: Nazwisko użytkownika.
-  - `email`: Adres email (unikalny).
-  - `phone_number`: Numer telefonu (opcjonalny).
-  - `password`: Hasło użytkownika.
-  - `role`: Rola użytkownika (np. user, HR, admin).
-- **Dostęp:** Tylko dla zalogowanych użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca dane nowo utworzonego użytkownika.
+## Role i uprawnienia
+- Użytkownik (user): zarządza wyłącznie własnymi raportami pracy.
+- HR:
+  - Ma dostęp do list użytkowników, projektów, raportów i agregacji (bez uprawnień „admin-only”).
+  - Nie może nadawać roli „admin”.
+- Admin:
+  - Pełne uprawnienia.
+  - Tylko admin może:
+    - Nadać rolę „admin” (rejestracja/edycja).
+    - Edytować dane innego użytkownika z rolą „admin”.
+    - Usuwać użytkowników z rolą „admin”.
 
-#### Logowanie
-- **Endpoint:** `POST /users/login`
-- **Dane wymagane:** 
-  - `username`: Adres email użytkownika.
-  - `password`: Hasło użytkownika.
-- **Dostęp:** Dla wszystkich użytkowników.
-- **Odpowiedź:** Zwraca token dostępu (access_token) oraz typ tokenu (bearer).
+Zależności w kodzie:
+- `admin_required` – tylko admin
+- `admin_or_hr_required` – admin i HR
+- `get_current_user` – dowolny zalogowany
 
-#### Odczyt danych zalogowanego użytkownika
-- **Endpoint:** `GET /users/me`
-- **Dostęp:** Tylko dla zalogowanych użytkowników.
-- **Odpowiedź:** Zwraca dane zalogowanego użytkownika.
+## Zasady walidacji czasu
+- Pojedynczy raport: 0 ≤ godziny ≤ 24, 0 ≤ minuty < 60, suma nie może być 0h 0m.
+- Suma dzienna wpisów użytkownika nie może przekroczyć 24h.
+- Wszystkie podsumowania normalizują minuty do godzin (np. 90 min = 1h 30 min).
 
-#### Zmiana adresu email
-- **Endpoint:** `PUT /users/me/change-email`
-- **Dane wymagane:** 
-  - `new_email`: Nowy adres email.
-  - `current_password`: Aktualne hasło.
-- **Dostęp:** Tylko dla zalogowanych użytkowników.
-- **Odpowiedź:** Zwraca zaktualizowane dane użytkownika.
+## Endpointy API (skrót)
+Pełna macierz endpointów i uprawnień: patrz plik `ENDPOINT.md`.
 
-#### Zmiana hasła
-- **Endpoint:** `PUT /users/me/change-password`
-- **Dane wymagane:** 
-  - `current_password`: Aktualne hasło.
-  - `new_password`: Nowe hasło.
-  - `confirm_new_password`: Potwierdzenie nowego hasła.
-- **Dostęp:** Tylko dla zalogowanych użytkowników.
-- **Odpowiedź:** Zwraca komunikat o powodzeniu operacji.
+Główne grupy:
+- Użytkownicy:
+  - `POST /users/register` – rejestracja (admin/HR; rola „admin” tylko przez admina)
+  - `POST /users/login` – logowanie (publiczny)
+  - `GET /users/` – lista użytkowników (admin/HR)
+  - `GET /users/me` – dane zalogowanego (zalogowani)
+  - `PUT /users/me/change-email` – zmiana email (zalogowani)
+  - `PUT /users/me/change-password` – zmiana hasła (zalogowani)
+  - `PUT /users/{user_id}` – edycja użytkownika (admin/HR; edycja admina i nadawanie roli „admin” wyłącznie admin)
+  - `DELETE /users/{user_id}` – usuwanie (admin/HR; usunięcie admina wyłącznie admin)
 
-#### Lista wszystkich użytkowników
-- **Endpoint:** `GET /users/`
-- **Dostęp:** Tylko dla zalogowanych użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca listę wszystkich użytkowników w systemie.
+- Projekty:
+  - `POST /projects` – tworzenie (admin/HR)
+  - `GET /projects` – lista (admin/HR)
+  - `PUT /projects/{project_id}` – aktualizacja (admin/HR)
 
-#### Usuwanie użytkownika
-- **Endpoint:** `DELETE /users/{user_id}`
-- **Parametry ścieżki:**
-  - `user_id`: ID użytkownika do usunięcia.
-- **Dostęp:** Tylko dla zalogowanych użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca komunikat o powodzeniu operacji.
+- Komunikaty:
+  - `GET /messages` – lista aktywnych (zalogowani)
+  - `POST /messages` – tworzenie (admin)
 
-### Projekty
-#### Tworzenie nowego projektu
-- **Endpoint:** `POST /projects`
-- **Dane wymagane:** 
-  - `project_name`: Nazwa projektu.
-  - `description`: Opis projektu (opcjonalny).
-  - `owner_user_id`: ID użytkownika, który jest właścicielem projektu.
-- **Dostęp:** Tylko dla użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca dane nowo utworzonego projektu.
+- Raporty pracy:
+  - `POST /work_reports` – dodanie (zalogowani; projekt musi istnieć, user musi być przypisany)
+  - `GET /work_reports` – lista bieżącego użytkownika (zalogowani)
+  - `PUT /work_reports/{report_id}` – edycja (właściciel lub admin/HR)
+  - `DELETE /work_reports/{report_id}` – usuwanie (właściciel lub admin/HR)
+  - `POST /work_reports/monthly_summary` – miesięczne podsumowanie dla bieżącego użytkownika
 
-#### Odczyt projektów
-- **Endpoint:** `GET /projects`
-- **Dostęp:** Tylko dla użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca listę wszystkich projektów.
+- Przydziały użytkowników do projektów:
+  - `POST /user_projects` – przypisanie (admin/HR)
+  - `GET /user_projects` – odczyt przypisań (admin/HR)
+  - `GET /user_projects/assigned_users/{project_id}` – lista użytkowników przypisanych do projektu (admin/HR)
 
-#### Aktualizacja projektu
-- **Endpoint:** `PUT /projects/{project_id}`
-- **Parametry ścieżki:**
-  - `project_id`: ID projektu do zaktualizowania.
-- **Dane opcjonalne:**
-  - `project_name`: Nowa nazwa projektu.
-  - `description`: Nowy opis projektu.
-  - `owner_user_id`: Nowy ID właściciela projektu.
-- **Dostęp:** Tylko dla użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca zaktualizowane dane projektu.
+### Raporty projektowe (nowe)
+- `POST /projects/monthly_summary` (admin/HR)
+  - Wejście: `{ project_id, month, year }`
+  - Wyjście: `{ total_hours, total_minutes }` dla całego projektu w miesiącu (minuty znormalizowane)
 
-### Komunikaty
-#### Odczyt komunikatów
-- **Endpoint:** `GET /messages`
-- **Dostęp:** Dla wszystkich zalogowanych użytkowników.
-- **Odpowiedź:** Zwraca listę aktywnych komunikatów.
+- `POST /projects/monthly_summary_with_users` (admin/HR)
+  - Wejście: `{ project_id, month, year }`
+  - Wyjście: suma projektu + lista użytkowników z ich łącznym czasem w miesiącu
 
-#### Tworzenie nowego komunikatu
-- **Endpoint:** `POST /messages`
-- **Dane wymagane:** 
-  - `title`: Tytuł komunikatu.
-  - `content`: Treść komunikatu.
-- **Dostęp:** Tylko dla użytkowników z rolą admin.
-- **Odpowiedź:** Zwraca dane nowo utworzonego komunikatu.
+- `POST /projects/user_detailed_report` (admin/HR)
+  - Wejście: `{ project_id, user_id, month, year }`
+  - Wyjście: szczegółowe wpisy (data, projekt, opis, godziny/minuty) posortowane chronologicznie
 
-### Raporty pracy
-#### Dodawanie raportu pracy
-- **Endpoint:** `POST /work_reports`
-- **Dane wymagane:** 
-  - `project_id`: ID projektu.
-  - `work_date`: Data pracy.
-  - `hours_spent`: Liczba przepracowanych godzin.
-  - `minutes_spent`: Liczba przepracowanych minut.
-  - `description`: Opis (opcjonalny).
-- **Dostęp:** Tylko dla zalogowanych użytkowników.
-- **Odpowiedź:** Zwraca dane nowo utworzonego raportu.
+### Raporty użytkowników (nowe)
+- `POST /users/monthly_active_users` (admin/HR)
+  - Wejście: `{ month, year }`
+  - Wyjście: lista użytkowników, którzy raportowali czas w miesiącu + ich sumy (pomija 0)
 
-#### Odczyt raportów pracy
-- **Endpoint:** `GET /work_reports`
-- **Dane opcjonalne:** 
-  - `work_date`: Data pracy (opcjonalna).
-- **Dostęp:** Tylko dla zalogowanych użytkowników.
-- **Odpowiedź:** Zwraca listę raportów pracy dla zalogowanego użytkownika.
+- `POST /users/monthly_projects` (admin/HR)
+  - Wejście: `{ user_id, month, year }`
+  - Wyjście: lista projektów, w których user raportował w miesiącu + sumy per projekt
 
-#### Aktualizacja raportu pracy
-- **Endpoint:** `PUT /work_reports/{report_id}`
-- **Parametry ścieżki:**
-  - `report_id`: ID raportu do zaktualizowania.
-- **Dane wymagane:**
-  - `project_id`: ID projektu.
-  - `work_date`: Data pracy.
-  - `hours_spent`: Liczba przepracowanych godzin (0-24).
-  - `minutes_spent`: Liczba przepracowanych minut (0-59).
-  - `description`: Opis (opcjonalny).
-- **Dostęp:** Tylko dla zalogowanych użytkowników (możliwość edycji tylko własnych raportów lub przez admin/HR).
-- **Odpowiedź:** Zwraca zaktualizowane dane raportu.
-- **Uwagi:** 
-  - Łączny czas pracy w danym dniu nie może przekroczyć 24 godzin.
-  - Użytkownik musi być przypisany do projektu, aby móc edytować raport dla tego projektu.
-
-#### Usuwanie raportu pracy
-- **Endpoint:** `DELETE /work_reports/{report_id}`
-- **Parametry ścieżki:**
-  - `report_id`: ID raportu do usunięcia.
-- **Dostęp:** Tylko dla zalogowanych użytkowników (możliwość usunięcia tylko własnych raportów lub przez admin/HR).
-- **Odpowiedź:** Status 204 (No Content) - brak zawartości przy sukcesie.
-
-#### Miesięczne podsumowanie raportów
-- **Endpoint:** `POST /work_reports/monthly_summary`
-- **Dane wymagane:**
-  - `year`: Rok (np. 2025).
-  - `month`: Miesiąc (1-12).
-- **Dostęp:** Tylko dla zalogowanych użytkowników.
-- **Odpowiedź:** Zwraca podsumowanie przepracowanych godzin w danym miesiącu, pogrupowane według projektów.
-
-### Przydziały użytkowników do projektów
-#### Przypisanie użytkownika do projektu
-- **Endpoint:** `POST /user_projects`
-- **Dane wymagane:** 
-  - `user_id`: ID użytkownika.
-  - `project_id`: ID projektu.
-- **Dostęp:** Tylko dla użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca dane nowego przypisania.
-
-#### Odczyt przypisań
-- **Endpoint:** `GET /user_projects`
-- **Dane opcjonalne:** 
-  - `user_id`: ID użytkownika (opcjonalne).
-  - `project_id`: ID projektu (opcjonalne).
-- **Dostęp:** Tylko dla użytkowników z rolą admin lub HR.
-- **Odpowiedź:** Zwraca listę przypisań.
+- `POST /users/user_project_detailed` (admin/HR)
+  - Wejście: `{ project_id, user_id, month, year }`
+  - Wyjście: szczegóły dni użytkownika w projekcie (data, opis, godziny/minuty)
 
 ## Inne informacje
-- Aplikacja korzysta z bazy danych PostgreSQL, której konfiguracja znajduje się w pliku `database.py`.
-- Używane są tokeny JWT do autoryzacji użytkowników.
-- Wszelkie operacje na bazie danych są realizowane za pomocą SQLAlchemy.
+- Autoryzacja: Bearer JWT (nagłówek Authorization).
+- Nginx proxy przekazuje Authorization do backendu dla ścieżek /users/*.
+- Baza danych: patrz `DB_create.md` i `DB_opis.md`.
+- Macierz endpointów i uprawnień: `ENDPOINT.md` (zawsze aktualny dokument referencyjny).
