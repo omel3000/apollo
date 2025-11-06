@@ -1,5 +1,4 @@
-
-    :root {
+:root {
       --bg-0: #f3f4f6;  /* gray-100 */
       --bg-1: #e5e7eb;  /* gray-200 */
       --panel: #ffffff; /* white */
@@ -22,6 +21,12 @@
       background: linear-gradient(135deg, var(--bg-0), var(--bg-1));
       display: grid;
       place-items: center;
+      /* Ukryj body domyślnie, pokaż po weryfikacji */
+      visibility: hidden;
+    }
+
+    body.loaded {
+      visibility: visible;
     }
 
     .card {

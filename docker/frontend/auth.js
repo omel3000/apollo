@@ -1,42 +1,73 @@
+// Weryfikacja tokenu przez backend
+async function verifyToken(token) {
+    try {
+        const response = await fetch('/users/', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.ok;
+    } catch (error) {
+        console.error('Błąd weryfikacji tokenu:', error);
+        return false;
+    }
+}
+
 // Sprawdzanie czy użytkownik jest zalogowany
-function checkAuth() {
+async function checkAuth() {
     const token = localStorage.getItem('token');
     const path = window.location.pathname;
     const isLoginPage = path === '/index.html' || path === '/';
     const isStartPage = path === '/start' || path === '/start/' || path.includes('/start/');
 
-    if (token && isLoginPage) {
-        // Mamy token i jesteśmy na stronie logowania - przekieruj do panelu
-        window.location.href = '/start/';
-        return true;
+    // Jeśli mamy token, zweryfikuj go przez backend
+    if (token) {
+        const isValid = await verifyToken(token);
+        
+        if (!isValid) {
+            // Token nieprawidłowy - usuń go
+            localStorage.removeItem('token');
+            
+            if (isStartPage) {
+                renderStartUnauthenticated();
+                document.body.classList.add('loaded');
+                return false;
+            }
+            if (!isLoginPage) {
+                window.location.href = '/index.html';
+                return false;
+            }
+        } else {
+            // Token prawidłowy
+            if (isLoginPage) {
+                window.location.href = '/start/';
+                return true;
+            }
+            document.body.classList.add('loaded');
+            return true;
+        }
     }
 
-    if (!token) {
-        if (isStartPage) {
-            // Na /start/ — pokaż komunikat o braku zalogowania zamiast przekierowywać
-            renderStartUnauthenticated();
-            return false;
-        }
-        if (!isLoginPage) {
-            // Brak tokenu i nie jesteśmy na stronie logowania ani start - przekieruj do logowania
-            window.location.href = '/index.html';
-            return false;
-        }
-    } else if (isStartPage) {
-        showAuthorizedContent();
+    // Brak tokenu
+    if (isStartPage) {
+        renderStartUnauthenticated();
+        document.body.classList.add('loaded');
+        return false;
+    }
+    
+    if (!isLoginPage) {
+        window.location.href = '/index.html';
+        return false;
     }
 
-    return true;
+    document.body.classList.add('loaded');
+    return false;
 }
 
 function renderStartUnauthenticated() {
     const main = document.getElementById('mainCard') || document.querySelector('main.card');
     if (!main) return;
-    
-    // Ukryj loading
-    const loadingState = document.getElementById('loadingState');
-    if (loadingState) loadingState.style.display = 'none';
-    
     main.innerHTML = `
       <h1 class="title">Panel Apollo</h1>
       <p>Nie jesteś zalogowany, zaloguj się</p>
@@ -46,14 +77,6 @@ function renderStartUnauthenticated() {
     `;
     const btn = document.getElementById('toLogin');
     if (btn) btn.addEventListener('click', () => window.location.href = '/index.html');
-}
-
-function showAuthorizedContent() {
-    const loadingState = document.getElementById('loadingState');
-    const mainContent = document.getElementById('mainContent');
-    
-    if (loadingState) loadingState.style.display = 'none';
-    if (mainContent) mainContent.classList.remove('content-hidden');
 }
 
 // Obsługa logowania
@@ -95,9 +118,9 @@ function logout() {
 }
 
 // Inicjalizacja
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     // Sprawdź autoryzację przy każdym załadowaniu strony
-    checkAuth();
+    await checkAuth();
     
     // Dodaj obsługę formularza logowania jeśli jest na stronie
     const loginForm = document.getElementById('loginForm');
