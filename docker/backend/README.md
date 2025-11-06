@@ -18,7 +18,7 @@
 8. [Inne informacje](#inne-informacje)
 
 ## Wprowadzenie
-Backend aplikacji Apollo jest zbudowany w oparciu o FastAPI i obsługuje zarządzanie użytkownikami, projektami, przypisaniami do projektów oraz raportami pracy. Autoryzacja oparta jest o JWT.
+Backend aplikacji Apollo jest zbudowany w oparciu o FastAPI i obsługuje zarządzanie użytkownikami, projektami, przypisaniami do projektów oraz raportami pracy. Autoryzacja oparta jest o JWT. 
 
 ## Struktura projektu
 - `main.py` – start aplikacji i rejestracja routerów
