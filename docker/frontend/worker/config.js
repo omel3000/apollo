@@ -14,6 +14,8 @@ const defaultConfig = {
 };
 
 async function onConfigChange(config) {
+  console.log('onConfigChange called with config:', config);
+  
   const primaryColor = config.primary_color || defaultConfig.primary_color;
   const surfaceColor = config.surface_color || defaultConfig.surface_color;
   const textColor = config.text_color || defaultConfig.text_color;
@@ -28,6 +30,15 @@ async function onConfigChange(config) {
   const menuSummaryText = document.getElementById('menuSummaryText');
   const messagesTitle = document.getElementById('messagesTitle');
   const welcomeMessage = document.getElementById('welcomeMessage');
+
+  console.log('Elements found:', {
+    pageTitle: !!pageTitle,
+    menuHomeText: !!menuHomeText,
+    menuTimeText: !!menuTimeText,
+    menuSummaryText: !!menuSummaryText,
+    messagesTitle: !!messagesTitle,
+    welcomeMessage: !!welcomeMessage
+  });
 
   if (pageTitle) pageTitle.textContent = config.page_title || defaultConfig.page_title;
   if (menuHomeText) menuHomeText.textContent = config.menu_home || defaultConfig.menu_home;
@@ -169,8 +180,11 @@ function mapToEditPanelValues(config) {
   ]);
 }
 
-// Inicjalizacja SDK tylko gdy jest dostępny
+// Inicjalizacja SDK tylko gdy jest dostępny i DOM jest gotowy
 function initializeSDK() {
+  console.log('initializeSDK called');
+  console.log('elementSdk available:', !!window.elementSdk);
+  
   if (window.elementSdk) {
     window.elementSdk.init({
       defaultConfig,
@@ -178,15 +192,24 @@ function initializeSDK() {
       mapToCapabilities,
       mapToEditPanelValues
     });
+    console.log('elementSdk initialized');
   }
 }
 
-// Uruchom inicjalizację gdy DOM jest gotowy
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initializeSDK);
-} else {
+// Czekaj na pełne załadowanie
+window.addEventListener('load', () => {
+  console.log('Window loaded');
   initializeSDK();
-}
+});
+
+// Uruchom też po DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded');
+  initializeSDK();
+});
 
 // Lub czekaj na custom event
-window.addEventListener('contentLoaded', initializeSDK);
+window.addEventListener('contentLoaded', () => {
+  console.log('contentLoaded event received');
+  initializeSDK();
+});

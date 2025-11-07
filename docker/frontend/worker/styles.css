@@ -22,6 +22,15 @@ html {
   width: 100%;
 }
 
+/* Upewnij się że container jest widoczny gdy ma display: block */
+#mainContent {
+  display: flex !important;
+}
+
+#mainContent[style*="display: none"] {
+  display: none !important;
+}
+
 /* Header */
 .header {
   position: fixed;

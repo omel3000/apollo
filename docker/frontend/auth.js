@@ -38,13 +38,26 @@ function showContent() {
     const loadingState = document.getElementById('loadingState');
     const mainContent = document.getElementById('mainContent');
     
-    if (loadingState) loadingState.style.display = 'none';
+    console.log('showContent called');
+    console.log('loadingState:', loadingState);
+    console.log('mainContent:', mainContent);
+    
+    if (loadingState) {
+        loadingState.style.display = 'none';
+        console.log('Loading state hidden');
+    }
+    
     if (mainContent) {
         mainContent.classList.remove('content-hidden');
-        mainContent.style.display = 'block';
+        mainContent.style.display = 'flex';
+        mainContent.style.visibility = 'visible';
+        mainContent.style.opacity = '1';
+        console.log('Main content shown');
+        console.log('Main content display:', mainContent.style.display);
     }
     
     document.body.classList.add('loaded');
+    document.body.style.visibility = 'visible';
     
     // Wyślij event, że zawartość została załadowana
     window.dispatchEvent(new Event('contentLoaded'));
