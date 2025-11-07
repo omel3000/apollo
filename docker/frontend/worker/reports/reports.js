@@ -8,6 +8,30 @@
   let initialized = false;
   let assignedProjects = []; // NOWE: projekty przypisane do usera
 
+  // NEW: przechowywanie wybranego dnia między odświeżeniami
+  const SELECTED_DATE_KEY = 'worker_reports_selected_date';
+
+  function saveSelectedDate() {
+    try {
+      localStorage.setItem(SELECTED_DATE_KEY, dateISO(selectedDate));
+    } catch {}
+  }
+
+  function restoreSelectedDate() {
+    try {
+      const iso = localStorage.getItem(SELECTED_DATE_KEY);
+      if (!iso) return;
+      const parts = iso.split('-'); // YYYY-MM-DD
+      if (parts.length !== 3) return;
+      const d = new Date(Date.UTC(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10)));
+      // ustaw lokalny dzień bez czasu
+      selectedDate = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+      selectedDate.setHours(0,0,0,0);
+      currentMonth = selectedDate.getMonth();
+      currentYear = selectedDate.getFullYear();
+    } catch {}
+  }
+
   // Utils
   function token() { return localStorage.getItem('token'); }
   function dateISO(d) { return new Date(d.getTime() - d.getTimezoneOffset()*60000).toISOString().split('T')[0]; }
@@ -79,7 +103,17 @@
       if (dt.getMonth()!==currentMonth) el.classList.add('other-month');
       if (+dt===+today) el.classList.add('today');
       if (+dt===+selectedDate) el.classList.add('selected');
-      el.addEventListener('click', () => { selectedDate = new Date(dt); selectedDate.setHours(0,0,0,0); currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear(); buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate(); });
+      el.addEventListener('click', () => {
+        selectedDate = new Date(dt);
+        selectedDate.setHours(0,0,0,0);
+        currentMonth = selectedDate.getMonth();
+        currentYear = selectedDate.getFullYear();
+        saveSelectedDate();                 // NEW: zapisz wybór dnia
+        buildYears();
+        generateCalendar();
+        updateDateDisplay();
+        loadEntriesForDate();               // NEW: zawsze pobierz wpisy przed wyświetleniem dnia
+      });
       grid.appendChild(el);
     }
   }
@@ -290,9 +324,27 @@
   // Zdarzenia
   function wireEvents() {
     document.getElementById('addEntryBtn')?.addEventListener('click', addNewEntry);
-    document.getElementById('prevDayBtn')?.addEventListener('click', ()=>{ selectedDate.setDate(selectedDate.getDate()-1); currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear(); buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate(); });
-    document.getElementById('nextDayBtn')?.addEventListener('click', ()=>{ selectedDate.setDate(selectedDate.getDate()+1); currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear(); buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate(); });
-    document.getElementById('todayBtn')?.addEventListener('click', ()=>{ selectedDate=new Date(); selectedDate.setHours(0,0,0,0); currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear(); buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate(); });
+    document.getElementById('prevDayBtn')?.addEventListener('click', ()=>{
+      selectedDate.setDate(selectedDate.getDate()-1);
+      selectedDate.setHours(0,0,0,0);
+      currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
+      saveSelectedDate();                  // NEW
+      buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
+    });
+    document.getElementById('nextDayBtn')?.addEventListener('click', ()=>{
+      selectedDate.setDate(selectedDate.getDate()+1);
+      selectedDate.setHours(0,0,0,0);
+      currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
+      saveSelectedDate();                  // NEW
+      buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
+    });
+    document.getElementById('todayBtn')?.addEventListener('click', ()=>{
+      selectedDate = new Date();
+      selectedDate.setHours(0,0,0,0);
+      currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
+      saveSelectedDate();                  // NEW
+      buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
+    });
 
     document.getElementById('entriesContainer').addEventListener('click', (e)=>{
       const t = e.target;
@@ -339,10 +391,11 @@
     if (initialized) return;
     initialized = true;
     if (!token()) return; // auth.js obsłuży
-    await loadAssignedProjects();          // najpierw projekty (dla selectów)
+    restoreSelectedDate();                // NEW: odtwórz poprzednio wybrany dzień
+    await loadAssignedProjects();         // najpierw projekty (dla selectów)
     buildYears(); generateCalendar(); updateDateDisplay();
     wireEvents();
-    loadEntriesForDate();
+    loadEntriesForDate();                 // NEW: przed pokazaniem dnia pobierz wpisy z backendu
   }
 
   if (document.readyState === 'loading') {
