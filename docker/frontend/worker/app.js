@@ -29,7 +29,8 @@ function formatMessageDate(createdAt) {
 
 // Funkcja do pobierania komunikatów z API
 async function loadMessages() {
-  console.log('loadMessages() called');
+  const container = document.querySelector('.messages-panel');
+  const loadingEl = document.getElementById('loadingMessages');
   const token = localStorage.getItem('token');
   
   if (!token) {
@@ -41,29 +42,45 @@ async function loadMessages() {
   console.log('Pobieranie komunikatów z /messages...');
 
   try {
-    const response = await fetch('/messages', {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
+    const response = await fetch('/messages/', {
+      headers: { 'Authorization': `Bearer ${token}` }
     });
-
-    console.log('Response status:', response.status);
-
+    
     if (!response.ok) {
-      console.error('Błąd pobierania komunikatów:', response.status);
-      displayError(`Błąd: ${response.status}`);
+      throw new Error('Nie udało się pobrać komunikatów');
+    }
+    
+    const messages = await response.json();
+    
+    // Usuń loading message
+    if (loadingEl) loadingEl.remove();
+    
+    if (!messages || messages.length === 0) {
+      const noMessages = document.createElement('div');
+      noMessages.className = 'message-item';
+      noMessages.innerHTML = '<div class="message-text" style="text-align: center; color: #a0aec0;">Brak komunikatów do wyświetlenia</div>';
+      container.appendChild(noMessages);
       return;
     }
-
-    const messages = await response.json();
-    console.log('Pobrano komunikaty:', messages);
     
-    // ZMIENIONE: Sortuj komunikaty od najnowszych do najstarszych
-    messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    // POPRAWIONE: Sortuj komunikaty od najnowszych do najstarszych
+    const sortedMessages = [...messages].sort((a, b) => {
+      const dateA = new Date(a.created_at || a.date_posted || 0);
+      const dateB = new Date(b.created_at || b.date_posted || 0);
+      return dateB.getTime() - dateA.getTime(); // Nowsze daty mają większą wartość, więc będą pierwsze
+    });
     
-    displayMessages(messages);
+    sortedMessages.forEach(msg => {
+      const messageElement = document.createElement('div');
+      messageElement.className = 'message-item';
+      messageElement.innerHTML = `
+        <div class="message-title">${escapeHtml(msg.title)}</div>
+        <div class="message-text">${escapeHtml(msg.content)}</div>
+        <div class="message-date">${formatMessageDate(msg.created_at)}</div>
+      `;
+      container.appendChild(messageElement);
+    });
+    
   } catch (error) {
     console.error('Błąd podczas pobierania komunikatów:', error);
     displayError('Błąd połączenia');
