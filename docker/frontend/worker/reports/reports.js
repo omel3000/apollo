@@ -541,21 +541,26 @@
     
     // Ruchome święta (zależne od Wielkanocy)
     const easter = calculateEaster(year);
-    const easterTime = easter.getTime();
-    const dateTime = new Date(year, month, day).getTime();
-    const oneDay = 24 * 60 * 60 * 1000;
+    const easterMonth = easter.getMonth();
+    const easterDay = easter.getDate();
     
-    // Wielkanoc (niedziela)
-    if (dateTime === easterTime) return true;
+    // Tworzymy obiekt Date dla porównania bez godzin
+    const easterDate = new Date(year, easterMonth, easterDay);
+    const checkDate = new Date(year, month, day);
     
-    // Poniedziałek Wielkanocny (+1 dzień)
-    if (dateTime === easterTime + oneDay) return true;
+    const daysDiff = Math.round((checkDate - easterDate) / (1000 * 60 * 60 * 24));
     
-    // Boże Ciało (+60 dni od Wielkanocy)
-    if (dateTime === easterTime + 60 * oneDay) return true;
+    // Wielkanoc (niedziela) - dzień 0
+    if (daysDiff === 0) return true;
     
-    // Zielone Świątki (+49 dni od Wielkanocy)
-    if (dateTime === easterTime + 49 * oneDay) return true;
+    // Poniedziałek Wielkanocny - dzień 1
+    if (daysDiff === 1) return true;
+    
+    // Zielone Świątki - 49 dni po Wielkanocy
+    if (daysDiff === 49) return true;
+    
+    // Boże Ciało - 60 dni po Wielkanocy
+    if (daysDiff === 60) return true;
     
     return false;
   }
