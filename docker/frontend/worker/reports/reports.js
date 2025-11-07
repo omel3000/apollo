@@ -5,6 +5,7 @@
   let currentMonth = selectedDate.getMonth();
   let currentYear = selectedDate.getFullYear();
   let entryCounter = 0;
+  let initialized = false; // NEW: flaga by uniknąć podwójnej inicjalizacji
 
   // Uwaga: docelowo pobierz listę projektów z backendu; tu lista poglądowa (name + id)
   const projects = [
@@ -207,7 +208,7 @@
           <div class="form-row">
             <div class="form-group full-width">
               <label class="form-label">Opis</label>
-              <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;">
+              <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;font-weight:600;">
                 ${escapeHtml(entry.description)}
               </div>
             </div>
@@ -216,7 +217,7 @@
           <div class="form-row">
             <div class="form-group half-width">
               <label class="form-label">Czas pracy</label>
-              <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;font-weight:600;font-family:'Courier New', monospace;">
+              <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;font-weight:600;">
                 ${entry.hours_spent}h ${entry.minutes_spent}min
               </div>
             </div>
@@ -282,6 +283,8 @@
   }
 
   function init() {
+    if (initialized) return; // NEW: zabezpieczenie przed podwójną inicjalizacją (np. DOMContentLoaded + contentLoaded)
+    initialized = true;
     if (!token()) return; // auth.js pokaże ekran logowania/komunikat
     buildYears(); generateCalendar(); updateDateDisplay(); wireEvents(); loadEntriesForDate();
   }
