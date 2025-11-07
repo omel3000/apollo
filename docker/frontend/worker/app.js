@@ -1,3 +1,116 @@
+// Funkcja do formatowania daty
+function formatMessageDate(createdAt) {
+  const messageDate = new Date(createdAt);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  // Resetuj godziny dla porównania dat
+  const messageDateOnly = new Date(messageDate.getFullYear(), messageDate.getMonth(), messageDate.getDate());
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const yesterdayOnly = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+
+  // Formatuj godzinę (hh:mm)
+  const hours = messageDate.getHours().toString().padStart(2, '0');
+  const minutes = messageDate.getMinutes().toString().padStart(2, '0');
+  const timeStr = `${hours}:${minutes}`;
+
+  if (messageDateOnly.getTime() === todayOnly.getTime()) {
+    return `Dzisiaj, ${timeStr}`;
+  } else if (messageDateOnly.getTime() === yesterdayOnly.getTime()) {
+    return `Wczoraj, ${timeStr}`;
+  } else {
+    const day = messageDate.getDate().toString().padStart(2, '0');
+    const month = (messageDate.getMonth() + 1).toString().padStart(2, '0');
+    const year = messageDate.getFullYear();
+    return `${day}.${month}.${year}, ${timeStr}`;
+  }
+}
+
+// Funkcja do pobierania komunikatów z API
+async function loadMessages() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    console.error('Brak tokenu - nie można pobrać komunikatów');
+    return;
+  }
+
+  try {
+    const response = await fetch('/messages', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      console.error('Błąd pobierania komunikatów:', response.status);
+      return;
+    }
+
+    const messages = await response.json();
+    displayMessages(messages);
+  } catch (error) {
+    console.error('Błąd podczas pobierania komunikatów:', error);
+  }
+}
+
+// Funkcja do wyświetlania komunikatów
+function displayMessages(messages) {
+  const messagesPanel = document.querySelector('.messages-panel');
+  if (!messagesPanel) {
+    console.error('Nie znaleziono panelu komunikatów');
+    return;
+  }
+
+  // Znajdź sekcję z komunikatami (po headerze)
+  const messagesHeader = messagesPanel.querySelector('.panel-header');
+  if (!messagesHeader) {
+    console.error('Nie znaleziono nagłówka komunikatów');
+    return;
+  }
+
+  // Usuń wszystkie istniejące komunikaty
+  const existingMessages = messagesPanel.querySelectorAll('.message-item');
+  existingMessages.forEach(msg => msg.remove());
+
+  // Jeśli brak komunikatów
+  if (!messages || messages.length === 0) {
+    const noMessages = document.createElement('div');
+    noMessages.className = 'message-item';
+    noMessages.style.textAlign = 'center';
+    noMessages.style.color = '#a0aec0';
+    noMessages.innerHTML = `
+      <div class="message-text">Brak aktywnych komunikatów</div>
+    `;
+    messagesHeader.insertAdjacentElement('afterend', noMessages);
+    return;
+  }
+
+  // Sortuj komunikaty od najnowszych
+  messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  // Dodaj komunikaty
+  messages.forEach(message => {
+    const messageElement = document.createElement('div');
+    messageElement.className = 'message-item';
+    messageElement.innerHTML = `
+      <div class="message-title">${escapeHtml(message.title)}</div>
+      <div class="message-text">${escapeHtml(message.content)}</div>
+      <div class="message-date">${formatMessageDate(message.created_at)}</div>
+    `;
+    messagesHeader.insertAdjacentElement('afterend', messageElement);
+  });
+}
+
+// Funkcja pomocnicza do escapowania HTML (zabezpieczenie przed XSS)
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 // Czekaj na załadowanie contentu
 function initializeApp() {
   // Menu interactions
@@ -47,6 +160,9 @@ function initializeApp() {
       }
     });
   }
+
+  // Załaduj komunikaty z API
+  loadMessages();
 }
 
 // Inicjalizuj app gdy content jest załadowany
