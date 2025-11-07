@@ -35,15 +35,17 @@ async function getCurrentUser(token) {
 
 // Funkcja do pokazania zawartości po weryfikacji
 function showContent() {
-  const loadingState = document.getElementById('loadingState');
-  const mainContent = document.getElementById('mainContent') || document.getElementById('mainContentReports');
-  if (loadingState) loadingState.style.display = 'none';
-  if (mainContent) {
-    mainContent.style.display = 'flex';
-    mainContent.classList.remove('content-hidden');
-  }
-  document.body.classList.add('loaded');
-  window.dispatchEvent(new Event('contentLoaded'));
+    const loadingState = document.getElementById('loadingState');
+    // Zmienione: obsłuż także stronę raportów
+    const mainContent = document.getElementById('mainContent') || document.getElementById('mainContentReports');
+
+    if (loadingState) loadingState.style.display = 'none';
+    if (mainContent) {
+        mainContent.classList.remove('content-hidden');
+        mainContent.style.display = 'flex';
+    }
+    document.body.classList.add('loaded');
+    window.dispatchEvent(new Event('contentLoaded'));
 }
 
 // Sprawdzanie czy użytkownik jest zalogowany

@@ -154,8 +154,10 @@ let appInitialized = false;
 function markActiveMenuByPath() {
   const path = window.location.pathname;
   if (path.includes('/worker/reports')) {
-    document.getElementById('menuReports')?.classList.add('active');
-    document.getElementById('menuHome')?.classList.remove('active');
+    const home = document.getElementById('menuHome');
+    const time = document.getElementById('menuTime');
+    if (home) home.classList.remove('active');
+    if (time) time.classList.add('active');
   }
 }
 
