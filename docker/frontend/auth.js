@@ -53,6 +53,7 @@ async function checkAuth() {
     const path = window.location.pathname;
     const isLoginPage = path === '/index.html' || path === '/';
     const isStartPage = path === '/start' || path === '/start/' || path.includes('/start/');
+    const isWorkerPage = path === '/worker' || path === '/worker/' || path.includes('/worker/');
 
     // Jeśli mamy token, zweryfikuj go przez backend
     if (token) {
@@ -62,8 +63,8 @@ async function checkAuth() {
             // Token nieprawidłowy - usuń go
             localStorage.removeItem('token');
             
-            if (isStartPage) {
-                renderStartUnauthenticated();
+            if (isStartPage || isWorkerPage) {
+                renderUnauthenticated();
             } else if (!isLoginPage) {
                 window.location.href = '/index.html';
                 return false;
@@ -75,23 +76,23 @@ async function checkAuth() {
                 return true;
             }
             
-            // Dla strony /start sprawdź rolę
-            if (isStartPage) {
+            // Dla strony /worker sprawdź rolę
+            if (isWorkerPage) {
                 if (user.role !== 'worker') {
-                    renderStartInsufficientPermissions(user);
+                    renderInsufficientPermissions(user);
                     document.body.classList.add('loaded');
                     return false;
                 }
             }
             
-            // Token OK i rola OK, pokaż zawartość strony
+            // Token OK i rola OK (lub strona bez wymagań), pokaż zawartość strony
             showContent();
             return true;
         }
     } else {
         // Brak tokenu
-        if (isStartPage) {
-            renderStartUnauthenticated();
+        if (isStartPage || isWorkerPage) {
+            renderUnauthenticated();
         } else if (!isLoginPage) {
             window.location.href = '/index.html';
             return false;
@@ -103,58 +104,53 @@ async function checkAuth() {
     return false;
 }
 
-function renderStartUnauthenticated() {
+function renderUnauthenticated() {
     const loadingState = document.getElementById('loadingState');
     const mainContent = document.getElementById('mainContent');
     
-    if (loadingState) loadingState.style.display = 'none';
+    if (loadingState) {
+        loadingState.innerHTML = `
+            <div style="text-align: center; padding: 40px;">
+                <h1 style="font-size: 24px; font-weight: 600; color: #2d3748; margin-bottom: 20px;">Panel Apollo</h1>
+                <p style="margin: 20px 0; color: #4a5568;">Nie jesteś zalogowany. Zaloguj się, aby uzyskać dostęp.</p>
+                <button id="toLogin" class="btn" style="margin-top: 20px; padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                    Przejdź do logowania
+                </button>
+            </div>
+        `;
+        const btn = document.getElementById('toLogin');
+        if (btn) btn.addEventListener('click', () => window.location.href = '/index.html');
+    }
     
-    const main = document.getElementById('mainCard') || document.querySelector('main.card');
-    if (!main) return;
-    
-    // Usuń istniejącą zawartość
-    if (mainContent) mainContent.remove();
-    
-    main.innerHTML = `
-      <h1 class="title">Panel Apollo</h1>
-      <p style="text-align: center; margin: 20px 0;">Nie jesteś zalogowany. Zaloguj się, aby uzyskać dostęp.</p>
-      <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
-        <button id="toLogin" class="btn">Przejdź do logowania</button>
-      </div>
-    `;
-    const btn = document.getElementById('toLogin');
-    if (btn) btn.addEventListener('click', () => window.location.href = '/index.html');
-    
+    if (mainContent) mainContent.style.display = 'none';
     document.body.classList.add('loaded');
 }
 
 // Nowa funkcja: renderowanie komunikatu o braku uprawnień
-function renderStartInsufficientPermissions(user) {
+function renderInsufficientPermissions(user) {
     const loadingState = document.getElementById('loadingState');
     const mainContent = document.getElementById('mainContent');
     
-    if (loadingState) loadingState.style.display = 'none';
+    if (loadingState) {
+        loadingState.innerHTML = `
+            <div style="text-align: center; padding: 40px;">
+                <h1 style="font-size: 24px; font-weight: 600; color: #2d3748; margin-bottom: 20px;">Brak uprawnień</h1>
+                <p style="margin: 20px 0; color: #4a5568;">
+                    Witaj, <strong>${user.first_name} ${user.last_name}</strong>!<br><br>
+                    Nie masz wystarczających uprawnień do dostępu do tego panelu.<br><br>
+                    Wymagana rola: <strong>worker</strong><br>
+                    Twoja rola: <strong>${user.role}</strong>
+                </p>
+                <button id="logoutBtn" class="btn" style="margin-top: 20px; padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                    Wyloguj
+                </button>
+            </div>
+        `;
+        const btn = document.getElementById('logoutBtn');
+        if (btn) btn.addEventListener('click', logout);
+    }
     
-    const main = document.getElementById('mainCard') || document.querySelector('main.card');
-    if (!main) return;
-    
-    // Usuń istniejącą zawartość
-    if (mainContent) mainContent.remove();
-    
-    main.innerHTML = `
-      <h1 class="title">Brak uprawnień</h1>
-      <p style="text-align: center; margin: 20px 0;">
-        Witaj, ${user.first_name} ${user.last_name}!<br><br>
-        Nie masz wystarczających uprawnień do dostępu do tego panelu.<br>
-        Wymagana rola: <strong>worker</strong><br>
-        Twoja rola: <strong>${user.role}</strong>
-      </p>
-      <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
-        <button id="logoutBtn" class="btn">Wyloguj</button>
-      </div>
-    `;
-    const btn = document.getElementById('logoutBtn');
-    if (btn) btn.addEventListener('click', logout);
+    if (mainContent) mainContent.style.display = 'none';
 }
 
 // Obsługa logowania
