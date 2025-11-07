@@ -6,7 +6,8 @@
   let currentYear = selectedDate.getFullYear();
   let entryCounter = 0;
   let initialized = false;
-  let assignedProjects = []; // NOWE: projekty przypisane do usera
+  let assignedProjects = [];
+  let loadingEntries = false; // NEW: flaga zapobiegająca wielokrotnym wywołaniom
 
   // NEW: przechowywanie wybranego dnia między odświeżeniami
   const SELECTED_DATE_KEY = 'worker_reports_selected_date';
@@ -45,7 +46,7 @@
     const t = token();
     if (!t) return [];
     try {
-      const resp = await fetch('/user_projects/my_projects', {
+      const resp = await fetch('/user_projects/my_projects/', {  // DODANO trailing slash
         headers: { 'Authorization': `Bearer ${t}` }
       });
       if (!resp.ok) {
@@ -103,16 +104,18 @@
       if (dt.getMonth()!==currentMonth) el.classList.add('other-month');
       if (+dt===+today) el.classList.add('today');
       if (+dt===+selectedDate) el.classList.add('selected');
+      
+      // POPRAWKA: jeden listener bez wielokrotnego wywoływania loadEntriesForDate
       el.addEventListener('click', () => {
         selectedDate = new Date(dt);
         selectedDate.setHours(0,0,0,0);
         currentMonth = selectedDate.getMonth();
         currentYear = selectedDate.getFullYear();
-        saveSelectedDate();                 // NEW: zapisz wybór dnia
+        saveSelectedDate();
         buildYears();
         generateCalendar();
         updateDateDisplay();
-        loadEntriesForDate();               // NEW: zawsze pobierz wpisy przed wyświetleniem dnia
+        loadEntriesForDate(); // wywołane tylko raz
       });
       grid.appendChild(el);
     }
@@ -209,7 +212,7 @@
     if (hours===0 && minutes===0) { showNotification('Wprowadź czas pracy', 'error'); return; }
 
     try {
-      const resp = await fetch('/work_reports', {
+      const resp = await fetch('/work_reports/', {  // DODANO trailing slash
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -233,7 +236,6 @@
         if (saveBtn) saveBtn.textContent = 'Zapisz zmiany';
       }
       showNotification('Wpis został zapisany', 'success');
-      // nie przeładowujemy listy – wpis zostaje in formie edycji
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -250,7 +252,7 @@
     if (hours===0 && minutes===0) { showNotification('Wprowadź czas pracy', 'error'); return; }
 
     try {
-      const resp = await fetch(`/work_reports/${reportId}`, {
+      const resp = await fetch(`/work_reports/${reportId}/`, {  // DODANO trailing slash
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -274,7 +276,7 @@
 
   async function deleteStoredEntry(reportId, entryId) {
     try {
-      const resp = await fetch(`/work_reports/${reportId}`, {
+      const resp = await fetch(`/work_reports/${reportId}/`, {  // DODANO trailing slash
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token()}` }
       });
@@ -290,13 +292,17 @@
     }
   }
 
-  // Wczytanie wpisów na dzień – teraz w trybie edycji
+  // Wczytanie wpisów na dzień
   async function loadEntriesForDate() {
+    if (loadingEntries) return; // zapobiegaj wielokrotnym wywołaniom
+    loadingEntries = true;
+
     const c = document.getElementById('entriesContainer');
-    if (!c) return; // zabezpieczenie przed wywołaniem zanim DOM jest gotowy
+    if (!c) { loadingEntries = false; return; }
     c.innerHTML = '';
+    
     try {
-      const resp = await fetch(`/work_reports?work_date=${encodeURIComponent(dateISO(selectedDate))}`, {
+      const resp = await fetch(`/work_reports/?work_date=${encodeURIComponent(dateISO(selectedDate))}`, {  // DODANO trailing slash
         headers: { 'Authorization': `Bearer ${token()}` }
       });
       if (resp.ok) {
@@ -305,12 +311,12 @@
           c.appendChild(createEntryElement(entry));
         });
       }
-      // zawsze dodaj pusty formularz na końcu
       addNewEntry();
     } catch (err) {
       console.error('Błąd podczas pobierania wpisów:', err);
-      // błąd – ale nadal pozwól dodać nowy
       addNewEntry();
+    } finally {
+      loadingEntries = false;
     }
   }
 
@@ -326,25 +332,28 @@
   // Zdarzenia
   function wireEvents() {
     document.getElementById('addEntryBtn')?.addEventListener('click', addNewEntry);
+    
     document.getElementById('prevDayBtn')?.addEventListener('click', ()=>{
       selectedDate.setDate(selectedDate.getDate()-1);
       selectedDate.setHours(0,0,0,0);
       currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
-      saveSelectedDate();                  // NEW
+      saveSelectedDate();
       buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
     });
+    
     document.getElementById('nextDayBtn')?.addEventListener('click', ()=>{
       selectedDate.setDate(selectedDate.getDate()+1);
       selectedDate.setHours(0,0,0,0);
       currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
-      saveSelectedDate();                  // NEW
+      saveSelectedDate();
       buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
     });
+    
     document.getElementById('todayBtn')?.addEventListener('click', ()=>{
       selectedDate = new Date();
       selectedDate.setHours(0,0,0,0);
       currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
-      saveSelectedDate();                  // NEW
+      saveSelectedDate();
       buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
     });
 
@@ -394,16 +403,13 @@
     initialized = true;
     if (!token()) return; // auth.js obsłuży
     
-    restoreSelectedDate();                // NEW: odtwórz poprzednio wybrany dzień
-    await loadAssignedProjects();         // najpierw projekty (dla selectów)
+    restoreSelectedDate();
+    await loadAssignedProjects();
     buildYears();
     generateCalendar();
     updateDateDisplay();
     wireEvents();
-    
-    // POPRAWKA: wywołaj loadEntriesForDate() DOPIERO po pełnej inicjalizacji DOM
-    // (kalendarz i kontenery są już gotowe)
-    await loadEntriesForDate();
+    await loadEntriesForDate(); // wywołane tylko raz przy starcie
   }
 
   if (document.readyState === 'loading') {
