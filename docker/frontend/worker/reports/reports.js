@@ -231,25 +231,38 @@
     const fields = container.querySelectorAll('.entry-field');
     const saveBtn = container.querySelector('[data-save]');
 
+    // Funkcja sprawdzająca czy są zmiany
+    const checkForChanges = () => {
+      const projectId = document.getElementById(`project_${entryId}`)?.value || '';
+      const description = document.getElementById(`description_${entryId}`)?.value || '';
+      const hours = document.getElementById(`hours_${entryId}`)?.value || '0';
+      const minutes = document.getElementById(`minutes_${entryId}`)?.value || '0';
+
+      const changed = (
+        projectId !== container.dataset.originalProjectId ||
+        description !== container.dataset.originalDescription ||
+        hours !== container.dataset.originalHours ||
+        minutes !== container.dataset.originalMinutes
+      );
+
+      if (saveBtn) {
+        saveBtn.style.display = changed ? 'inline-block' : 'none';
+      }
+    };
+
+    // Nasłuchuj zmian w polach tekstowych/select
     fields.forEach(field => {
       ['input', 'change'].forEach(event => {
-        field.addEventListener(event, () => {
-          const projectId = document.getElementById(`project_${entryId}`)?.value || '';
-          const description = document.getElementById(`description_${entryId}`)?.value || '';
-          const hours = document.getElementById(`hours_${entryId}`)?.value || '0';
-          const minutes = document.getElementById(`minutes_${entryId}`)?.value || '0';
+        field.addEventListener(event, checkForChanges);
+      });
+    });
 
-          const changed = (
-            projectId !== container.dataset.originalProjectId ||
-            description !== container.dataset.originalDescription ||
-            hours !== container.dataset.originalHours ||
-            minutes !== container.dataset.originalMinutes
-          );
-
-          if (saveBtn) {
-            saveBtn.style.display = changed ? 'inline-block' : 'none';
-          }
-        });
+    // DODANO: Nasłuchuj kliknięć przycisków +/- (zmieniają wartość inputa czasu)
+    const timeButtons = container.querySelectorAll('.time-button');
+    timeButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        // Niewielkie opóźnienie aby input się zaktualizował
+        setTimeout(checkForChanges, 50);
       });
     });
   }
@@ -409,7 +422,11 @@
       if (resp.ok) {
         const data = await resp.json();
         calculateDailyTotal(data);
-        (data || []).forEach(entry => {
+        
+        // DODANO: Sortowanie po report_id rosnąco (najmniejsze ID na górze)
+        const sortedData = (data || []).sort((a, b) => (a.report_id || 0) - (b.report_id || 0));
+        
+        sortedData.forEach(entry => {
           const entryEl = createEntryElement(entry);
           c.appendChild(entryEl);
           attachChangeListeners(entryEl.dataset.entryId);
@@ -421,12 +438,12 @@
         }
       } else {
         calculateDailyTotal([]);
-        addNewEntry(); // brak wpisów – dodaj pusty formularz
+        addNewEntry();
       }
     } catch (err) {
       console.error('Błąd podczas pobierania wpisów:', err);
       calculateDailyTotal([]);
-      addNewEntry(); // błąd – dodaj pusty formularz
+      addNewEntry();
     } finally {
       loadingEntries = false;
     }
