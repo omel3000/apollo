@@ -78,6 +78,14 @@
 .notification.success { background:#48bb78; }
 .notification.error { background:#f56565; }
 
+.daily-summary {
+  text-align: center;
+  margin-top: 10px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #4a5568;
+}
+
 @media (max-width: 1024px) {
   .main-content { flex-direction: column; }
   .right-panel { width: 100%; order: -1; }

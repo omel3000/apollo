@@ -121,6 +121,27 @@
     }
   }
 
+  // Aktualizacja wyświetlania sumy dziennej
+  function updateDailySummary() {
+    const summaryEl = document.getElementById('dailySummary');
+    if (summaryEl) {
+      summaryEl.textContent = `Łącznie: ${dailyTotalHours}h ${dailyTotalMinutes}min`;
+    }
+  }
+
+  // Oblicz sumę godzin/minut z listy wpisów
+  function calculateDailyTotal(entries) {
+    let totalMinutes = 0;
+    (entries || []).forEach(e => {
+      const h = e.hours_spent || 0;
+      const m = e.minutes_spent || 0;
+      totalMinutes += (h * 60) + m;
+    });
+    dailyTotalHours = Math.floor(totalMinutes / 60);
+    dailyTotalMinutes = totalMinutes % 60;
+    updateDailySummary();
+  }
+
   // Formularz nowego lub istniejącego wpisu (edit-mode)
   function createEntryElement(report) {
     entryCounter++;
@@ -130,17 +151,24 @@
     div.dataset.entryId = id;
     if (report && report.report_id) {
       div.dataset.reportId = String(report.report_id);
+      div.dataset.originalProjectId = String(report.project_id || '');
+      div.dataset.originalDescription = String(report.description || '');
+      div.dataset.originalHours = String(report.hours_spent || 0);
+      div.dataset.originalMinutes = String(report.minutes_spent || 0);
     }
 
     const optionsHtml = assignedProjects.length
       ? `<option value="">Wybierz projekt...</option>${assignedProjects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}`
       : `<option value="">Brak przypisanych projektów</option>`;
 
+    const saveButtonText = (report && report.report_id) ? 'Zapisz zmiany' : 'Zapisz';
+    const saveButtonStyle = (report && report.report_id) ? 'style="display:none;"' : ''; // ukryj dla istniejących
+
     div.innerHTML = `
       <div class="form-row">
         <div class="form-group full-width">
           <label class="form-label">Projekt</label>
-          <select class="form-select" id="project_${id}" ${assignedProjects.length ? '' : 'disabled'}>
+          <select class="form-select entry-field" id="project_${id}" data-entry="${id}" ${assignedProjects.length ? '' : 'disabled'}>
             ${optionsHtml}
           </select>
         </div>
@@ -149,7 +177,7 @@
       <div class="form-row">
         <div class="form-group full-width">
           <label class="form-label">Opis (opcjonalny)</label>
-          <textarea class="form-textarea" id="description_${id}" placeholder="Opisz wykonane zadania..."></textarea>
+          <textarea class="form-textarea entry-field" id="description_${id}" data-entry="${id}" placeholder="Opisz wykonane zadania..."></textarea>
         </div>
       </div>
 
@@ -159,13 +187,13 @@
           <div class="time-input-group">
             <div class="time-control">
               <button type="button" class="time-button" data-action="dec-h" data-target="${id}">-</button>
-              <input type="number" class="time-input" id="hours_${id}" min="0" max="24" value="0">
+              <input type="number" class="time-input entry-field" id="hours_${id}" data-entry="${id}" min="0" max="24" value="0">
               <button type="button" class="time-button" data-action="inc-h" data-target="${id}">+</button>
               <span class="time-separator">h</span>
             </div>
             <div class="time-control">
               <button type="button" class="time-button" data-action="dec-m" data-target="${id}">-</button>
-              <input type="number" class="time-input" id="minutes_${id}" min="0" max="59" step="5" value="0">
+              <input type="number" class="time-input entry-field" id="minutes_${id}" data-entry="${id}" min="0" max="59" step="5" value="0">
               <button type="button" class="time-button" data-action="inc-m" data-target="${id}">+</button>
               <span class="time-separator">min</span>
             </div>
@@ -174,7 +202,7 @@
       </div>
 
       <div class="action-buttons">
-        <button class="btn btn-save" data-save="${id}">${report && report.report_id ? 'Zapisz zmiany' : 'Zapisz'}</button>
+        <button class="btn btn-save" data-save="${id}" ${saveButtonStyle}>${saveButtonText}</button>
         <button class="btn btn-delete" data-remove="${id}">Usuń</button>
       </div>
     `;
@@ -195,6 +223,37 @@
     return div;
   }
 
+  // Monitorowanie zmian w polach edycyjnych (dla istniejących wpisów)
+  function attachChangeListeners(entryId) {
+    const container = document.querySelector(`[data-entry-id="${entryId}"]`);
+    if (!container || !container.dataset.reportId) return; // tylko dla zapisanych
+
+    const fields = container.querySelectorAll('.entry-field');
+    const saveBtn = container.querySelector('[data-save]');
+
+    fields.forEach(field => {
+      ['input', 'change'].forEach(event => {
+        field.addEventListener(event, () => {
+          const projectId = document.getElementById(`project_${entryId}`)?.value || '';
+          const description = document.getElementById(`description_${entryId}`)?.value || '';
+          const hours = document.getElementById(`hours_${entryId}`)?.value || '0';
+          const minutes = document.getElementById(`minutes_${entryId}`)?.value || '0';
+
+          const changed = (
+            projectId !== container.dataset.originalProjectId ||
+            description !== container.dataset.originalDescription ||
+            hours !== container.dataset.originalHours ||
+            minutes !== container.dataset.originalMinutes
+          );
+
+          if (saveBtn) {
+            saveBtn.style.display = changed ? 'inline-block' : 'none';
+          }
+        });
+      });
+    });
+  }
+
   function addNewEntry() {
     const c = document.getElementById('entriesContainer');
     c.appendChild(createEntryElement());
@@ -212,7 +271,7 @@
     if (hours===0 && minutes===0) { showNotification('Wprowadź czas pracy', 'error'); return; }
 
     try {
-      const resp = await fetch('/work_reports/', {  // DODANO trailing slash
+      const resp = await fetch('/work_reports/', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -229,13 +288,23 @@
         return;
       }
       const saved = await resp.json();
-      // Ustaw tryb edycji na tym samym formularzu
       if (container && saved && saved.report_id) {
         container.dataset.reportId = String(saved.report_id);
+        container.dataset.originalProjectId = String(projectId);
+        container.dataset.originalDescription = description;
+        container.dataset.originalHours = String(hours);
+        container.dataset.originalMinutes = String(minutes);
+        
         const saveBtn = container.querySelector('[data-save]');
-        if (saveBtn) saveBtn.textContent = 'Zapisz zmiany';
+        if (saveBtn) {
+          saveBtn.textContent = 'Zapisz zmiany';
+          saveBtn.style.display = 'none'; // ukryj po zapisie
+        }
+        
+        attachChangeListeners(entryId); // podłącz nasłuchiwanie zmian
       }
       showNotification('Wpis został zapisany', 'success');
+      await loadEntriesForDate(); // odśwież sumę
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -243,6 +312,7 @@
 
   // Aktualizacja istniejącego wpisu
   async function updateEntry(entryId, reportId) {
+    const container = document.querySelector(`[data-entry-id="${entryId}"]`);
     const projectId = parseInt(document.getElementById(`project_${entryId}`).value || '0', 10);
     const description = (document.getElementById(`description_${entryId}`).value || '').trim();
     const hours = Math.max(0, Math.min(24, parseInt(document.getElementById(`hours_${entryId}`).value || '0', 10)));
@@ -252,7 +322,7 @@
     if (hours===0 && minutes===0) { showNotification('Wprowadź czas pracy', 'error'); return; }
 
     try {
-      const resp = await fetch(`/work_reports/${reportId}/`, {  // DODANO trailing slash
+      const resp = await fetch(`/work_reports/${reportId}`, {
         method: 'PUT',
         headers: { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -268,7 +338,20 @@
         showNotification(err.detail || `Błąd (${resp.status})`, 'error');
         return;
       }
+      
+      // Zaktualizuj oryginalne wartości
+      if (container) {
+        container.dataset.originalProjectId = String(projectId);
+        container.dataset.originalDescription = description;
+        container.dataset.originalHours = String(hours);
+        container.dataset.originalMinutes = String(minutes);
+        
+        const saveBtn = container.querySelector('[data-save]');
+        if (saveBtn) saveBtn.style.display = 'none'; // ukryj po zapisie
+      }
+      
       showNotification('Zmiany zapisane', 'success');
+      await loadEntriesForDate(); // odśwież sumę
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -276,7 +359,7 @@
 
   async function deleteStoredEntry(reportId, entryId) {
     try {
-      const resp = await fetch(`/work_reports/${reportId}/`, {  // DODANO trailing slash
+      const resp = await fetch(`/work_reports/${reportId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token()}` }
       });
@@ -284,6 +367,7 @@
         const el = document.querySelector(`[data-entry-id="${entryId}"]`);
         if (el) el.remove();
         showNotification('Wpis został usunięty', 'success');
+        await loadEntriesForDate(); // odśwież sumę
       } else {
         showNotification('Nie udało się usunąć wpisu', 'error');
       }
@@ -294,7 +378,7 @@
 
   // Wczytanie wpisów na dzień
   async function loadEntriesForDate() {
-    if (loadingEntries) return; // zapobiegaj wielokrotnym wywołaniom
+    if (loadingEntries) return;
     loadingEntries = true;
 
     const c = document.getElementById('entriesContainer');
@@ -302,18 +386,24 @@
     c.innerHTML = '';
     
     try {
-      const resp = await fetch(`/work_reports/?work_date=${encodeURIComponent(dateISO(selectedDate))}`, {  // DODANO trailing slash
+      const resp = await fetch(`/work_reports/?work_date=${encodeURIComponent(dateISO(selectedDate))}`, {
         headers: { 'Authorization': `Bearer ${token()}` }
       });
       if (resp.ok) {
         const data = await resp.json();
+        calculateDailyTotal(data); // oblicz sumę
         (data || []).forEach(entry => {
-          c.appendChild(createEntryElement(entry));
+          const entryEl = createEntryElement(entry);
+          c.appendChild(entryEl);
+          attachChangeListeners(entryEl.dataset.entryId); // podłącz nasłuchiwanie
         });
+      } else {
+        calculateDailyTotal([]);
       }
       addNewEntry();
     } catch (err) {
       console.error('Błąd podczas pobierania wpisów:', err);
+      calculateDailyTotal([]);
       addNewEntry();
     } finally {
       loadingEntries = false;
