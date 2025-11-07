@@ -124,6 +124,7 @@ html {
   box-shadow: 0 4px 12px rgba(74, 85, 104, 0.3);
 }
 
+/* Link w menu jako pełny klikany obszar, dziedziczenie koloru */
 .menu-item a.menu-link {
   color: inherit;
   text-decoration: none;
@@ -135,10 +136,6 @@ html {
 
 .menu-item.active a.menu-link {
   color: #ffffff !important;
-}
-
-.menu-icon {
-  font-size: 20px;
 }
 
 /* Main Content */
@@ -217,21 +214,82 @@ html {
   font-weight: 600;
 }
 
+/* Responsywność – jak w widoku kalendarza (reports.css) */
+@media (max-width: 1024px) {
+  .main-content {
+    flex-direction: column;
+    gap: 20px;
+  }
+}
+
 @media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .header {
+    position: relative; /* jak w reports.css, unikamy zachodzenia */
+  }
+
   .sidebar {
-    width: 220px;
+    width: 100%;
+    height: auto;
+    padding-top: 70px;
+    order: 2;
+  }
+
+  .menu {
+    display: flex;
+    padding: 10px 20px;
+    gap: 10px;
+    overflow-x: auto;
+  }
+
+  .menu-item {
+    margin-bottom: 0;
+    white-space: nowrap;
+    min-width: auto;
+    padding: 10px 15px;
   }
 
   .main-content {
-    padding: 90px 20px 20px 20px;
+    padding: 20px;
+    order: 1;
   }
 
   .messages-panel {
-    padding: 25px;
+    padding: 20px;
+  }
+
+  .welcome-banner {
+    padding: 20px;
   }
 
   .panel-header {
     font-size: 24px;
+    padding-bottom: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main-content {
+    padding: 15px;
+  }
+
+  .messages-panel {
+    padding: 15px;
+  }
+
+  .welcome-text {
+    font-size: 20px;
+  }
+
+  .message-item {
+    padding: 15px;
+  }
+
+  .header-title {
+    font-size: 20px;
   }
 }
 

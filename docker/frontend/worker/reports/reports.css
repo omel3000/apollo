@@ -37,8 +37,26 @@
 .form-label { font-size:14px; font-weight:600; color:#4a5568; }
 .form-select,.form-input,.form-textarea { padding:12px 15px; border:2px solid #e2e8f0; border-radius:8px; font-size:16px; transition:border-color .2s; background:#fff; }
 .form-select:focus,.form-input:focus,.form-textarea:focus { outline:none; border-color:#4a5568; }
-.form-textarea { resize:vertical; min-height:80px; }
+.form-select,
+.form-textarea {
+  font-family: inherit;        /* wymuszenie identycznej rodziny */
+  font-weight: 400;            /* jak select (domyślna waga) */
+  line-height: 1.2;            /* spójne z select */
+  letter-spacing: 0;           /* brak różnic w kerningu */
+}
 
+.form-textarea {
+  padding: 12px 15px;          /* identyczne odstępy jak select */
+  background: #fff;            /* spójne tło */
+  font-size: 16px;             /* już było, podkreślam dla jednoznaczności */
+}
+
+/* Jeśli chcesz też ujednolicić input czasu (opcjonalnie) */
+.time-input {
+  font-family: inherit;
+  font-weight: 400;
+  line-height: 1.2;
+}
 .time-input-group { display:flex; align-items:center; gap:15px; }
 .time-control { display:flex; align-items:center; gap:8px; }
 .time-input { width:60px; text-align:center; padding:8px; border:2px solid #e2e8f0; border-radius:6px; font-size:16px; font-weight:400; }
@@ -69,20 +87,31 @@
   .calendar-grid { max-width: 400px; margin: 0 auto; }
 }
 @media (max-width: 768px) {
-  .container { flex-direction: column; }
-  .sidebar { width: 100%; height: auto; padding-top: 70px; order: 2; }
-  .menu { display:flex; padding:10px 20px; gap:10px; overflow-x:auto; }
-  .menu-item { margin-bottom:0; white-space:nowrap; min-width:auto; padding:10px 15px; }
-  .main-content { padding:20px; order:1; }
-  .content-panel, .entry-container { padding:20px; }
-  .header { position: relative; }
-  .date-navigation { flex-wrap: wrap; gap: 10px; }
-  .nav-button { width: 40px; height: 40px; font-size: 16px; }
-  .today-button { padding: 10px 16px; font-size: 13px; }
+  .left-panel, .right-panel {
+    gap: 16px;
+  }
+  .content-panel, .entry-container {
+    padding: 18px;
+  }
+  .day-name {
+    font-size: 26px;
+  }
+  .date-text {
+    font-size: 18px;
+  }
 }
 @media (max-width: 480px) {
   .main-content { padding: 15px; }
-  .content-panel, .entry-container { padding: 15px; }
+  .content-panel, .entry-container {
+    padding: 14px;
+  }
+  .form-row {
+    gap: 12px;
+  }
+  .time-input {
+    width: 54px;
+    font-size: 15px;
+  }
   .day-name { font-size: 24px !important; }
   .date-text { font-size: 18px; }
   .calendar-day { font-size: 12px; }
