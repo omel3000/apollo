@@ -1,4 +1,7 @@
-const defaultConfig = {
+// Element SDK configuration - disabled (SDK not available)
+// console.log('config.js loaded - SDK functionality disabled');
+
+/*const defaultConfig = {
   page_title: "Panel Pracownika",
   menu_home: "Strona główna",
   menu_time: "Rejestracja czasu pracy",
@@ -212,4 +215,4 @@ document.addEventListener('DOMContentLoaded', () => {
 window.addEventListener('contentLoaded', () => {
   console.log('contentLoaded event received');
   initializeSDK();
-});
+});*/

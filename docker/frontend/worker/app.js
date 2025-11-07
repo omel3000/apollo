@@ -29,11 +29,16 @@ function formatMessageDate(createdAt) {
 
 // Funkcja do pobierania komunikatów z API
 async function loadMessages() {
+  console.log('loadMessages() called');
   const token = localStorage.getItem('token');
+  
   if (!token) {
     console.error('Brak tokenu - nie można pobrać komunikatów');
+    displayError('Brak autoryzacji');
     return;
   }
+
+  console.log('Pobieranie komunikatów z /messages...');
 
   try {
     const response = await fetch('/messages', {
@@ -44,20 +49,49 @@ async function loadMessages() {
       }
     });
 
+    console.log('Response status:', response.status);
+
     if (!response.ok) {
       console.error('Błąd pobierania komunikatów:', response.status);
+      displayError(`Błąd: ${response.status}`);
       return;
     }
 
     const messages = await response.json();
+    console.log('Pobrano komunikaty:', messages);
     displayMessages(messages);
   } catch (error) {
     console.error('Błąd podczas pobierania komunikatów:', error);
+    displayError('Błąd połączenia');
   }
+}
+
+// Funkcja do wyświetlania błędu
+function displayError(errorMsg) {
+  const messagesPanel = document.querySelector('.messages-panel');
+  if (!messagesPanel) return;
+
+  const messagesHeader = messagesPanel.querySelector('.panel-header');
+  if (!messagesHeader) return;
+
+  // Usuń istniejące komunikaty
+  const existingMessages = messagesPanel.querySelectorAll('.message-item');
+  existingMessages.forEach(msg => msg.remove());
+
+  const errorElement = document.createElement('div');
+  errorElement.className = 'message-item';
+  errorElement.style.textAlign = 'center';
+  errorElement.style.color = '#e53e3e';
+  errorElement.innerHTML = `
+    <div class="message-text">Nie udało się załadować komunikatów: ${errorMsg}</div>
+  `;
+  messagesHeader.insertAdjacentElement('afterend', errorElement);
 }
 
 // Funkcja do wyświetlania komunikatów
 function displayMessages(messages) {
+  console.log('displayMessages() called with', messages?.length || 0, 'messages');
+  
   const messagesPanel = document.querySelector('.messages-panel');
   if (!messagesPanel) {
     console.error('Nie znaleziono panelu komunikatów');
@@ -71,12 +105,14 @@ function displayMessages(messages) {
     return;
   }
 
-  // Usuń wszystkie istniejące komunikaty
+  // Usuń wszystkie istniejące komunikaty (włącznie z "Ładowanie...")
   const existingMessages = messagesPanel.querySelectorAll('.message-item');
+  console.log('Usuwanie', existingMessages.length, 'istniejących komunikatów');
   existingMessages.forEach(msg => msg.remove());
 
   // Jeśli brak komunikatów
   if (!messages || messages.length === 0) {
+    console.log('Brak komunikatów do wyświetlenia');
     const noMessages = document.createElement('div');
     noMessages.className = 'message-item';
     noMessages.style.textAlign = 'center';
@@ -90,9 +126,11 @@ function displayMessages(messages) {
 
   // Sortuj komunikaty od najnowszych
   messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  console.log('Wyświetlanie', messages.length, 'komunikatów');
 
   // Dodaj komunikaty
-  messages.forEach(message => {
+  messages.forEach((message, index) => {
+    console.log(`Dodawanie komunikatu ${index + 1}:`, message.title);
     const messageElement = document.createElement('div');
     messageElement.className = 'message-item';
     messageElement.innerHTML = `
@@ -113,6 +151,8 @@ function escapeHtml(text) {
 
 // Czekaj na załadowanie contentu
 function initializeApp() {
+  console.log('initializeApp() called');
+  
   // Menu interactions
   const menuItems = document.querySelectorAll('.menu-item');
   menuItems.forEach(item => {
@@ -142,26 +182,8 @@ function initializeApp() {
     });
   }
 
-  const logoutBtn = document.getElementById('logoutBtn');
-  if (logoutBtn) {
-    logoutBtn.addEventListener('click', function() {
-      const messagePanel = document.querySelector('.messages-panel');
-      if (messagePanel) {
-        const tempMessage = document.createElement('div');
-        tempMessage.className = 'message-item';
-        tempMessage.style.background = '#fff5f5';
-        tempMessage.style.borderLeftColor = '#fc8181';
-        tempMessage.innerHTML = `
-          <div class="message-title">Wylogowanie</div>
-          <div class="message-text">Funkcja wylogowania zostanie wkrótce dodana.</div>
-        `;
-        messagePanel.appendChild(tempMessage);
-        setTimeout(() => tempMessage.remove(), 3000);
-      }
-    });
-  }
-
   // Załaduj komunikaty z API
+  console.log('Wywołanie loadMessages()...');
   loadMessages();
 }
 
@@ -173,4 +195,7 @@ if (document.readyState === 'loading') {
 }
 
 // Lub czekaj na custom event z auth.js
-window.addEventListener('contentLoaded', initializeApp);
+window.addEventListener('contentLoaded', () => {
+  console.log('contentLoaded event - wywołanie initializeApp()');
+  initializeApp();
+});
