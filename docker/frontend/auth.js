@@ -109,45 +109,55 @@ function renderUnauthenticated() {
     const mainContent = document.getElementById('mainContent');
     
     if (loadingState) {
+        loadingState.style.display = 'flex';
         loadingState.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
+            <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); max-width: 500px;">
                 <h1 style="font-size: 24px; font-weight: 600; color: #2d3748; margin-bottom: 20px;">Panel Apollo</h1>
                 <p style="margin: 20px 0; color: #4a5568;">Nie jesteś zalogowany. Zaloguj się, aby uzyskać dostęp.</p>
-                <button id="toLogin" class="btn" style="margin-top: 20px; padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                <button id="toLogin" style="margin-top: 20px; padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
                     Przejdź do logowania
                 </button>
             </div>
         `;
         const btn = document.getElementById('toLogin');
-        if (btn) btn.addEventListener('click', () => window.location.href = '/index.html');
+        if (btn) {
+            btn.addEventListener('click', () => window.location.href = '/index.html');
+            btn.addEventListener('mouseenter', (e) => e.target.style.background = '#374151');
+            btn.addEventListener('mouseleave', (e) => e.target.style.background = '#4a5568');
+        }
     }
     
     if (mainContent) mainContent.style.display = 'none';
     document.body.classList.add('loaded');
 }
 
-// Nowa funkcja: renderowanie komunikatu o braku uprawnień
+// Funkcja: renderowanie komunikatu o braku uprawnień
 function renderInsufficientPermissions(user) {
     const loadingState = document.getElementById('loadingState');
     const mainContent = document.getElementById('mainContent');
     
     if (loadingState) {
+        loadingState.style.display = 'flex';
         loadingState.innerHTML = `
-            <div style="text-align: center; padding: 40px;">
+            <div style="text-align: center; padding: 40px; background: white; border-radius: 20px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15); max-width: 500px;">
                 <h1 style="font-size: 24px; font-weight: 600; color: #2d3748; margin-bottom: 20px;">Brak uprawnień</h1>
-                <p style="margin: 20px 0; color: #4a5568;">
+                <p style="margin: 20px 0; color: #4a5568; line-height: 1.6;">
                     Witaj, <strong>${user.first_name} ${user.last_name}</strong>!<br><br>
                     Nie masz wystarczających uprawnień do dostępu do tego panelu.<br><br>
                     Wymagana rola: <strong>worker</strong><br>
                     Twoja rola: <strong>${user.role}</strong>
                 </p>
-                <button id="logoutBtn" class="btn" style="margin-top: 20px; padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px;">
+                <button id="logoutBtn" style="margin-top: 20px; padding: 12px 24px; background: #4a5568; color: white; border: none; border-radius: 10px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s ease;">
                     Wyloguj
                 </button>
             </div>
         `;
         const btn = document.getElementById('logoutBtn');
-        if (btn) btn.addEventListener('click', logout);
+        if (btn) {
+            btn.addEventListener('click', logout);
+            btn.addEventListener('mouseenter', (e) => e.target.style.background = '#374151');
+            btn.addEventListener('mouseleave', (e) => e.target.style.background = '#4a5568');
+        }
     }
     
     if (mainContent) mainContent.style.display = 'none';
