@@ -403,7 +403,10 @@
         attachChangeListeners(entryId);
       }
       showNotification('Wpis został zapisany', 'success');
-      await updateDailyTotalFromServer(); // ZMIENIONE: tylko suma, bez przeładowania
+      await updateDailyTotalFromServer();
+      // DODANO: Odśwież kalendarz po zapisie
+      await loadMonthlyDaysWithReports();
+      generateCalendar();
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -449,7 +452,10 @@
       }
       
       showNotification('Zmiany zapisane', 'success');
-      await updateDailyTotalFromServer(); // ZMIENIONE: tylko suma, bez przeładowania
+      await updateDailyTotalFromServer();
+      // DODANO: Odśwież kalendarz po aktualizacji
+      await loadMonthlyDaysWithReports();
+      generateCalendar();
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -465,7 +471,10 @@
         const el = document.querySelector(`[data-entry-id="${entryId}"]`);
         if (el) el.remove();
         showNotification('Wpis został usunięty', 'success');
-        await updateDailyTotalFromServer(); // ZMIENIONE: tylko suma, bez przeładowania
+        await updateDailyTotalFromServer();
+        // DODANO: Odśwież kalendarz po usunięciu
+        await loadMonthlyDaysWithReports();
+        generateCalendar();
       } else {
         showNotification('Nie udało się usunąć wpisu', 'error');
       }
@@ -600,28 +609,55 @@
   function wireEvents() {
     document.getElementById('addEntryBtn')?.addEventListener('click', addNewEntry);
     
-    document.getElementById('prevDayBtn')?.addEventListener('click', ()=>{
+    document.getElementById('prevDayBtn')?.addEventListener('click', async ()=>{
       selectedDate.setDate(selectedDate.getDate()-1);
       selectedDate.setHours(0,0,0,0);
-      currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
+      const prevMonth = currentMonth;
+      currentMonth=selectedDate.getMonth(); 
+      currentYear=selectedDate.getFullYear();
       saveSelectedDate();
-      buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
+      buildYears();
+      // ZMIENIONE: Odśwież kalendarz jeśli zmienił się miesiąc
+      if (prevMonth !== currentMonth) {
+        await loadMonthlyDaysWithReports();
+      }
+      generateCalendar();
+      updateDateDisplay(); 
+      loadEntriesForDate();
     });
     
-    document.getElementById('nextDayBtn')?.addEventListener('click', ()=>{
+    document.getElementById('nextDayBtn')?.addEventListener('click', async ()=>{
       selectedDate.setDate(selectedDate.getDate()+1);
       selectedDate.setHours(0,0,0,0);
-      currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
+      const prevMonth = currentMonth;
+      currentMonth=selectedDate.getMonth(); 
+      currentYear=selectedDate.getFullYear();
       saveSelectedDate();
-      buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
+      buildYears();
+      // ZMIENIONE: Odśwież kalendarz jeśli zmienił się miesiąc
+      if (prevMonth !== currentMonth) {
+        await loadMonthlyDaysWithReports();
+      }
+      generateCalendar();
+      updateDateDisplay(); 
+      loadEntriesForDate();
     });
     
-    document.getElementById('todayBtn')?.addEventListener('click', ()=>{
+    document.getElementById('todayBtn')?.addEventListener('click', async ()=>{
+      const prevMonth = currentMonth;
       selectedDate = new Date();
       selectedDate.setHours(0,0,0,0);
-      currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear();
+      currentMonth=selectedDate.getMonth(); 
+      currentYear=selectedDate.getFullYear();
       saveSelectedDate();
-      buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate();
+      buildYears();
+      // ZMIENIONE: Odśwież kalendarz jeśli zmienił się miesiąc
+      if (prevMonth !== currentMonth) {
+        await loadMonthlyDaysWithReports();
+      }
+      generateCalendar();
+      updateDateDisplay(); 
+      loadEntriesForDate();
     });
 
     document.getElementById('entriesContainer').addEventListener('click', (e)=>{
