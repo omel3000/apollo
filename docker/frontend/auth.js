@@ -14,6 +14,25 @@ async function verifyToken(token) {
     }
 }
 
+// Nowa funkcja: pobieranie danych użytkownika z rolą
+async function getCurrentUser(token) {
+    try {
+        const response = await fetch('/users/me', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        if (response.ok) {
+            return await response.json();
+        }
+        return null;
+    } catch (error) {
+        console.error('Błąd pobierania danych użytkownika:', error);
+        return null;
+    }
+}
+
 // Funkcja do pokazania zawartości po weryfikacji
 function showContent() {
     const loadingState = document.getElementById('loadingState');
@@ -37,9 +56,9 @@ async function checkAuth() {
 
     // Jeśli mamy token, zweryfikuj go przez backend
     if (token) {
-        const isValid = await verifyToken(token);
+        const user = await getCurrentUser(token);
         
-        if (!isValid) {
+        if (!user) {
             // Token nieprawidłowy - usuń go
             localStorage.removeItem('token');
             
@@ -55,7 +74,17 @@ async function checkAuth() {
                 window.location.href = '/start/';
                 return true;
             }
-            // Token OK, pokaż zawartość strony
+            
+            // Dla strony /start sprawdź rolę
+            if (isStartPage) {
+                if (user.role !== 'worker') {
+                    renderStartInsufficientPermissions(user);
+                    document.body.classList.add('loaded');
+                    return false;
+                }
+            }
+            
+            // Token OK i rola OK, pokaż zawartość strony
             showContent();
             return true;
         }
@@ -88,7 +117,7 @@ function renderStartUnauthenticated() {
     
     main.innerHTML = `
       <h1 class="title">Panel Apollo</h1>
-      <p>Nie jesteś zalogowany, zaloguj się</p>
+      <p style="text-align: center; margin: 20px 0;">Nie jesteś zalogowany. Zaloguj się, aby uzyskać dostęp.</p>
       <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
         <button id="toLogin" class="btn">Przejdź do logowania</button>
       </div>
@@ -97,6 +126,35 @@ function renderStartUnauthenticated() {
     if (btn) btn.addEventListener('click', () => window.location.href = '/index.html');
     
     document.body.classList.add('loaded');
+}
+
+// Nowa funkcja: renderowanie komunikatu o braku uprawnień
+function renderStartInsufficientPermissions(user) {
+    const loadingState = document.getElementById('loadingState');
+    const mainContent = document.getElementById('mainContent');
+    
+    if (loadingState) loadingState.style.display = 'none';
+    
+    const main = document.getElementById('mainCard') || document.querySelector('main.card');
+    if (!main) return;
+    
+    // Usuń istniejącą zawartość
+    if (mainContent) mainContent.remove();
+    
+    main.innerHTML = `
+      <h1 class="title">Brak uprawnień</h1>
+      <p style="text-align: center; margin: 20px 0;">
+        Witaj, ${user.first_name} ${user.last_name}!<br><br>
+        Nie masz wystarczających uprawnień do dostępu do tego panelu.<br>
+        Wymagana rola: <strong>worker</strong><br>
+        Twoja rola: <strong>${user.role}</strong>
+      </p>
+      <div style="margin-top:16px; display:flex; gap:10px; justify-content:center;">
+        <button id="logoutBtn" class="btn">Wyloguj</button>
+      </div>
+    `;
+    const btn = document.getElementById('logoutBtn');
+    if (btn) btn.addEventListener('click', logout);
 }
 
 // Obsługa logowania

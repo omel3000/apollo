@@ -25,3 +25,20 @@ Wejście do bazy TEST danych za pomocą:
 Wejście do bazy PROD:      
 
 `docker exec -it postgres-db psql -U apollo -d apollo_prod_db`
+
+---
+
+# Struktura frontendu
+
+- `/index.html` - Strona logowania (publiczna)
+- `/start/` - Panel pracownika (wymaga zalogowania + rola 'worker')
+- `/user/` - Panel użytkownika (wymaga zalogowania)
+- `/worker/` - Rozszerzony panel pracownika (w budowie)
+
+## Autoryzacja
+
+System autoryzacji w `auth.js` obsługuje:
+- Weryfikację tokenu JWT
+- Sprawdzanie roli użytkownika
+- Automatyczne przekierowania w zależności od uprawnień
+- Różne komunikaty dla niezalogowanych i użytkowników bez wystarczających uprawnień
