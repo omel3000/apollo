@@ -77,7 +77,7 @@ html {
   background: #667eea;
   border-color: #667eea;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
 }
 
 .icon-button:hover svg {
@@ -151,7 +151,7 @@ html {
 .panel-header {
   font-size: 32px;
   font-weight: 700;
-  color: #4a5568;
+  color: #2d3748;
   margin-bottom: 30px;
   padding-bottom: 20px;
   border-bottom: 3px solid #667eea;
