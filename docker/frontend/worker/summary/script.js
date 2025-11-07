@@ -329,19 +329,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('nextMonthBtn').addEventListener('click', () => navigateMonth(1));
   document.getElementById('currentMonthBtn').addEventListener('click', goToCurrentMonth);
 
-  // Menu interactions
-  document.getElementById('menuHome').addEventListener('click', function() {
-    showNotification('Strona główna zostanie wkrótce dodana', 'info');
-  });
-
-  document.getElementById('menuTime').addEventListener('click', function() {
-    showNotification('Strona rejestracji czasu zostanie wkrótce dodana', 'info');
-  });
-
-  document.getElementById('menuSummary').addEventListener('click', function() {
-    // Already on summary page
-  });
-
   // Button interactions
   document.getElementById('accountBtn').addEventListener('click', function() {
     showNotification('Funkcja ustawień konta zostanie wkrótce dodana', 'info');
