@@ -103,19 +103,7 @@
   </div>
 
   <script src="../auth.js"></script>
-  <script>
-    // Ładuj config.js i app.js dopiero po weryfikacji uprawnień
-    window.addEventListener('contentLoaded', function() {
-      const script1 = document.createElement('script');
-      script1.src = 'config.js';
-      document.body.appendChild(script1);
-      
-      script1.onload = function() {
-        const script2 = document.createElement('script');
-        script2.src = 'app.js';
-        document.body.appendChild(script2);
-      };
-    });
-  </script>
+  <script src="config.js" defer></script>
+  <script src="app.js" defer></script>
  </body>
 </html>

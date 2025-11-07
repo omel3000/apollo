@@ -21,12 +21,20 @@ async function onConfigChange(config) {
   const fontFamily = config.font_family || defaultConfig.font_family;
   const fontSize = config.font_size || defaultConfig.font_size;
 
-  document.getElementById('pageTitle').textContent = config.page_title || defaultConfig.page_title;
-  document.getElementById('menuHomeText').textContent = config.menu_home || defaultConfig.menu_home;
-  document.getElementById('menuTimeText').textContent = config.menu_time || defaultConfig.menu_time;
-  document.getElementById('menuSummaryText').textContent = config.menu_summary || defaultConfig.menu_summary;
-  document.getElementById('messagesTitle').textContent = config.messages_title || defaultConfig.messages_title;
-  document.getElementById('welcomeMessage').textContent = config.welcome_message || defaultConfig.welcome_message;
+  // Bezpieczne ustawianie tekstów
+  const pageTitle = document.getElementById('pageTitle');
+  const menuHomeText = document.getElementById('menuHomeText');
+  const menuTimeText = document.getElementById('menuTimeText');
+  const menuSummaryText = document.getElementById('menuSummaryText');
+  const messagesTitle = document.getElementById('messagesTitle');
+  const welcomeMessage = document.getElementById('welcomeMessage');
+
+  if (pageTitle) pageTitle.textContent = config.page_title || defaultConfig.page_title;
+  if (menuHomeText) menuHomeText.textContent = config.menu_home || defaultConfig.menu_home;
+  if (menuTimeText) menuTimeText.textContent = config.menu_time || defaultConfig.menu_time;
+  if (menuSummaryText) menuSummaryText.textContent = config.menu_summary || defaultConfig.menu_summary;
+  if (messagesTitle) messagesTitle.textContent = config.messages_title || defaultConfig.messages_title;
+  if (welcomeMessage) welcomeMessage.textContent = config.welcome_message || defaultConfig.welcome_message;
 
   document.body.style.background = '#f7fafc';
   
@@ -71,18 +79,24 @@ async function onConfigChange(config) {
   });
 
   const welcomeBanner = document.querySelector('.welcome-banner');
-  welcomeBanner.style.background = primaryColor;
+  if (welcomeBanner) welcomeBanner.style.background = primaryColor;
 
   const panelHeader = document.querySelector('.panel-header');
-  panelHeader.style.borderBottomColor = primaryColor;
+  if (panelHeader) panelHeader.style.borderBottomColor = primaryColor;
 
   const messageItems = document.querySelectorAll('.message-item');
   messageItems.forEach(item => item.style.borderLeftColor = primaryColor);
 
   document.body.style.fontFamily = `${fontFamily}, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
-  document.querySelector('.header-title').style.fontSize = `${fontSize * 1.5}px`;
-  document.querySelector('.panel-header').style.fontSize = `${fontSize * 2}px`;
-  document.querySelector('.welcome-text').style.fontSize = `${fontSize * 1.5}px`;
+  
+  const headerTitle = document.querySelector('.header-title');
+  const panelHeaderEl = document.querySelector('.panel-header');
+  const welcomeText = document.querySelector('.welcome-text');
+  
+  if (headerTitle) headerTitle.style.fontSize = `${fontSize * 1.5}px`;
+  if (panelHeaderEl) panelHeaderEl.style.fontSize = `${fontSize * 2}px`;
+  if (welcomeText) welcomeText.style.fontSize = `${fontSize * 1.5}px`;
+  
   document.querySelectorAll('.menu-item').forEach(el => el.style.fontSize = `${fontSize}px`);
   document.querySelectorAll('.message-title').forEach(el => el.style.fontSize = `${fontSize * 1.125}px`);
   document.querySelectorAll('.message-text').forEach(el => el.style.fontSize = `${fontSize * 0.9375}px`);
@@ -155,11 +169,24 @@ function mapToEditPanelValues(config) {
   ]);
 }
 
-if (window.elementSdk) {
-  window.elementSdk.init({
-    defaultConfig,
-    onConfigChange,
-    mapToCapabilities,
-    mapToEditPanelValues
-  });
+// Inicjalizacja SDK tylko gdy jest dostępny
+function initializeSDK() {
+  if (window.elementSdk) {
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange,
+      mapToCapabilities,
+      mapToEditPanelValues
+    });
+  }
 }
+
+// Uruchom inicjalizację gdy DOM jest gotowy
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeSDK);
+} else {
+  initializeSDK();
+}
+
+// Lub czekaj na custom event
+window.addEventListener('contentLoaded', initializeSDK);
