@@ -75,7 +75,7 @@ async function checkAuth() {
         } else {
             // Token prawidłowy
             if (isLoginPage) {
-                window.location.href = '/start/';
+                window.location.href = '/worker/';
                 return true;
             }
             
@@ -187,7 +187,7 @@ async function handleLogin(event) {
         
         if (response.ok) {
             localStorage.setItem('token', data.access_token);
-            window.location.href = '/start/';
+            window.location.href = '/worker/';
         } else {
             errorMessage.textContent = data.detail || 'Błąd logowania';
             errorMessage.style.display = 'block';
