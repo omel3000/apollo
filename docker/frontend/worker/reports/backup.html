@@ -1,0 +1,1370 @@
+<!doctype html>
+<html lang="pl">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rejestracja Czasu Pracy</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f7fafc;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    html {
+      height: 100%;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .container {
+      display: flex;
+      height: 100%;
+      width: 100%;
+    }
+
+    /* Header */
+    .header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 70px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 30px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+    }
+
+    .header-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #2d3748;
+    }
+
+    .header-icons {
+      display: flex;
+      gap: 15px;
+    }
+
+    .icon-button {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      background: #f7fafc;
+      border: 2px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 20px;
+    }
+
+    .icon-button:hover {
+      background: #4a5568;
+      border-color: #4a5568;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 85, 104, 0.4);
+    }
+
+    .icon-button:hover svg {
+      fill: white;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 250px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding-top: 90px;
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+      height: 100%;
+    }
+
+    .menu {
+      padding: 20px;
+    }
+
+    .menu-item {
+      padding: 15px 20px;
+      margin-bottom: 10px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 16px;
+      font-weight: 500;
+      color: #4a5568;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .menu-item:hover {
+      background: #4a5568;
+      color: white;
+      transform: translateX(5px);
+    }
+
+    .menu-item.active {
+      background: #4a5568;
+      color: white !important;
+      box-shadow: 0 4px 12px rgba(74, 85, 104, 0.3);
+    }
+
+    .menu-icon {
+      font-size: 20px;
+    }
+
+    /* Main Content */
+    .main-content {
+      flex: 1;
+      padding: 90px 30px 40px 30px;
+      overflow-y: auto;
+      display: flex;
+      gap: 30px;
+    }
+
+    /* Left Panel */
+    .left-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Right Panel - Calendar */
+    .right-panel {
+      width: 350px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Date Navigation */
+    .date-navigation {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    .nav-button {
+      width: 45px;
+      height: 45px;
+      border: none;
+      border-radius: 50%;
+      background: #4a5568;
+      color: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-button:hover {
+      background: #2d3748;
+      transform: scale(1.1);
+    }
+
+    .today-button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 25px;
+      background: #48bb78;
+      color: white;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      white-space: nowrap;
+    }
+
+    .today-button:hover {
+      background: #38a169;
+      transform: translateY(-2px);
+    }
+
+    .content-panel {
+      background: white;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    }
+
+    .panel-header {
+      font-size: 28px;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 25px;
+      padding-bottom: 15px;
+      border-bottom: 3px solid #4a5568;
+    }
+
+    /* Date Display */
+    .date-display {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .day-name {
+      font-size: 32px;
+      font-weight: 700;
+      color: #2d3748;
+      margin-bottom: 10px;
+    }
+
+    .date-text {
+      font-size: 24px;
+      color: #4a5568;
+      font-weight: 500;
+    }
+
+    /* Calendar */
+    .calendar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .month-year-selector {
+      display: flex;
+      gap: 10px;
+    }
+
+    .month-select, .year-select {
+      padding: 8px 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 14px;
+      background: white;
+      cursor: pointer;
+    }
+
+    .month-select:focus, .year-select:focus {
+      outline: none;
+      border-color: #4a5568;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .calendar-day-header {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #4a5568;
+      padding: 8px;
+    }
+
+    .calendar-day {
+      aspect-ratio: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      color: #2d3748;
+    }
+
+    .calendar-day:hover {
+      background: #e2e8f0;
+    }
+
+    .calendar-day.selected {
+      background: #4a5568;
+      color: white;
+    }
+
+    .calendar-day.other-month {
+      color: #cbd5e0;
+    }
+
+    .calendar-day.today {
+      background: #48bb78;
+      color: white;
+    }
+
+    .calendar-day.today.selected {
+      background: #4a5568;
+    }
+
+    /* Entry Form */
+    .entry-container {
+      border: 2px solid #e2e8f0;
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 20px;
+      transition: all 0.3s ease;
+    }
+
+    .entry-container:hover {
+      border-color: #4a5568;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .form-row {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .form-group.full-width {
+      flex: 1;
+    }
+
+    .form-group.half-width {
+      flex: 0.5;
+    }
+
+    .form-label {
+      font-size: 14px;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    .form-select, .form-input, .form-textarea {
+      padding: 12px 15px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s ease;
+      background: white;
+    }
+
+    .form-select:focus, .form-input:focus, .form-textarea:focus {
+      outline: none;
+      border-color: #4a5568;
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    /* Time Input */
+    .time-input-group {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .time-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .time-input {
+      width: 60px;
+      text-align: center;
+      padding: 8px;
+      border: 2px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .time-button {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 6px;
+      background: #4a5568;
+      color: white;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .time-button:hover {
+      background: #2d3748;
+      transform: scale(1.1);
+    }
+
+    .time-separator {
+      font-size: 20px;
+      font-weight: 600;
+      color: #4a5568;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 12px 25px;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-width: 100px;
+    }
+
+    .btn-save {
+      background: #48bb78;
+      color: white;
+    }
+
+    .btn-save:hover {
+      background: #38a169;
+      transform: translateY(-2px);
+    }
+
+    .btn-delete {
+      background: #f56565;
+      color: white;
+    }
+
+    .btn-delete:hover {
+      background: #e53e3e;
+      transform: translateY(-2px);
+    }
+
+    .btn-add {
+      background: #4a5568;
+      color: white;
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .btn-add:hover {
+      background: #2d3748;
+      transform: translateY(-2px);
+    }
+
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+
+    .notification {
+      position: fixed;
+      top: 90px;
+      right: 30px;
+      padding: 15px 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 1000;
+      font-weight: 500;
+      color: white;
+    }
+
+    .notification.success {
+      background: #48bb78;
+    }
+
+    .notification.error {
+      background: #f56565;
+    }
+
+    @media (max-width: 1024px) {
+      .main-content {
+        flex-direction: column;
+      }
+
+      .right-panel {
+        width: 100%;
+        order: -1; /* Calendar appears first on mobile */
+      }
+
+      .left-panel {
+        order: 1;
+      }
+
+      .form-row {
+        flex-direction: column;
+      }
+
+      .time-input-group {
+        justify-content: center;
+      }
+
+      .calendar-grid {
+        max-width: 400px;
+        margin: 0 auto;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        height: auto;
+        padding-top: 70px;
+        order: 2;
+      }
+
+      .menu {
+        display: flex;
+        padding: 10px 20px;
+        gap: 10px;
+        overflow-x: auto;
+      }
+
+      .menu-item {
+        margin-bottom: 0;
+        white-space: nowrap;
+        min-width: auto;
+        padding: 10px 15px;
+      }
+
+      .main-content {
+        padding: 20px;
+        order: 1;
+      }
+
+      .content-panel {
+        padding: 20px;
+      }
+
+      .entry-container {
+        padding: 20px;
+      }
+
+      .header {
+        position: relative;
+      }
+
+      .date-navigation {
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .nav-button {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+
+      .today-button {
+        padding: 10px 16px;
+        font-size: 13px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .main-content {
+        padding: 15px;
+      }
+
+      .content-panel {
+        padding: 15px;
+      }
+
+      .entry-container {
+        padding: 15px;
+      }
+
+      .day-name {
+        font-size: 24px !important;
+      }
+
+      .date-text {
+        font-size: 18px;
+      }
+
+      .calendar-day {
+        font-size: 12px;
+      }
+
+      .action-buttons {
+        flex-direction: column;
+        gap: 10px;
+      }
+
+      .btn {
+        width: 100%;
+      }
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
+ </head>
+ <body>
+  <div class="container"><!-- Header -->
+   <header class="header">
+    <div class="header-title" id="pageTitle">
+     Rejestracja Czasu Pracy
+    </div>
+    <div class="header-icons"><button class="icon-button" id="accountBtn" aria-label="Ustawienia konta">
+      <svg width="24" height="24" viewbox="0 0 24 24" fill="#4a5568"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
+      </svg></button> <button class="icon-button" id="logoutBtn" aria-label="Wyloguj">
+      <svg width="24" height="24" viewbox="0 0 24 24" fill="#4a5568"><path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+      </svg></button>
+    </div>
+   </header><!-- Sidebar -->
+   <aside class="sidebar">
+    <nav class="menu">
+     <div class="menu-item" id="menuHome"><span class="menu-icon">🏠</span> <span id="menuHomeText">Strona główna</span>
+     </div>
+     <div class="menu-item active" id="menuTime"><span class="menu-icon">⏰</span> <span id="menuTimeText">Rejestracja czasu pracy</span>
+     </div>
+     <div class="menu-item" id="menuSummary"><span class="menu-icon">📊</span> <span id="menuSummaryText">Podsumowania</span>
+     </div>
+    </nav>
+   </aside><!-- Main Content -->
+   <main class="main-content"><!-- Left Panel -->
+    <div class="left-panel"><!-- Date Display -->
+     <div class="content-panel">
+      <div class="date-display">
+       <div class="day-name" id="selectedDayName">
+        Poniedziałek
+       </div>
+       <div class="date-text" id="selectedDate">
+        01.01.2024
+       </div><!-- Date Navigation -->
+       <div class="date-navigation"><button class="nav-button" id="prevDayBtn" aria-label="Poprzedni dzień"> ← </button> <button class="today-button" id="todayBtn">Bieżący dzień</button> <button class="nav-button" id="nextDayBtn" aria-label="Następny dzień"> → </button>
+       </div>
+      </div>
+     </div><!-- Entries Container -->
+     <div class="content-panel">
+      <div id="entriesContainer"><!-- Entries will be dynamically added here -->
+      </div><button class="btn btn-add" id="addEntryBtn">Dodaj kolejny wpis</button>
+     </div>
+    </div><!-- Right Panel - Calendar -->
+    <div class="right-panel">
+     <div class="content-panel">
+      <div class="calendar-header">
+       <div class="month-year-selector"><select class="month-select" id="monthSelect"> <option value="0">Styczeń</option> <option value="1">Luty</option> <option value="2">Marzec</option> <option value="3">Kwiecień</option> <option value="4">Maj</option> <option value="5">Czerwiec</option> <option value="6">Lipiec</option> <option value="7">Sierpień</option> <option value="8">Wrzesień</option> <option value="9">Październik</option> <option value="10">Listopad</option> <option value="11">Grudzień</option> </select> <select class="year-select" id="yearSelect"> <!-- Years will be populated dynamically --> </select>
+       </div>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"><!-- Calendar will be generated here -->
+      </div>
+     </div>
+    </div>
+   </main>
+  </div>
+  <script>
+    const defaultConfig = {
+      page_title: "Rejestracja Czasu Pracy",
+      menu_home: "Strona główna",
+      menu_time: "Rejestracja czasu pracy",
+      menu_summary: "Podsumowania",
+      selected_day_label: "Wybrany dzień",
+      project_label: "Projekt",
+      description_label: "Opis (opcjonalny)",
+      time_label: "Czas pracy",
+      hours_label: "Godziny",
+      minutes_label: "Minuty",
+      save_button: "Zapisz",
+      delete_button: "Usuń",
+      add_entry_button: "Dodaj kolejny wpis",
+      primary_color: "#4a5568",
+      surface_color: "#ffffff",
+      text_color: "#2d3748",
+      accent_color: "#48bb78",
+      font_family: "Segoe UI",
+      font_size: 16
+    };
+
+    let currentData = [];
+    let selectedDate = new Date();
+    let entryCounter = 0;
+    let currentMonth = selectedDate.getMonth();
+    let currentYear = selectedDate.getFullYear();
+
+    const dayNames = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+    const projects = [
+      'Projekt A - Rozwój aplikacji',
+      'Projekt B - Analiza danych',
+      'Projekt C - Testowanie',
+      'Projekt D - Dokumentacja',
+      'Projekt E - Szkolenia',
+      'Administracja',
+      'Spotkania',
+      'Inne'
+    ];
+
+    // Data handler for SDK
+    const dataHandler = {
+      onDataChanged(data) {
+        currentData = data;
+        updateEntriesFromData();
+      }
+    };
+
+    // Initialize Data SDK
+    async function initializeDataSdk() {
+      if (window.dataSdk) {
+        const result = await window.dataSdk.init(dataHandler);
+        if (!result.isOk) {
+          console.error("Failed to initialize data SDK");
+        }
+      }
+    }
+
+    // Calendar functions
+    function initializeCalendar() {
+      const yearSelect = document.getElementById('yearSelect');
+      const currentYear = new Date().getFullYear();
+      
+      for (let year = currentYear - 5; year <= currentYear + 5; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === currentYear) option.selected = true;
+        yearSelect.appendChild(option);
+      }
+
+      document.getElementById('monthSelect').value = selectedDate.getMonth();
+      document.getElementById('yearSelect').value = selectedDate.getFullYear();
+      
+      generateCalendar();
+      updateDateDisplay();
+    }
+
+    function generateCalendar() {
+      const grid = document.getElementById('calendarGrid');
+      grid.innerHTML = '';
+
+      // Day headers - week starts on Monday
+      const dayHeaders = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'];
+      dayHeaders.forEach(day => {
+        const header = document.createElement('div');
+        header.className = 'calendar-day-header';
+        header.textContent = day;
+        grid.appendChild(header);
+      });
+
+      const firstDay = new Date(currentYear, currentMonth, 1);
+      const lastDay = new Date(currentYear, currentMonth + 1, 0);
+      const startDate = new Date(firstDay);
+      // Adjust for Monday start (0=Sunday, 1=Monday, etc.)
+      const dayOfWeek = firstDay.getDay();
+      const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      startDate.setDate(startDate.getDate() - mondayOffset);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      for (let i = 0; i < 42; i++) {
+        const date = new Date(startDate);
+        date.setDate(startDate.getDate() + i);
+        
+        const dayElement = document.createElement('div');
+        dayElement.className = 'calendar-day';
+        dayElement.textContent = date.getDate();
+        
+        if (date.getMonth() !== currentMonth) {
+          dayElement.classList.add('other-month');
+        }
+        
+        if (date.getTime() === today.getTime()) {
+          dayElement.classList.add('today');
+        }
+        
+        if (date.getTime() === selectedDate.getTime()) {
+          dayElement.classList.add('selected');
+        }
+
+        dayElement.addEventListener('click', () => {
+          selectedDate = new Date(date);
+          generateCalendar();
+          updateDateDisplay();
+          loadEntriesForDate();
+        });
+
+        grid.appendChild(dayElement);
+      }
+    }
+
+    function updateDateDisplay() {
+      const dayName = dayNames[selectedDate.getDay()];
+      const dateStr = selectedDate.toLocaleDateString('pl-PL');
+      
+      document.getElementById('selectedDayName').textContent = dayName;
+      document.getElementById('selectedDate').textContent = dateStr;
+    }
+
+    // Entry management
+    function createEntryElement() {
+      entryCounter++;
+      const entryId = `entry_${entryCounter}`;
+      
+      const entryDiv = document.createElement('div');
+      entryDiv.className = 'entry-container';
+      entryDiv.dataset.entryId = entryId;
+      
+      entryDiv.innerHTML = `
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label class="form-label" id="projectLabel${entryCounter}">Projekt</label>
+            <select class="form-select" id="project_${entryId}">
+              <option value="">Wybierz projekt...</option>
+              ${projects.map(project => `<option value="${project}">${project}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label class="form-label" id="descriptionLabel${entryCounter}">Opis (opcjonalny)</label>
+            <textarea class="form-textarea" id="description_${entryId}" placeholder="Opisz wykonane zadania..."></textarea>
+          </div>
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group half-width">
+            <label class="form-label" id="timeLabel${entryCounter}">Czas pracy</label>
+            <div class="time-input-group">
+              <div class="time-control">
+                <button type="button" class="time-button" onclick="adjustTime('${entryId}', 'hours', -1)">-</button>
+                <input type="number" class="time-input" id="hours_${entryId}" min="0" max="24" value="0">
+                <button type="button" class="time-button" onclick="adjustTime('${entryId}', 'hours', 1)">+</button>
+                <span class="time-separator" id="hoursLabel${entryCounter}">h</span>
+              </div>
+              
+              <div class="time-control">
+                <button type="button" class="time-button" onclick="adjustTime('${entryId}', 'minutes', -5)">-</button>
+                <input type="number" class="time-input" id="minutes_${entryId}" min="0" max="59" step="5" value="0">
+                <button type="button" class="time-button" onclick="adjustTime('${entryId}', 'minutes', 5)">+</button>
+                <span class="time-separator" id="minutesLabel${entryCounter}">min</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="action-buttons">
+          <button class="btn btn-save" onclick="saveEntry('${entryId}')" id="saveBtn${entryCounter}">Zapisz</button>
+          <button class="btn btn-delete" onclick="deleteEntry('${entryId}')" id="deleteBtn${entryCounter}">Usuń</button>
+        </div>
+      `;
+      
+      return entryDiv;
+    }
+
+    function addNewEntry() {
+      const container = document.getElementById('entriesContainer');
+      const entryElement = createEntryElement();
+      container.appendChild(entryElement);
+    }
+
+    function adjustTime(entryId, type, delta) {
+      const input = document.getElementById(`${type}_${entryId}`);
+      let value = parseInt(input.value) + delta;
+      
+      if (type === 'hours') {
+        value = Math.max(0, Math.min(24, value));
+      } else {
+        value = Math.max(0, Math.min(59, value));
+      }
+      
+      input.value = value;
+    }
+
+    async function saveEntry(entryId) {
+      const projectSelect = document.getElementById(`project_${entryId}`);
+      const descriptionInput = document.getElementById(`description_${entryId}`);
+      const hoursInput = document.getElementById(`hours_${entryId}`);
+      const minutesInput = document.getElementById(`minutes_${entryId}`);
+
+      const projectName = projectSelect.value.trim();
+      const description = descriptionInput.value.trim();
+      const hours = parseInt(hoursInput.value) || 0;
+      const minutes = parseInt(minutesInput.value) || 0;
+
+      if (!projectName) {
+        showNotification('Wybierz projekt', 'error');
+        return;
+      }
+
+      if (hours === 0 && minutes === 0) {
+        showNotification('Wprowadź czas pracy', 'error');
+        return;
+      }
+
+      if (currentData.length >= 999) {
+        showNotification('Osiągnięto maksymalną liczbę wpisów (999). Usuń niektóre wpisy.', 'error');
+        return;
+      }
+
+      const entry = {
+        id: `${selectedDate.toISOString().split('T')[0]}_${Date.now()}`,
+        project_name: projectName,
+        description: description,
+        hours: hours,
+        minutes: minutes,
+        date: selectedDate.toISOString().split('T')[0],
+        created_at: new Date().toISOString()
+      };
+
+      if (window.dataSdk) {
+        document.querySelector('.left-panel').classList.add('loading');
+        const result = await window.dataSdk.create(entry);
+        document.querySelector('.left-panel').classList.remove('loading');
+        
+        if (result.isOk) {
+          showNotification('Wpis został zapisany', 'success');
+          // Clear form
+          projectSelect.value = '';
+          descriptionInput.value = '';
+          hoursInput.value = '0';
+          minutesInput.value = '0';
+        } else {
+          showNotification('Błąd podczas zapisywania wpisu', 'error');
+        }
+      }
+    }
+
+    function deleteEntry(entryId) {
+      const entryElement = document.querySelector(`[data-entry-id="${entryId}"]`);
+      if (!entryElement) return;
+
+      // Check if there's any data in the form
+      const projectSelect = document.getElementById(`project_${entryId}`);
+      const descriptionInput = document.getElementById(`description_${entryId}`);
+      const hoursInput = document.getElementById(`hours_${entryId}`);
+      const minutesInput = document.getElementById(`minutes_${entryId}`);
+
+      const hasData = (projectSelect && projectSelect.value) ||
+                     (descriptionInput && descriptionInput.value.trim()) ||
+                     (hoursInput && parseInt(hoursInput.value) > 0) ||
+                     (minutesInput && parseInt(minutesInput.value) > 0);
+
+      if (hasData) {
+        showConfirmDialog('Czy na pewno chcesz usunąć ten wpis?', () => {
+          entryElement.remove();
+        });
+      } else {
+        entryElement.remove();
+      }
+    }
+
+    async function deleteStoredEntry(backendId) {
+      const record = currentData.find(r => r.__backendId === backendId);
+      if (!record || !window.dataSdk) return;
+
+      showConfirmDialog('Czy na pewno chcesz usunąć ten zapisany wpis?', async () => {
+        document.querySelector('.left-panel').classList.add('loading');
+        const result = await window.dataSdk.delete(record);
+        document.querySelector('.left-panel').classList.remove('loading');
+        
+        if (result.isOk) {
+          showNotification('Wpis został usunięty', 'success');
+        } else {
+          showNotification('Błąd podczas usuwania wpisu', 'error');
+        }
+      });
+    }
+
+    function loadEntriesForDate() {
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dayEntries = currentData.filter(entry => entry.date === dateStr);
+      
+      const container = document.getElementById('entriesContainer');
+      container.innerHTML = '';
+      
+      // Show existing entries for the selected date
+      dayEntries.forEach(entry => {
+        const entryDiv = document.createElement('div');
+        entryDiv.className = 'entry-container';
+        entryDiv.style.borderColor = '#48bb78';
+        entryDiv.innerHTML = `
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label class="form-label">Projekt</label>
+              <div style="padding: 12px 15px; background: #f7fafc; border-radius: 8px; font-weight: 600;">
+                ${entry.project_name}
+              </div>
+            </div>
+          </div>
+          
+          ${entry.description ? `
+          <div class="form-row">
+            <div class="form-group full-width">
+              <label class="form-label">Opis</label>
+              <div style="padding: 12px 15px; background: #f7fafc; border-radius: 8px;">
+                ${entry.description}
+              </div>
+            </div>
+          </div>
+          ` : ''}
+          
+          <div class="form-row">
+            <div class="form-group half-width">
+              <label class="form-label">Czas pracy</label>
+              <div style="padding: 12px 15px; background: #f7fafc; border-radius: 8px; font-weight: 600; font-family: 'Courier New', monospace;">
+                ${entry.hours}h ${entry.minutes}min
+              </div>
+            </div>
+          </div>
+          
+          <div class="action-buttons">
+            <button class="btn btn-delete" onclick="deleteStoredEntry('${entry.__backendId}')">Usuń</button>
+          </div>
+        `;
+        container.appendChild(entryDiv);
+      });
+      
+      // Add one empty entry form
+      if (dayEntries.length === 0) {
+        addNewEntry();
+      }
+    }
+
+    function updateEntriesFromData() {
+      loadEntriesForDate();
+    }
+
+    function showNotification(message, type) {
+      const notification = document.createElement('div');
+      notification.className = `notification ${type}`;
+      notification.textContent = message;
+      document.body.appendChild(notification);
+      
+      setTimeout(() => {
+        notification.remove();
+      }, 3000);
+    }
+
+    function showConfirmDialog(message, onConfirm) {
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+      `;
+
+      const dialog = document.createElement('div');
+      dialog.style.cssText = `
+        background: white;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        max-width: 400px;
+        width: 90%;
+        text-align: center;
+      `;
+
+      dialog.innerHTML = `
+        <div style="font-size: 18px; color: #2d3748; margin-bottom: 25px; font-weight: 500;">
+          ${message}
+        </div>
+        <div style="display: flex; gap: 15px; justify-content: center;">
+          <button id="confirmYes" style="
+            padding: 12px 25px;
+            background: #f56565;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          ">Tak, usuń</button>
+          <button id="confirmNo" style="
+            padding: 12px 25px;
+            background: #e2e8f0;
+            color: #4a5568;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+          ">Anuluj</button>
+        </div>
+      `;
+
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+
+      const yesBtn = dialog.querySelector('#confirmYes');
+      const noBtn = dialog.querySelector('#confirmNo');
+
+      yesBtn.addEventListener('mouseenter', () => {
+        yesBtn.style.background = '#e53e3e';
+        yesBtn.style.transform = 'translateY(-2px)';
+      });
+      yesBtn.addEventListener('mouseleave', () => {
+        yesBtn.style.background = '#f56565';
+        yesBtn.style.transform = 'translateY(0)';
+      });
+
+      noBtn.addEventListener('mouseenter', () => {
+        noBtn.style.background = '#cbd5e0';
+        noBtn.style.transform = 'translateY(-2px)';
+      });
+      noBtn.addEventListener('mouseleave', () => {
+        noBtn.style.background = '#e2e8f0';
+        noBtn.style.transform = 'translateY(0)';
+      });
+
+      yesBtn.addEventListener('click', () => {
+        overlay.remove();
+        onConfirm();
+      });
+
+      noBtn.addEventListener('click', () => {
+        overlay.remove();
+      });
+
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) {
+          overlay.remove();
+        }
+      });
+    }
+
+    async function onConfigChange(config) {
+      const primaryColor = config.primary_color || defaultConfig.primary_color;
+      const surfaceColor = config.surface_color || defaultConfig.surface_color;
+      const textColor = config.text_color || defaultConfig.text_color;
+      const accentColor = config.accent_color || defaultConfig.accent_color;
+      const fontFamily = config.font_family || defaultConfig.font_family;
+      const fontSize = config.font_size || defaultConfig.font_size;
+
+      document.getElementById('pageTitle').textContent = config.page_title || defaultConfig.page_title;
+      document.getElementById('menuHomeText').textContent = config.menu_home || defaultConfig.menu_home;
+      document.getElementById('menuTimeText').textContent = config.menu_time || defaultConfig.menu_time;
+      document.getElementById('menuSummaryText').textContent = config.menu_summary || defaultConfig.menu_summary;
+
+      // Update all dynamic labels
+      document.querySelectorAll('[id^="projectLabel"]').forEach(el => {
+        el.textContent = config.project_label || defaultConfig.project_label;
+      });
+      document.querySelectorAll('[id^="descriptionLabel"]').forEach(el => {
+        el.textContent = config.description_label || defaultConfig.description_label;
+      });
+      document.querySelectorAll('[id^="timeLabel"]').forEach(el => {
+        el.textContent = config.time_label || defaultConfig.time_label;
+      });
+      document.querySelectorAll('[id^="saveBtn"]').forEach(el => {
+        el.textContent = config.save_button || defaultConfig.save_button;
+      });
+      document.querySelectorAll('[id^="deleteBtn"]').forEach(el => {
+        el.textContent = config.delete_button || defaultConfig.delete_button;
+      });
+      document.getElementById('addEntryBtn').textContent = config.add_entry_button || defaultConfig.add_entry_button;
+
+      // Apply colors
+      document.body.style.background = '#f7fafc';
+      
+      const panels = document.querySelectorAll('.header, .sidebar, .content-panel');
+      panels.forEach(el => el.style.background = surfaceColor);
+
+      const textElements = document.querySelectorAll('.header-title, .panel-header, .form-label, .day-name');
+      textElements.forEach(el => el.style.color = textColor);
+
+      const activeMenu = document.querySelector('.menu-item.active');
+      if (activeMenu) {
+        activeMenu.style.background = primaryColor;
+        activeMenu.style.color = 'white';
+      }
+
+      const timeButtons = document.querySelectorAll('.time-button');
+      timeButtons.forEach(btn => btn.style.background = primaryColor);
+
+      const selectedDay = document.querySelector('.calendar-day.selected');
+      if (selectedDay) selectedDay.style.background = primaryColor;
+
+      document.body.style.fontFamily = `${fontFamily}, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif`;
+      document.querySelector('.header-title').style.fontSize = `${fontSize * 1.5}px`;
+      document.querySelectorAll('.day-name').forEach(el => el.style.fontSize = `${fontSize * 2}px`);
+      document.querySelectorAll('.form-label').forEach(el => el.style.fontSize = `${fontSize * 0.875}px`);
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [
+          {
+            get: () => config.primary_color || defaultConfig.primary_color,
+            set: (value) => {
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ primary_color: value });
+              }
+            }
+          },
+          {
+            get: () => config.surface_color || defaultConfig.surface_color,
+            set: (value) => {
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ surface_color: value });
+              }
+            }
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (value) => {
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ text_color: value });
+              }
+            }
+          },
+          {
+            get: () => config.accent_color || defaultConfig.accent_color,
+            set: (value) => {
+              if (window.elementSdk) {
+                window.elementSdk.setConfig({ accent_color: value });
+              }
+            }
+          }
+        ],
+        borderables: [],
+        fontEditable: {
+          get: () => config.font_family || defaultConfig.font_family,
+          set: (value) => {
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ font_family: value });
+            }
+          }
+        },
+        fontSizeable: {
+          get: () => config.font_size || defaultConfig.font_size,
+          set: (value) => {
+            if (window.elementSdk) {
+              window.elementSdk.setConfig({ font_size: value });
+            }
+          }
+        }
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["page_title", config.page_title || defaultConfig.page_title],
+        ["menu_home", config.menu_home || defaultConfig.menu_home],
+        ["menu_time", config.menu_time || defaultConfig.menu_time],
+        ["menu_summary", config.menu_summary || defaultConfig.menu_summary],
+        ["selected_day_label", config.selected_day_label || defaultConfig.selected_day_label],
+        ["project_label", config.project_label || defaultConfig.project_label],
+        ["description_label", config.description_label || defaultConfig.description_label],
+        ["time_label", config.time_label || defaultConfig.time_label],
+        ["hours_label", config.hours_label || defaultConfig.hours_label],
+        ["minutes_label", config.minutes_label || defaultConfig.minutes_label],
+        ["save_button", config.save_button || defaultConfig.save_button],
+        ["delete_button", config.delete_button || defaultConfig.delete_button],
+        ["add_entry_button", config.add_entry_button || defaultConfig.add_entry_button]
+      ]);
+    }
+
+    // Initialize SDKs
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    initializeDataSdk();
+
+    // Date navigation functions
+    function navigateDay(direction) {
+      const newDate = new Date(selectedDate);
+      newDate.setDate(selectedDate.getDate() + direction);
+      
+      selectedDate = newDate;
+      currentMonth = selectedDate.getMonth();
+      currentYear = selectedDate.getFullYear();
+      
+      // Update selectors
+      document.getElementById('monthSelect').value = currentMonth;
+      document.getElementById('yearSelect').value = currentYear;
+      
+      generateCalendar();
+      updateDateDisplay();
+      loadEntriesForDate();
+    }
+
+    function goToToday() {
+      const today = new Date();
+      selectedDate = new Date(today);
+      currentMonth = selectedDate.getMonth();
+      currentYear = selectedDate.getFullYear();
+      
+      // Update selectors
+      document.getElementById('monthSelect').value = currentMonth;
+      document.getElementById('yearSelect').value = currentYear;
+      
+      generateCalendar();
+      updateDateDisplay();
+      loadEntriesForDate();
+    }
+
+    // Event listeners
+    document.getElementById('addEntryBtn').addEventListener('click', addNewEntry);
+
+    document.getElementById('prevDayBtn').addEventListener('click', () => navigateDay(-1));
+    document.getElementById('nextDayBtn').addEventListener('click', () => navigateDay(1));
+    document.getElementById('todayBtn').addEventListener('click', goToToday);
+
+    document.getElementById('monthSelect').addEventListener('change', function() {
+      currentMonth = parseInt(this.value);
+      generateCalendar();
+    });
+
+    document.getElementById('yearSelect').addEventListener('change', function() {
+      currentYear = parseInt(this.value);
+      generateCalendar();
+    });
+
+    // Menu interactions
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(item => {
+      item.addEventListener('click', function() {
+        showNotification('Nawigacja między stronami zostanie wkrótce dodana', 'info');
+      });
+    });
+
+    // Button interactions
+    document.getElementById('accountBtn').addEventListener('click', function() {
+      showNotification('Funkcja ustawień konta zostanie wkrótce dodana', 'info');
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', function() {
+      showNotification('Funkcja wylogowania zostanie wkrótce dodana', 'info');
+    });
+
+    // Initialize calendar and add first entry
+    initializeCalendar();
+    addNewEntry();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99aba94df097b6b9',t:'MTc2MjUwNjI0Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
