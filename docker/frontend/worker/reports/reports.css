@@ -29,7 +29,8 @@
 .calendar-day.today.selected { background:#4a5568; }
 
 /* Weekendy (sobota/niedziela) – jasny czerwony */
-.calendar-day.weekend {
+.calendar-day.weekend,
+.calendar-day.holiday {
   background-color: #fed7d7;
   color: #c53030; 
 }

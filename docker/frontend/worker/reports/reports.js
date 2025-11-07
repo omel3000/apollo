@@ -542,7 +542,7 @@
     // Ruchome święta (zależne od Wielkanocy)
     const easter = calculateEaster(year);
     const easterTime = easter.getTime();
-    const dateTime = date.getTime();
+    const dateTime = new Date(year, month, day).getTime();
     const oneDay = 24 * 60 * 60 * 1000;
     
     // Wielkanoc (niedziela)
@@ -578,30 +578,33 @@
       calendarGrid.appendChild(headerCell);
     });
 
-    // Puste pola przed pierwszym dniem miesiąca
+    // Pusta komórka na początku (przed pierwszym dniem miesiąca)
     for (let i = 0; i < firstDayOfWeek; i++) {
       const emptyDiv = document.createElement('div');
       emptyDiv.className = 'calendar-day empty';
       calendarGrid.appendChild(emptyDiv);
     }
 
+    // Dni miesiąca
     for (let day = 1; day <= daysInMonth; day++) {
       const dayDiv = document.createElement('div');
       dayDiv.className = 'calendar-day';
       dayDiv.textContent = day;
       
       const currentDate = new Date(currentYear, currentMonth, day);
+      const dayOfWeek = currentDate.getDay();
       const isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
-      const isSelected = (day === selectedDate.getDate() && currentMonth === selectedDate.getMonth() && currentYear === selectedDate.getFullYear());
-      const isWeekend = (currentDate.getDay() === 0 || currentDate.getDay() === 6);
+      const isSelected = (day === selectedDay && currentMonth === selectedMonth && currentYear === selectedYear);
+      const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
       const isHoliday = isPolishHoliday(currentDate);
       
       if (isToday) dayDiv.classList.add('today');
       if (isSelected) dayDiv.classList.add('selected');
       
-      const dateKey = dateISO(currentDate);
-      const hasTime = daysWithReports.has(dateKey);
+      const dateKey = formatDateKey(currentDate);
+      const hasTime = timeEntries[dateKey] && timeEntries[dateKey].length > 0;
       
+      // Priorytet stylowania: dzień z czasem > weekend/święto > normalny dzień
       if (hasTime) {
         if (isWeekend || isHoliday) {
           dayDiv.classList.add('has-time-weekend');
@@ -610,19 +613,11 @@
         }
       } else {
         if (isWeekend || isHoliday) {
-          dayDiv.classList.add(isWeekend ? 'weekend' : 'holiday');
+          dayDiv.classList.add('weekend'); // weekend i holiday mają ten sam kolor
         }
       }
       
-      dayDiv.addEventListener('click', () => {
-        selectedDate = new Date(currentYear, currentMonth, day);
-        saveSelectedDate();
-        buildYears();
-        generateCalendar();
-        updateDateDisplay();
-        loadEntriesForDate();
-      });
-      
+      dayDiv.addEventListener('click', () => selectDate(currentDate));
       calendarGrid.appendChild(dayDiv);
     }
   }
