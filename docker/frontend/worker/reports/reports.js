@@ -259,6 +259,24 @@
     c.appendChild(createEntryElement());
   }
 
+  // Pobierz tylko sumę dla danego dnia (bez przeładowania formularzy)
+  async function updateDailyTotalFromServer() {
+    try {
+      const resp = await fetch(`/work_reports/?work_date=${encodeURIComponent(dateISO(selectedDate))}`, {
+        headers: { 'Authorization': `Bearer ${token()}` }
+      });
+      if (resp.ok) {
+        const data = await resp.json();
+        calculateDailyTotal(data);
+      } else {
+        calculateDailyTotal([]);
+      }
+    } catch (err) {
+      console.error('Błąd aktualizacji sumy:', err);
+      calculateDailyTotal([]);
+    }
+  }
+
   // Zapis nowego wpisu
   async function saveEntry(entryId) {
     const container = document.querySelector(`[data-entry-id="${entryId}"]`);
@@ -298,13 +316,13 @@
         const saveBtn = container.querySelector('[data-save]');
         if (saveBtn) {
           saveBtn.textContent = 'Zapisz zmiany';
-          saveBtn.style.display = 'none'; // ukryj po zapisie
+          saveBtn.style.display = 'none';
         }
         
-        attachChangeListeners(entryId); // podłącz nasłuchiwanie zmian
+        attachChangeListeners(entryId);
       }
       showNotification('Wpis został zapisany', 'success');
-      await loadEntriesForDate(); // odśwież sumę
+      await updateDailyTotalFromServer(); // ZMIENIONE: tylko suma, bez przeładowania
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -339,7 +357,6 @@
         return;
       }
       
-      // Zaktualizuj oryginalne wartości
       if (container) {
         container.dataset.originalProjectId = String(projectId);
         container.dataset.originalDescription = description;
@@ -347,11 +364,11 @@
         container.dataset.originalMinutes = String(minutes);
         
         const saveBtn = container.querySelector('[data-save]');
-        if (saveBtn) saveBtn.style.display = 'none'; // ukryj po zapisie
+        if (saveBtn) saveBtn.style.display = 'none';
       }
       
       showNotification('Zmiany zapisane', 'success');
-      await loadEntriesForDate(); // odśwież sumę
+      await updateDailyTotalFromServer(); // ZMIENIONE: tylko suma, bez przeładowania
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -367,7 +384,7 @@
         const el = document.querySelector(`[data-entry-id="${entryId}"]`);
         if (el) el.remove();
         showNotification('Wpis został usunięty', 'success');
-        await loadEntriesForDate(); // odśwież sumę
+        await updateDailyTotalFromServer(); // ZMIENIONE: tylko suma, bez przeładowania
       } else {
         showNotification('Nie udało się usunąć wpisu', 'error');
       }
@@ -391,20 +408,25 @@
       });
       if (resp.ok) {
         const data = await resp.json();
-        calculateDailyTotal(data); // oblicz sumę
+        calculateDailyTotal(data);
         (data || []).forEach(entry => {
           const entryEl = createEntryElement(entry);
           c.appendChild(entryEl);
-          attachChangeListeners(entryEl.dataset.entryId); // podłącz nasłuchiwanie
+          attachChangeListeners(entryEl.dataset.entryId);
         });
+        
+        // ZMIENIONE: dodaj pusty formularz TYLKO jeśli nie ma żadnych wpisów
+        if (!data || data.length === 0) {
+          addNewEntry();
+        }
       } else {
         calculateDailyTotal([]);
+        addNewEntry(); // brak wpisów – dodaj pusty formularz
       }
-      addNewEntry();
     } catch (err) {
       console.error('Błąd podczas pobierania wpisów:', err);
       calculateDailyTotal([]);
-      addNewEntry();
+      addNewEntry(); // błąd – dodaj pusty formularz
     } finally {
       loadingEntries = false;
     }
