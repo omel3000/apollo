@@ -28,6 +28,39 @@
 .calendar-day.today { background:#48bb78; color:#fff; }
 .calendar-day.today.selected { background:#4a5568; }
 
+/* Weekendy (sobota/niedziela) – jasny czerwony */
+.calendar-day.weekend {
+  background: #ffe5e5;
+  color: #c53030;
+}
+
+.calendar-day.weekend:hover {
+  background: #ffd5d5;
+}
+
+/* Dni z zaraportowanym czasem – niebieski */
+.calendar-day.has-reports {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 600;
+}
+
+.calendar-day.has-reports:hover {
+  background: #bae6fd;
+}
+
+/* Dzień dzisiejszy (zielony) ma wyższy priorytet */
+.calendar-day.today {
+  background: #48bb78 !important;
+  color: white !important;
+}
+
+/* Wybrany dzień (szary) ma najwyższy priorytet */
+.calendar-day.selected {
+  background: #4a5568 !important;
+  color: white !important;
+}
+
 .entry-container { border:2px solid #e2e8f0; border-radius:15px; padding:25px; margin-bottom:20px; transition:.2s; }
 .entry-container:hover { border-color:#4a5568; box-shadow:0 4px 12px rgba(0,0,0,.1); }
 .form-row { display:flex; gap:20px; margin-bottom:20px; }

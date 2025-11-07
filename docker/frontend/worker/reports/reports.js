@@ -8,6 +8,9 @@
   let initialized = false;
   let assignedProjects = [];
   let loadingEntries = false; // NEW: flaga zapobiegająca wielokrotnym wywołaniom
+  let dailyTotalHours = 0;
+  let dailyTotalMinutes = 0;
+  let daysWithReports = new Set(); // NOWE: zbiór dat (YYYY-MM-DD) z zaraportowanym czasem
 
   // NEW: przechowywanie wybranego dnia między odświeżeniami
   const SELECTED_DATE_KEY = 'worker_reports_selected_date';
@@ -101,11 +104,25 @@
     for (let i=0;i<42;i++) {
       const dt = new Date(start); dt.setDate(start.getDate()+i);
       const el = document.createElement('div'); el.className='calendar-day'; el.textContent = dt.getDate();
+      
+      const dayOfWeek = dt.getDay(); // 0=Niedziela, 6=Sobota
+      const dateStr = dateISO(dt);
+      
       if (dt.getMonth()!==currentMonth) el.classList.add('other-month');
+      
+      // NOWE: Soboty i niedziele – jasny czerwony
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        el.classList.add('weekend');
+      }
+      
+      // NOWE: Dni z raportami – niebieski (tylko jeśli nie są dzisiaj ani wybrane)
+      if (daysWithReports.has(dateStr) && +dt !== +today && +dt !== +selectedDate) {
+        el.classList.add('has-reports');
+      }
+      
       if (+dt===+today) el.classList.add('today');
       if (+dt===+selectedDate) el.classList.add('selected');
       
-      // POPRAWKA: jeden listener bez wielokrotnego wywoływania loadEntriesForDate
       el.addEventListener('click', () => {
         selectedDate = new Date(dt);
         selectedDate.setHours(0,0,0,0);
@@ -115,7 +132,7 @@
         buildYears();
         generateCalendar();
         updateDateDisplay();
-        loadEntriesForDate(); // wywołane tylko raz
+        loadEntriesForDate();
       });
       grid.appendChild(el);
     }
@@ -287,6 +304,35 @@
     } catch (err) {
       console.error('Błąd aktualizacji sumy:', err);
       calculateDailyTotal([]);
+    }
+  }
+
+  // NOWE: Pobierz podsumowanie miesięczne (dni z raportami)
+  async function loadMonthlyDaysWithReports() {
+    const t = token();
+    if (!t) return;
+    try {
+      const resp = await fetch('/work_reports/monthly_summary/', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${t}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          month: currentMonth + 1, // backend oczekuje 1-12
+          year: currentYear
+        })
+      });
+      if (!resp.ok) {
+        daysWithReports.clear();
+        return;
+      }
+      const data = await resp.json();
+      // Wypełnij zbiór dat z daily_hours
+      daysWithReports.clear();
+      (data.daily_hours || []).forEach(day => {
+        if (day.date) daysWithReports.add(day.date); // format YYYY-MM-DD
+      });
+    } catch (e) {
+      console.error('Błąd pobierania podsumowania miesięcznego:', e);
+      daysWithReports.clear();
     }
   }
 
@@ -519,26 +565,31 @@
       }
     });
 
-    document.getElementById('monthSelect')?.addEventListener('change', function(){
-      currentMonth = parseInt(this.value,10); generateCalendar();
+    document.getElementById('monthSelect')?.addEventListener('change', async function(){
+      currentMonth = parseInt(this.value,10);
+      await loadMonthlyDaysWithReports(); // odśwież dni z raportami
+      generateCalendar();
     });
-    document.getElementById('yearSelect')?.addEventListener('change', function(){
-      currentYear = parseInt(this.value,10); generateCalendar();
+    document.getElementById('yearSelect')?.addEventListener('change', async function(){
+      currentYear = parseInt(this.value,10);
+      await loadMonthlyDaysWithReports(); // odśwież dni z raportami
+      generateCalendar();
     });
   }
 
   async function init() {
     if (initialized) return;
     initialized = true;
-    if (!token()) return; // auth.js obsłuży
+    if (!token()) return;
     
     restoreSelectedDate();
     await loadAssignedProjects();
     buildYears();
+    await loadMonthlyDaysWithReports(); // pobierz dni z raportami PRZED generowaniem kalendarza
     generateCalendar();
     updateDateDisplay();
     wireEvents();
-    await loadEntriesForDate(); // wywołane tylko raz przy starcie
+    await loadEntriesForDate();
   }
 
   if (document.readyState === 'loading') {
