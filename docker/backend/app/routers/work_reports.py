@@ -30,7 +30,10 @@ def read_work_reports(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Zwracaj tylko raporty bieżącego użytkownika
+    """
+    Zwraca raporty pracy dla bieżącego użytkownika.
+    Opcjonalnie filtruje po work_date (format YYYY-MM-DD).
+    """
     reports = get_work_reports(db, current_user.user_id, work_date)
     return reports
 

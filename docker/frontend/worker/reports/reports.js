@@ -233,7 +233,7 @@
         if (saveBtn) saveBtn.textContent = 'Zapisz zmiany';
       }
       showNotification('Wpis został zapisany', 'success');
-      // nie przeładowujemy listy – wpis zostaje w formie edycji
+      // nie przeładowujemy listy – wpis zostaje in formie edycji
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
@@ -293,6 +293,7 @@
   // Wczytanie wpisów na dzień – teraz w trybie edycji
   async function loadEntriesForDate() {
     const c = document.getElementById('entriesContainer');
+    if (!c) return; // zabezpieczenie przed wywołaniem zanim DOM jest gotowy
     c.innerHTML = '';
     try {
       const resp = await fetch(`/work_reports?work_date=${encodeURIComponent(dateISO(selectedDate))}`, {
@@ -306,7 +307,8 @@
       }
       // zawsze dodaj pusty formularz na końcu
       addNewEntry();
-    } catch {
+    } catch (err) {
+      console.error('Błąd podczas pobierania wpisów:', err);
       // błąd – ale nadal pozwól dodać nowy
       addNewEntry();
     }
@@ -391,11 +393,17 @@
     if (initialized) return;
     initialized = true;
     if (!token()) return; // auth.js obsłuży
+    
     restoreSelectedDate();                // NEW: odtwórz poprzednio wybrany dzień
     await loadAssignedProjects();         // najpierw projekty (dla selectów)
-    buildYears(); generateCalendar(); updateDateDisplay();
+    buildYears();
+    generateCalendar();
+    updateDateDisplay();
     wireEvents();
-    loadEntriesForDate();                 // NEW: przed pokazaniem dnia pobierz wpisy z backendu
+    
+    // POPRAWKA: wywołaj loadEntriesForDate() DOPIERO po pełnej inicjalizacji DOM
+    // (kalendarz i kontenery są już gotowe)
+    await loadEntriesForDate();
   }
 
   if (document.readyState === 'loading') {
