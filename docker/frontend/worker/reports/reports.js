@@ -84,14 +84,17 @@
     }
   }
 
-  // Formularz nowego wpisu
-  function createEntryElement() {
+  // Formularz nowego lub istniejącego wpisu (edit-mode)
+  function createEntryElement(report) {
     entryCounter++;
     const id = `entry_${entryCounter}`;
     const div = document.createElement('div');
-    div.className = 'entry-container'; div.dataset.entryId = id;
+    div.className = 'entry-container';
+    div.dataset.entryId = id;
+    if (report && report.report_id) {
+      div.dataset.reportId = String(report.report_id);
+    }
 
-    // Zbuduj opcje projektów (tylko przypisane)
     const optionsHtml = assignedProjects.length
       ? `<option value="">Wybierz projekt...</option>${assignedProjects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}`
       : `<option value="">Brak przypisanych projektów</option>`;
@@ -134,10 +137,24 @@
       </div>
 
       <div class="action-buttons">
-        <button class="btn btn-save" data-save="${id}" ${assignedProjects.length ? '' : 'disabled'}>Zapisz</button>
+        <button class="btn btn-save" data-save="${id}">${report && report.report_id ? 'Zapisz zmiany' : 'Zapisz'}</button>
         <button class="btn btn-delete" data-remove="${id}">Usuń</button>
       </div>
     `;
+
+    // Ustaw wartości dla trybu edycji
+    if (report) {
+      const select = div.querySelector(`#project_${id}`);
+      const desc = div.querySelector(`#description_${id}`);
+      const hours = div.querySelector(`#hours_${id}`);
+      const minutes = div.querySelector(`#minutes_${id}`);
+
+      if (select) select.value = String(report.project_id ?? '');
+      if (desc) desc.value = report.description ?? '';
+      if (hours) hours.value = String(report.hours_spent ?? 0);
+      if (minutes) minutes.value = String(report.minutes_spent ?? 0);
+    }
+
     return div;
   }
 
@@ -146,8 +163,9 @@
     c.appendChild(createEntryElement());
   }
 
-  // Zapis/Usuwanie przez backend
+  // Zapis nowego wpisu
   async function saveEntry(entryId) {
+    const container = document.querySelector(`[data-entry-id="${entryId}"]`);
     const projectId = parseInt(document.getElementById(`project_${entryId}`).value || '0', 10);
     const description = (document.getElementById(`description_${entryId}`).value || '').trim();
     const hours = Math.max(0, Math.min(24, parseInt(document.getElementById(`hours_${entryId}`).value || '0', 10)));
@@ -173,22 +191,63 @@
         showNotification(err.detail || `Błąd (${resp.status})`, 'error');
         return;
       }
+      const saved = await resp.json();
+      // Ustaw tryb edycji na tym samym formularzu
+      if (container && saved && saved.report_id) {
+        container.dataset.reportId = String(saved.report_id);
+        const saveBtn = container.querySelector('[data-save]');
+        if (saveBtn) saveBtn.textContent = 'Zapisz zmiany';
+      }
       showNotification('Wpis został zapisany', 'success');
-      loadEntriesForDate();
+      // nie przeładowujemy listy – wpis zostaje w formie edycji
     } catch {
       showNotification('Błąd połączenia z serwerem', 'error');
     }
   }
 
-  async function deleteStoredEntry(reportId) {
+  // Aktualizacja istniejącego wpisu
+  async function updateEntry(entryId, reportId) {
+    const projectId = parseInt(document.getElementById(`project_${entryId}`).value || '0', 10);
+    const description = (document.getElementById(`description_${entryId}`).value || '').trim();
+    const hours = Math.max(0, Math.min(24, parseInt(document.getElementById(`hours_${entryId}`).value || '0', 10)));
+    const minutes = Math.max(0, Math.min(59, parseInt(document.getElementById(`minutes_${entryId}`).value || '0', 10)));
+
+    if (!projectId) { showNotification('Wybierz projekt', 'error'); return; }
+    if (hours===0 && minutes===0) { showNotification('Wprowadź czas pracy', 'error'); return; }
+
+    try {
+      const resp = await fetch(`/work_reports/${reportId}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token()}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          work_date: dateISO(selectedDate),
+          hours_spent: hours,
+          minutes_spent: minutes,
+          description
+        })
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(()=>({detail:'Błąd'}));
+        showNotification(err.detail || `Błąd (${resp.status})`, 'error');
+        return;
+      }
+      showNotification('Zmiany zapisane', 'success');
+    } catch {
+      showNotification('Błąd połączenia z serwerem', 'error');
+    }
+  }
+
+  async function deleteStoredEntry(reportId, entryId) {
     try {
       const resp = await fetch(`/work_reports/${reportId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token()}` }
       });
       if (resp.ok) {
+        const el = document.querySelector(`[data-entry-id="${entryId}"]`);
+        if (el) el.remove();
         showNotification('Wpis został usunięty', 'success');
-        loadEntriesForDate();
       } else {
         showNotification('Nie udało się usunąć wpisu', 'error');
       }
@@ -197,7 +256,7 @@
     }
   }
 
-  // Wczytanie wpisów na dzień
+  // Wczytanie wpisów na dzień – teraz w trybie edycji
   async function loadEntriesForDate() {
     const c = document.getElementById('entriesContainer');
     c.innerHTML = '';
@@ -205,52 +264,16 @@
       const resp = await fetch(`/work_reports?work_date=${encodeURIComponent(dateISO(selectedDate))}`, {
         headers: { 'Authorization': `Bearer ${token()}` }
       });
-      if (!resp.ok) { addNewEntry(); return; }
-      const data = await resp.json();
-      if (!data || data.length===0) { addNewEntry(); return; }
-
-      data.forEach(entry => {
-        const div = document.createElement('div');
-        div.className = 'entry-container';
-        div.style.borderColor = '#48bb78';
-        const projectName = (assignedProjects.find(p=>p.id===entry.project_id)?.name) || (`Projekt #${entry.project_id}`);
-        div.innerHTML = `
-          <div class="form-row">
-            <div class="form-group full-width">
-              <label class="form-label">Projekt</label>
-              <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;font-weight:600;">
-                ${projectName}
-              </div>
-            </div>
-          </div>
-          ${entry.description ? `
-          <div class="form-row">
-            <div class="form-group full-width">
-              <label class="form-label">Opis</label>
-              <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;font-weight:600;">
-                ${escapeHtml(entry.description)}
-              </div>
-            </div>
-          </div>` : ''}
-          <div class="form-row">
-            <div class="form-group half-width">
-              <label class="form-label">Czas pracy</label>
-              <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;font-weight:600;">
-                ${entry.hours_spent}h ${entry.minutes_spent}min
-              </div>
-            </div>
-          </div>
-          <div class="action-buttons">
-            <button class="btn btn-delete" data-delete-id="${entry.report_id}">Usuń</button>
-          </div>
-        `;
-        c.appendChild(div);
-      });
-      c.querySelectorAll('[data-delete-id]').forEach(btn=>{
-        btn.addEventListener('click', ()=> deleteStoredEntry(parseInt(btn.getAttribute('data-delete-id'),10)));
-      });
+      if (resp.ok) {
+        const data = await resp.json();
+        (data || []).forEach(entry => {
+          c.appendChild(createEntryElement(entry));
+        });
+      }
+      // zawsze dodaj pusty formularz na końcu
       addNewEntry();
     } catch {
+      // błąd – ale nadal pozwól dodać nowy
       addNewEntry();
     }
   }
@@ -281,10 +304,26 @@
         if (action==='inc-m') adjustTime(entryId,'minutes',+5);
         if (action==='dec-m') adjustTime(entryId,'minutes',-5);
       }
-      if (t.matches('[data-save]')) saveEntry(t.getAttribute('data-save'));
+      if (t.matches('[data-save]')) {
+        const entryId = t.getAttribute('data-save');
+        const container = document.querySelector(`[data-entry-id="${entryId}"]`);
+        const reportId = container?.dataset?.reportId;
+        if (reportId) {
+          updateEntry(entryId, parseInt(reportId, 10));
+        } else {
+          saveEntry(entryId);
+        }
+      }
       if (t.matches('[data-remove]')) {
         const entryId = t.getAttribute('data-remove');
-        const el = document.querySelector(`[data-entry-id="${entryId}"]`); if (el) el.remove();
+        const container = document.querySelector(`[data-entry-id="${entryId}"]`);
+        const reportId = container?.dataset?.reportId;
+        if (reportId) {
+          deleteStoredEntry(parseInt(reportId, 10), entryId);
+        } else {
+          // niezapisany — usuń tylko formularz
+          container?.remove();
+        }
       }
     });
 
@@ -300,7 +339,7 @@
     if (initialized) return;
     initialized = true;
     if (!token()) return; // auth.js obsłuży
-    await loadAssignedProjects();          // najpierw pobierz projekty
+    await loadAssignedProjects();          // najpierw projekty (dla selectów)
     buildYears(); generateCalendar(); updateDateDisplay();
     wireEvents();
     loadEntriesForDate();
