@@ -59,6 +59,10 @@ async function loadMessages() {
 
     const messages = await response.json();
     console.log('Pobrano komunikaty:', messages);
+    
+    // ZMIENIONE: Sortuj komunikaty od najnowszych do najstarszych
+    messages.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    
     displayMessages(messages);
   } catch (error) {
     console.error('Błąd podczas pobierania komunikatów:', error);
