@@ -5,19 +5,8 @@
   let currentMonth = selectedDate.getMonth();
   let currentYear = selectedDate.getFullYear();
   let entryCounter = 0;
-  let initialized = false; // NEW: flaga by uniknąć podwójnej inicjalizacji
-
-  // Uwaga: docelowo pobierz listę projektów z backendu; tu lista poglądowa (name + id)
-  const projects = [
-    { id: 1, name: 'Projekt A - Rozwój aplikacji' },
-    { id: 2, name: 'Projekt B - Analiza danych' },
-    { id: 3, name: 'Projekt C - Testowanie' },
-    { id: 4, name: 'Projekt D - Dokumentacja' },
-    { id: 5, name: 'Projekt E - Szkolenia' },
-    { id: 6, name: 'Administracja' },
-    { id: 7, name: 'Spotkania' },
-    { id: 8, name: 'Inne' }
-  ];
+  let initialized = false;
+  let assignedProjects = []; // NOWE: projekty przypisane do usera
 
   // Utils
   function token() { return localStorage.getItem('token'); }
@@ -25,6 +14,30 @@
   function showNotification(message, type='success') {
     const n = document.createElement('div'); n.className = `notification ${type}`; n.textContent = message;
     document.body.appendChild(n); setTimeout(()=>n.remove(), 3000);
+  }
+
+  // Pobierz projekty przypisane do zalogowanego użytkownika
+  async function loadAssignedProjects() {
+    const t = token();
+    if (!t) return [];
+    try {
+      const resp = await fetch('/user_projects/my_projects', {
+        headers: { 'Authorization': `Bearer ${t}` }
+      });
+      if (!resp.ok) {
+        console.warn('Nie udało się pobrać projektów:', resp.status);
+        assignedProjects = [];
+        return [];
+      }
+      const data = await resp.json();
+      // Mapuj do {id, name}
+      assignedProjects = (data || []).map(p => ({ id: p.project_id, name: p.project_name }));
+      return assignedProjects;
+    } catch (e) {
+      console.error('Błąd pobierania projektów:', e);
+      assignedProjects = [];
+      return [];
+    }
   }
 
   // Nagłówek dnia
@@ -77,13 +90,18 @@
     const id = `entry_${entryCounter}`;
     const div = document.createElement('div');
     div.className = 'entry-container'; div.dataset.entryId = id;
+
+    // Zbuduj opcje projektów (tylko przypisane)
+    const optionsHtml = assignedProjects.length
+      ? `<option value="">Wybierz projekt...</option>${assignedProjects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}`
+      : `<option value="">Brak przypisanych projektów</option>`;
+
     div.innerHTML = `
       <div class="form-row">
         <div class="form-group full-width">
           <label class="form-label">Projekt</label>
-          <select class="form-select" id="project_${id}">
-            <option value="">Wybierz projekt...</option>
-            ${projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('')}
+          <select class="form-select" id="project_${id}" ${assignedProjects.length ? '' : 'disabled'}>
+            ${optionsHtml}
           </select>
         </div>
       </div>
@@ -116,7 +134,7 @@
       </div>
 
       <div class="action-buttons">
-        <button class="btn btn-save" data-save="${id}">Zapisz</button>
+        <button class="btn btn-save" data-save="${id}" ${assignedProjects.length ? '' : 'disabled'}>Zapisz</button>
         <button class="btn btn-delete" data-remove="${id}">Usuń</button>
       </div>
     `;
@@ -195,12 +213,13 @@
         const div = document.createElement('div');
         div.className = 'entry-container';
         div.style.borderColor = '#48bb78';
+        const projectName = (assignedProjects.find(p=>p.id===entry.project_id)?.name) || (`Projekt #${entry.project_id}`);
         div.innerHTML = `
           <div class="form-row">
             <div class="form-group full-width">
               <label class="form-label">Projekt</label>
               <div style="padding:12px 15px;background:#f7fafc;border-radius:8px;font-weight:600;">
-                ${escapeHtml(projects.find(p=>p.id===entry.project_id)?.name || ('Projekt #' + entry.project_id))}
+                ${projectName}
               </div>
             </div>
           </div>
@@ -213,7 +232,6 @@
               </div>
             </div>
           </div>` : ''}
-
           <div class="form-row">
             <div class="form-group half-width">
               <label class="form-label">Czas pracy</label>
@@ -222,18 +240,15 @@
               </div>
             </div>
           </div>
-
           <div class="action-buttons">
             <button class="btn btn-delete" data-delete-id="${entry.report_id}">Usuń</button>
           </div>
         `;
         c.appendChild(div);
       });
-      // przyciski usuwania
       c.querySelectorAll('[data-delete-id]').forEach(btn=>{
         btn.addEventListener('click', ()=> deleteStoredEntry(parseInt(btn.getAttribute('data-delete-id'),10)));
       });
-      // dodaj formularz na końcu
       addNewEntry();
     } catch {
       addNewEntry();
@@ -256,7 +271,6 @@
     document.getElementById('nextDayBtn')?.addEventListener('click', ()=>{ selectedDate.setDate(selectedDate.getDate()+1); currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear(); buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate(); });
     document.getElementById('todayBtn')?.addEventListener('click', ()=>{ selectedDate=new Date(); selectedDate.setHours(0,0,0,0); currentMonth=selectedDate.getMonth(); currentYear=selectedDate.getFullYear(); buildYears(); generateCalendar(); updateDateDisplay(); loadEntriesForDate(); });
 
-    // Delegacja: plus/minus i zapisz/usuń formularza
     document.getElementById('entriesContainer').addEventListener('click', (e)=>{
       const t = e.target;
       if (t.matches('[data-action]')) {
@@ -282,11 +296,14 @@
     });
   }
 
-  function init() {
-    if (initialized) return; // NEW: zabezpieczenie przed podwójną inicjalizacją (np. DOMContentLoaded + contentLoaded)
+  async function init() {
+    if (initialized) return;
     initialized = true;
-    if (!token()) return; // auth.js pokaże ekran logowania/komunikat
-    buildYears(); generateCalendar(); updateDateDisplay(); wireEvents(); loadEntriesForDate();
+    if (!token()) return; // auth.js obsłuży
+    await loadAssignedProjects();          // najpierw pobierz projekty
+    buildYears(); generateCalendar(); updateDateDisplay();
+    wireEvents();
+    loadEntriesForDate();
   }
 
   if (document.readyState === 'loading') {

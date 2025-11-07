@@ -666,3 +666,16 @@ def get_user_monthly_projects_summary(db: Session, user_id: int, month: int, yea
             "total_minutes": total_minutes,
         })
     return result
+
+def get_projects_for_user(db: Session, user_id: int):
+    """
+    Zwraca listę projektów przypisanych do danego użytkownika.
+    """
+    rows = (
+        db.query(Project)
+        .join(UserProject, UserProject.project_id == Project.project_id)
+        .filter(UserProject.user_id == user_id)
+        .order_by(Project.project_name.asc())
+        .all()
+    )
+    return rows

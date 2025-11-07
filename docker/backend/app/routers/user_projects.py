@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from schemas import UserProjectCreate, UserProjectRead, UserShortRead
-from crud import assign_user_to_project, get_assignments, get_users_assigned_to_project
-from auth import admin_or_hr_required
+from schemas import UserProjectCreate, UserProjectRead, UserShortRead, ProjectRead
+from crud import assign_user_to_project, get_assignments, get_users_assigned_to_project, get_projects_for_user
+from auth import admin_or_hr_required, get_current_user
 from models import User
 
 router = APIRouter()
@@ -31,3 +31,11 @@ def get_assigned_users(project_id: int, db: Session = Depends(get_db), current_u
     """
     users = get_users_assigned_to_project(db, project_id)
     return users
+
+@router.get("/my_projects", response_model=List[ProjectRead])
+def read_my_projects(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """
+    Zwraca listę projektów przypisanych do bieżącego (zalogowanego) użytkownika.
+    """
+    projects = get_projects_for_user(db, current_user.user_id)
+    return projects
