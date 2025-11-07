@@ -93,35 +93,57 @@
   function generateCalendar() {
     const grid = document.getElementById('calendarGrid');
     grid.innerHTML = '';
+    
+    // Nagłówki dni tygodnia
     ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'].forEach(d => {
-      const h = document.createElement('div'); h.className='calendar-day-header'; h.textContent=d; grid.appendChild(h);
+      const h = document.createElement('div'); 
+      h.className='calendar-day-header'; 
+      h.textContent=d; 
+      grid.appendChild(h);
     });
+    
     const first = new Date(currentYear, currentMonth, 1);
     const start = new Date(first);
-    const dow = first.getDay(); const mondayOffset = dow === 0 ? 6 : dow - 1; start.setDate(start.getDate()-mondayOffset);
-    const today = new Date(); today.setHours(0,0,0,0);
+    const dow = first.getDay(); 
+    const mondayOffset = dow === 0 ? 6 : dow - 1; 
+    start.setDate(start.getDate()-mondayOffset);
+    const today = new Date(); 
+    today.setHours(0,0,0,0);
 
     for (let i=0;i<42;i++) {
-      const dt = new Date(start); dt.setDate(start.getDate()+i);
-      const el = document.createElement('div'); el.className='calendar-day'; el.textContent = dt.getDate();
+      const dt = new Date(start); 
+      dt.setDate(start.getDate()+i);
+      const el = document.createElement('div'); 
+      el.className='calendar-day'; 
+      el.textContent = dt.getDate();
       
       const dayOfWeek = dt.getDay(); // 0=Niedziela, 6=Sobota
       const dateStr = dateISO(dt);
       
       if (dt.getMonth()!==currentMonth) el.classList.add('other-month');
       
-      // NOWE: Soboty i niedziele – jasny czerwony
-      if (dayOfWeek === 0 || dayOfWeek === 6) {
-        el.classList.add('weekend');
-      }
-      
-      // NOWE: Dni z raportami – niebieski (tylko jeśli nie są dzisiaj ani wybrane)
-      if (daysWithReports.has(dateStr) && +dt !== +today && +dt !== +selectedDate) {
-        el.classList.add('has-reports');
-      }
+      const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+      const isHoliday = isPolishHoliday(dt);
+      const hasReports = daysWithReports.has(dateStr);
       
       if (+dt===+today) el.classList.add('today');
       if (+dt===+selectedDate) el.classList.add('selected');
+      
+      // Logika kolorowania:
+      // 1. Jeśli dzień ma raporty I jest weekendem/świętem -> fioletowy (has-time-weekend)
+      // 2. Jeśli dzień ma raporty (ale nie weekend/święto) -> niebieski (has-reports)
+      // 3. Jeśli dzień jest weekendem/świętem (bez raportów) -> jasny czerwony (weekend)
+      if (hasReports) {
+        if (isWeekend || isHoliday) {
+          el.classList.add('has-time-weekend'); // fioletowy dla raportów w weekend/święto
+        } else {
+          el.classList.add('has-reports'); // niebieski dla raportów w zwykły dzień
+        }
+      } else {
+        if (isWeekend || isHoliday) {
+          el.classList.add('weekend'); // jasny czerwony dla weekend/święta bez raportów
+        }
+      }
       
       el.addEventListener('click', () => {
         selectedDate = new Date(dt);
@@ -563,68 +585,6 @@
     if (daysDiff === 60) return true;
     
     return false;
-  }
-
-  function renderCalendar() {
-    const calendarGrid = document.getElementById('calendarGrid');
-    calendarGrid.innerHTML = '';
-
-    const firstDay = new Date(currentYear, currentMonth, 1);
-    const lastDay = new Date(currentYear, currentMonth + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const firstDayOfWeek = firstDay.getDay();
-    const today = new Date(); today.setHours(0,0,0,0);
-
-    // Nagłówki dni tygodnia
-    ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'].forEach(d => {
-      const headerCell = document.createElement('div');
-      headerCell.className = 'calendar-day-header';
-      headerCell.textContent = d;
-      calendarGrid.appendChild(headerCell);
-    });
-
-    // Pusta komórka na początku (przed pierwszym dniem miesiąca)
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      const emptyDiv = document.createElement('div');
-      emptyDiv.className = 'calendar-day empty';
-      calendarGrid.appendChild(emptyDiv);
-    }
-
-    // Dni miesiąca
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayDiv = document.createElement('div');
-      dayDiv.className = 'calendar-day';
-      dayDiv.textContent = day;
-      
-      const currentDate = new Date(currentYear, currentMonth, day);
-      const dayOfWeek = currentDate.getDay();
-      const isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
-      const isSelected = (day === selectedDay && currentMonth === selectedMonth && currentYear === selectedYear);
-      const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
-      const isHoliday = isPolishHoliday(currentDate);
-      
-      if (isToday) dayDiv.classList.add('today');
-      if (isSelected) dayDiv.classList.add('selected');
-      
-      const dateKey = formatDateKey(currentDate);
-      const hasTime = timeEntries[dateKey] && timeEntries[dateKey].length > 0;
-      
-      // Priorytet stylowania: dzień z czasem > weekend/święto > normalny dzień
-      if (hasTime) {
-        if (isWeekend || isHoliday) {
-          dayDiv.classList.add('has-time-weekend');
-        } else {
-          dayDiv.classList.add('has-time');
-        }
-      } else {
-        if (isWeekend || isHoliday) {
-          dayDiv.classList.add('weekend'); // weekend i holiday mają ten sam kolor
-        }
-      }
-      
-      dayDiv.addEventListener('click', () => selectDate(currentDate));
-      calendarGrid.appendChild(dayDiv);
-    }
   }
 
   // Pomocnicze

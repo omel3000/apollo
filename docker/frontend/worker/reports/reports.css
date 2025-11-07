@@ -28,22 +28,24 @@
 .calendar-day.today { background:#48bb78; color:#fff; }
 .calendar-day.today.selected { background:#4a5568; }
 
-/* Weekendy (sobota/niedziela) – jasny czerwony */
-.calendar-day.weekend,
-.calendar-day.holiday {
+/* Weekendy i święta (bez raportów) - jasny czerwony */
+.calendar-day.weekend {
   background-color: #fed7d7;
-  color: #c53030; 
+  color: #c53030;
 }
 
-/* Dni z zaraportowanym czasem – niebieski */
-.calendar-day.has-reports {
-  background: #e0f2fe;
-  color: #0369a1;
+/* Dni z raportami w weekendy/święta - ciemny fiolet */
+.calendar-day.has-time-weekend {
+  background-color: #6b46c1;
+  color: #ffffff;
   font-weight: 600;
 }
 
-.calendar-day.has-reports:hover {
-  background: #bae6fd;
+/* Dni z raportami w zwykłe dni - niebieski (jeśli ta klasa już istnieje, zostaw bez zmian) */
+.calendar-day.has-reports {
+  background-color: #bee3f8;
+  color: #2c5282;
+  font-weight: 500;
 }
 
 /* Dzień dzisiejszy (zielony) ma wyższy priorytet */
