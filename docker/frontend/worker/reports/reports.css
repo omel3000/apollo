@@ -30,12 +30,8 @@
 
 /* Weekendy (sobota/niedziela) – jasny czerwony */
 .calendar-day.weekend {
-  background: #ffe5e5;
-  color: #c53030;
-}
-
-.calendar-day.weekend:hover {
-  background: #ffd5d5;
+  background-color: #fed7d7;
+  color: #c53030; 
 }
 
 /* Dni z zaraportowanym czasem – niebieski */

@@ -495,6 +495,138 @@
     }
   }
 
+  // Funkcja obliczająca datę Wielkanocy (algorytm Gaussa)
+  function calculateEaster(year) {
+    const a = year % 19;
+    const b = Math.floor(year / 100);
+    const c = year % 100;
+    const d = Math.floor(b / 4);
+    const e = b % 4;
+    const f = Math.floor((b + 8) / 25);
+    const g = Math.floor((b - f + 1) / 3);
+    const h = (19 * a + b - d - g + 15) % 30;
+    const i = Math.floor(c / 4);
+    const k = c % 4;
+    const l = (32 + 2 * e + 2 * i - h - k) % 7;
+    const m = Math.floor((a + 11 * h + 22 * l) / 451);
+    const month = Math.floor((h + l - 7 * m + 114) / 31);
+    const day = ((h + l - 7 * m + 114) % 31) + 1;
+    return new Date(year, month - 1, day);
+  }
+
+  // Funkcja sprawdzająca czy data jest polskim świętem
+  function isPolishHoliday(date) {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const day = date.getDate();
+    
+    // Stałe święta
+    const fixedHolidays = [
+      {m: 0, d: 1},   // Nowy Rok
+      {m: 0, d: 6},   // Trzech Króli
+      {m: 4, d: 1},   // Święto Pracy
+      {m: 4, d: 3},   // Święto Konstytucji 3 Maja
+      {m: 7, d: 15},  // Wniebowzięcie NMP
+      {m: 10, d: 1},  // Wszystkich Świętych
+      {m: 10, d: 11}, // Święto Niepodległości
+      {m: 11, d: 25}, // Boże Narodzenie (1. dzień)
+      {m: 11, d: 26}  // Boże Narodzenie (2. dzień)
+    ];
+    
+    for (let holiday of fixedHolidays) {
+      if (month === holiday.m && day === holiday.d) {
+        return true;
+      }
+    }
+    
+    // Ruchome święta (zależne od Wielkanocy)
+    const easter = calculateEaster(year);
+    const easterTime = easter.getTime();
+    const dateTime = date.getTime();
+    const oneDay = 24 * 60 * 60 * 1000;
+    
+    // Wielkanoc (niedziela)
+    if (dateTime === easterTime) return true;
+    
+    // Poniedziałek Wielkanocny (+1 dzień)
+    if (dateTime === easterTime + oneDay) return true;
+    
+    // Boże Ciało (+60 dni od Wielkanocy)
+    if (dateTime === easterTime + 60 * oneDay) return true;
+    
+    // Zielone Świątki (+49 dni od Wielkanocy)
+    if (dateTime === easterTime + 49 * oneDay) return true;
+    
+    return false;
+  }
+
+  function renderCalendar() {
+    const calendarGrid = document.getElementById('calendarGrid');
+    calendarGrid.innerHTML = '';
+
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const firstDayOfWeek = firstDay.getDay();
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // Nagłówki dni tygodnia
+    ['Pn','Wt','Śr','Cz','Pt','Sb','Nd'].forEach(d => {
+      const headerCell = document.createElement('div');
+      headerCell.className = 'calendar-day-header';
+      headerCell.textContent = d;
+      calendarGrid.appendChild(headerCell);
+    });
+
+    // Puste pola przed pierwszym dniem miesiąca
+    for (let i = 0; i < firstDayOfWeek; i++) {
+      const emptyDiv = document.createElement('div');
+      emptyDiv.className = 'calendar-day empty';
+      calendarGrid.appendChild(emptyDiv);
+    }
+
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'calendar-day';
+      dayDiv.textContent = day;
+      
+      const currentDate = new Date(currentYear, currentMonth, day);
+      const isToday = (day === today.getDate() && currentMonth === today.getMonth() && currentYear === today.getFullYear());
+      const isSelected = (day === selectedDate.getDate() && currentMonth === selectedDate.getMonth() && currentYear === selectedDate.getFullYear());
+      const isWeekend = (currentDate.getDay() === 0 || currentDate.getDay() === 6);
+      const isHoliday = isPolishHoliday(currentDate);
+      
+      if (isToday) dayDiv.classList.add('today');
+      if (isSelected) dayDiv.classList.add('selected');
+      
+      const dateKey = dateISO(currentDate);
+      const hasTime = daysWithReports.has(dateKey);
+      
+      if (hasTime) {
+        if (isWeekend || isHoliday) {
+          dayDiv.classList.add('has-time-weekend');
+        } else {
+          dayDiv.classList.add('has-time');
+        }
+      } else {
+        if (isWeekend || isHoliday) {
+          dayDiv.classList.add(isWeekend ? 'weekend' : 'holiday');
+        }
+      }
+      
+      dayDiv.addEventListener('click', () => {
+        selectedDate = new Date(currentYear, currentMonth, day);
+        saveSelectedDate();
+        buildYears();
+        generateCalendar();
+        updateDateDisplay();
+        loadEntriesForDate();
+      });
+      
+      calendarGrid.appendChild(dayDiv);
+    }
+  }
+
   // Pomocnicze
   function escapeHtml(t){ const d=document.createElement('div'); d.textContent=t||''; return d.innerHTML; }
   function adjustTime(entryId, type, delta) {
