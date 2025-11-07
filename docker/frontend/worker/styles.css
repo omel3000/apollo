@@ -124,6 +124,19 @@ html {
   box-shadow: 0 4px 12px rgba(74, 85, 104, 0.3);
 }
 
+.menu-item a.menu-link {
+  color: inherit;
+  text-decoration: none;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-item.active a.menu-link {
+  color: #ffffff !important;
+}
+
 .menu-icon {
   font-size: 20px;
 }

@@ -35,32 +35,15 @@ async function getCurrentUser(token) {
 
 // Funkcja do pokazania zawartości po weryfikacji
 function showContent() {
-    const loadingState = document.getElementById('loadingState');
-    const mainContent = document.getElementById('mainContent');
-    
-    console.log('showContent called');
-    console.log('loadingState:', loadingState);
-    console.log('mainContent:', mainContent);
-    
-    if (loadingState) {
-        loadingState.style.display = 'none';
-        console.log('Loading state hidden');
-    }
-    
-    if (mainContent) {
-        mainContent.classList.remove('content-hidden');
-        mainContent.style.display = 'flex';
-        mainContent.style.visibility = 'visible';
-        mainContent.style.opacity = '1';
-        console.log('Main content shown');
-        console.log('Main content display:', mainContent.style.display);
-    }
-    
-    document.body.classList.add('loaded');
-    document.body.style.visibility = 'visible';
-    
-    // Wyślij event, że zawartość została załadowana
-    window.dispatchEvent(new Event('contentLoaded'));
+  const loadingState = document.getElementById('loadingState');
+  const mainContent = document.getElementById('mainContent') || document.getElementById('mainContentReports');
+  if (loadingState) loadingState.style.display = 'none';
+  if (mainContent) {
+    mainContent.style.display = 'flex';
+    mainContent.classList.remove('content-hidden');
+  }
+  document.body.classList.add('loaded');
+  window.dispatchEvent(new Event('contentLoaded'));
 }
 
 // Sprawdzanie czy użytkownik jest zalogowany
@@ -69,7 +52,8 @@ async function checkAuth() {
     const path = window.location.pathname;
     const isLoginPage = path === '/index.html' || path === '/';
     const isStartPage = path === '/start' || path === '/start/' || path.includes('/start/');
-    const isWorkerPage = path === '/worker' || path === '/worker/' || path.includes('/worker/');
+    const isWorkerPage = path.startsWith('/worker/') || path === '/worker';
+    const isWorkerReportsPage = path.includes('/worker/reports');
 
     // Jeśli mamy token, zweryfikuj go przez backend
     if (token) {
@@ -93,7 +77,7 @@ async function checkAuth() {
             }
             
             // Dla strony /worker sprawdź rolę
-            if (isWorkerPage) {
+            if (isWorkerPage || isWorkerReportsPage) {
                 if (user.role !== 'worker') {
                     renderInsufficientPermissions(user);
                     document.body.classList.add('loaded');

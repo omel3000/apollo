@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <title>Raporty | Panel Pracownika</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iI2U2N2Y3MSIvPjx0ZXh0IHg9IjQiIHk9IjEyIiBmb250LXNpemU9IjExIiBmaWxsPSIjZmZmIj5BOzwvdGV4dD48L3N2Zz4=">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="reports.css">
+</head>
+<body>
+  <div id="loadingState" style="display:flex;justify-content:center;align-items:center;min-height:100vh;width:100vw;position:fixed;top:0;left:0;background:#f7fafc;z-index:9999;">
+    <p style="font-size:18px;color:#4a5568;">Weryfikacja uprawnień...</p>
+  </div>
+
+  <div class="container" id="mainContentReports" style="display:none;">
+    <header class="header">
+      <div class="header-title">Raporty</div>
+      <div class="header-icons">
+        <button class="icon-button" id="logoutBtnHeader" aria-label="Wyloguj" onclick="logout()">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="#4a5568">
+            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <aside class="sidebar">
+      <nav class="menu">
+        <div class="menu-item" id="menuHome"><span class="menu-icon">🏠</span><a href="../" class="menu-link">Strona główna</a></div>
+        <div class="menu-item" id="menuTime"><span class="menu-icon">⏰</span><span class="menu-link">Rejestracja czasu pracy</span></div>
+        <div class="menu-item" id="menuSummary"><span class="menu-icon">📊</span><span class="menu-link">Podsumowania</span></div>
+        <div class="menu-item active" id="menuReports"><span class="menu-icon">🗂️</span><span class="menu-link">Raporty</span></div>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+      <div class="messages-panel">
+        <div class="welcome-banner">
+          <div class="welcome-text">Raporty czasu pracy</div>
+        </div>
+        <h2 class="panel-header">Twoje raporty</h2>
+        <div id="reportsList" class="reports-list-placeholder">
+          <p class="reports-info">Ładowanie raportów...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="../../auth.js"></script>
+  <script src="reports.js"></script>
+</body>
+</html>

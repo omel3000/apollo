@@ -149,8 +149,20 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+let appInitialized = false;
+
+function markActiveMenuByPath() {
+  const path = window.location.pathname;
+  if (path.includes('/worker/reports')) {
+    document.getElementById('menuReports')?.classList.add('active');
+    document.getElementById('menuHome')?.classList.remove('active');
+  }
+}
+
 // Czekaj na załadowanie contentu
 function initializeApp() {
+  if (appInitialized) return;
+  appInitialized = true;
   console.log('initializeApp() called');
   
   // Menu interactions
@@ -162,29 +174,30 @@ function initializeApp() {
     });
   });
 
+  markActiveMenuByPath();
+
   // Button interactions
   const accountBtn = document.getElementById('accountBtn');
   if (accountBtn) {
     accountBtn.addEventListener('click', function() {
       const messagePanel = document.querySelector('.messages-panel');
-      if (messagePanel) {
-        const tempMessage = document.createElement('div');
-        tempMessage.className = 'message-item';
-        tempMessage.style.background = '#e6fffa';
-        tempMessage.style.borderLeftColor = '#38b2ac';
-        tempMessage.innerHTML = `
-          <div class="message-title">Przejście do ustawień konta</div>
-          <div class="message-text">Funkcja ustawień konta zostanie wkrótce dodana.</div>
-        `;
-        messagePanel.appendChild(tempMessage);
-        setTimeout(() => tempMessage.remove(), 3000);
-      }
+      if (!messagePanel) return;
+      const tempMessage = document.createElement('div');
+      tempMessage.className = 'message-item';
+      tempMessage.style.background = '#e6fffa';
+      tempMessage.style.borderLeftColor = '#38b2ac';
+      tempMessage.innerHTML = `
+        <div class="message-title">Przejście do ustawień konta</div>
+        <div class="message-text">Funkcja ustawień konta zostanie wkrótce dodana.</div>
+      `;
+      messagePanel.appendChild(tempMessage);
+      setTimeout(() => tempMessage.remove(), 3000);
     });
   }
 
   // Załaduj komunikaty z API
   console.log('Wywołanie loadMessages()...');
-  loadMessages();
+  loadMessages?.(); // wywołanie jeśli funkcja istnieje (tylko na stronie głównej)
 }
 
 // Inicjalizuj app gdy content jest załadowany
