@@ -9,7 +9,6 @@
   <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
   <script src="https://cdn.tailwindcss.com" type="text/javascript"></script>
   <link rel="stylesheet" href="styles.css">
-  <script src="../auth.js" defer></script>
   <style>
     .content-hidden {
       display: none;
@@ -18,9 +17,15 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      min-height: 400px;
+      min-height: 100vh;
+      width: 100vw;
+      position: fixed;
+      top: 0;
+      left: 0;
+      background: #f7fafc;
       font-size: 18px;
       color: #4a5568;
+      z-index: 9999;
     }
   </style>
  </head>
@@ -97,7 +102,20 @@
    </main>
   </div>
 
-  <script src="config.js"></script>
-  <script src="app.js"></script>
+  <script src="../auth.js"></script>
+  <script>
+    // Ładuj config.js i app.js dopiero po weryfikacji uprawnień
+    window.addEventListener('contentLoaded', function() {
+      const script1 = document.createElement('script');
+      script1.src = 'config.js';
+      document.body.appendChild(script1);
+      
+      script1.onload = function() {
+        const script2 = document.createElement('script');
+        script2.src = 'app.js';
+        document.body.appendChild(script2);
+      };
+    });
+  </script>
  </body>
 </html>

@@ -45,6 +45,9 @@ function showContent() {
     }
     
     document.body.classList.add('loaded');
+    
+    // Wyślij event, że zawartość została załadowana
+    window.dispatchEvent(new Event('contentLoaded'));
 }
 
 // Sprawdzanie czy użytkownik jest zalogowany
