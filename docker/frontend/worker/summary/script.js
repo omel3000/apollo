@@ -223,7 +223,35 @@ function buildChartData(summary) {
 }
 
 // NOWE: interaktywny wykres (hover + tooltip z hh h mm min)
-let chartState = { data: null };
+let chartState = { data: null, canvasSize: null, dpr: window.devicePixelRatio || 1 };
+
+const CHART_MIN_SIZE = 240;
+const CHART_MAX_SIZE = 380;
+
+function prepareChartCanvas() {
+  const canvas = document.getElementById('projectChart');
+  if (!canvas) return { canvas: null, ctx: null, size: 0 };
+
+  const parentWidth = canvas.parentElement?.clientWidth || canvas.clientWidth || CHART_MIN_SIZE;
+  const size = Math.min(Math.max(parentWidth, CHART_MIN_SIZE), CHART_MAX_SIZE);
+  const dpr = window.devicePixelRatio || 1;
+
+  if (chartState.canvasSize !== size || chartState.dpr !== dpr) {
+    canvas.style.width = `${size}px`;
+    canvas.style.height = `${size}px`;
+    canvas.width = size * dpr;
+    canvas.height = size * dpr;
+    chartState.canvasSize = size;
+    chartState.dpr = dpr;
+  }
+
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, size, size);
+
+  return { canvas, ctx, size };
+}
 
 function drawPieChartFromData(data) {
   chartState.data = data;
@@ -232,62 +260,47 @@ function drawPieChartFromData(data) {
 
 // ZMIANA: prosty render wykresu bez obsługi hover
 function renderPieChart() {
-  const canvas = document.getElementById('projectChart');
-  if (!canvas) return;
-  const ctx = canvas.getContext('2d');
+  const { canvas, ctx, size } = prepareChartCanvas();
+  if (!canvas || !ctx) return;
+
   const data = chartState.data;
+  if (!data || !data.entries.length) return;
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  if (!data || !data.entries.length) {
-    return;
-  }
-
-  const width = canvas.width;
-  const height = canvas.height;
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const baseRadius = 120;
+  const centerX = size / 2;
+  const centerY = size / 2;
+  const baseRadius = Math.max((size / 2) - 24, 80);
 
   let currentAngle = -Math.PI / 2;
 
   data.entries.forEach((item) => {
     const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
-    const start = currentAngle;
-    const end = currentAngle + sliceAngle;
-    
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, baseRadius, start, end);
+    ctx.arc(centerX, centerY, baseRadius, currentAngle, currentAngle + sliceAngle);
     ctx.closePath();
-
     ctx.fillStyle = item.color;
     ctx.fill();
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
+    ctx.lineWidth = Math.max(baseRadius * 0.015, 3);
     ctx.stroke();
-    
-    currentAngle = end;
+    currentAngle += sliceAngle;
   });
 
-  // Dodaj etykiety procentowe
   currentAngle = -Math.PI / 2;
   ctx.fillStyle = '#ffffff';
-  ctx.font = 'bold 14px Segoe UI, Tahoma, sans-serif';
+  ctx.font = `bold ${Math.max(Math.round(size * 0.045), 12)}px Segoe UI, Tahoma, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  
+
   data.entries.forEach((item) => {
-    if (item.percent < 3) {
-      const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
-      currentAngle += sliceAngle;
-      return;
-    }
     const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
-    const mid = currentAngle + sliceAngle / 2;
-    const labelR = baseRadius * 0.65;
-    const lx = centerX + Math.cos(mid) * labelR;
-    const ly = centerY + Math.sin(mid) * labelR;
-    ctx.fillText(`${Math.round(item.percent)}%`, lx, ly);
+    if (item.percent >= 3) {
+      const mid = currentAngle + sliceAngle / 2;
+      const labelR = baseRadius * 0.65;
+      const lx = centerX + Math.cos(mid) * labelR;
+      const ly = centerY + Math.sin(mid) * labelR;
+      ctx.fillText(`${Math.round(item.percent)}%`, lx, ly);
+    }
     currentAngle += sliceAngle;
   });
 }
@@ -394,9 +407,8 @@ async function updateSummaryPage() {
     drawPieChartFromData(chartData);
     generateLegendFromData(chartData);
   } else {
-    const canvas = document.getElementById('projectChart');
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    chartState.data = null;
+    renderPieChart();
     const legendContainer = document.getElementById('chartLegend');
     if (legendContainer) legendContainer.innerHTML = '';
   }
@@ -480,3 +492,5 @@ if (document.readyState === 'loading') {
 } else {
   initSummaryPage();
 }
+
+window.addEventListener('resize', renderPieChart);

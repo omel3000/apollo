@@ -340,20 +340,108 @@ html {
 }
 
 @media (max-width: 1024px) {
+  .container {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "header"
+      "main"
+      "sidebar";
+    gap: 16px;
+    max-width: 100%;
+    padding: 0 16px 120px;
+  }
+
+  .header {
+    grid-area: header;
+    position: sticky;
+    top: 0;
+    border-radius: 0 0 24px 24px;
+    z-index: 40;
+  }
+
+  .main-content {
+    grid-area: main;
+    width: 100%;
+    padding-bottom: 16px;
+  }
+
   .summary-content {
+    display: flex;
     flex-direction: column;
+    gap: 20px;
   }
 
-  .chart-panel {
-    max-width: none;
+  .chart-panel,
+  .daily-panel {
+    width: 100%;
   }
 
-  .month-name {
-    font-size: 28px;
+  .chart-container canvas {
+    width: 100%;
+    height: auto;
   }
 
-  .total-value {
-    font-size: 28px;
+  .sidebar {
+    grid-area: sidebar;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: auto;
+    padding: 12px 18px;
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.18);
+    background: #ffffff;
+    z-index: 50;
+  }
+
+  .menu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .menu-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border-radius: 16px;
+    text-align: center;
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+
+  .menu-item .menu-link,
+  .menu-item span {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .date-navigation {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .nav-button,
+  .current-month-button {
+    width: 100%;
+  }
+
+  .menu-item .menu-link,
+  .menu-item span {
+    font-size: 0.75rem;
+  }
+
+  .menu-icon {
+    font-size: 1.1rem;
   }
 }
 
