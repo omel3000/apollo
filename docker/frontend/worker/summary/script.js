@@ -372,7 +372,8 @@ function initSummaryPage() {
   });
 
   document.getElementById('logoutBtn').addEventListener('click', function() {
-    showNotification('Funkcja wylogowania zostanie wkrótce dodana', 'info');
+    localStorage.removeItem('token');
+    window.location.href = '/index.html';
   });
 
   // Initialize summary page
