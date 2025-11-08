@@ -135,13 +135,44 @@ if (window.elementSdk) {
 }
 
 // Summary page functions
-function updateSummaryPage() {
+async function fetchMonthlySummary(month, year) {
+  const token = localStorage.getItem('token');
+  if (!token) return null;
+  try {
+    const resp = await fetch('/work_reports/monthly_summary', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ month: month + 1, year })
+    });
+    if (!resp.ok) return null;
+    return await resp.json();
+  } catch {
+    return null;
+  }
+}
+
+async function updateSummaryPage() {
   const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
                      'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
-  
   document.getElementById('summaryMonthName').textContent = `${monthNames[summaryMonth]} ${summaryYear}`;
-  
-  // Generate sample data for demonstration
+
+  // --- NOWE: pobierz dane z backendu ---
+  const summary = await fetchMonthlySummary(summaryMonth, summaryYear);
+  if (summary) {
+    // Formatowanie hh:mm
+    const h = summary.total_hours || 0;
+    const m = summary.total_minutes || 0;
+    document.getElementById('totalHours').textContent = `${h}h ${m.toString().padStart(2, '0')}min`;
+  } else {
+    document.getElementById('totalHours').textContent = '0h 00min';
+  }
+
+  // --- poniżej zostawiamy generowanie przykładowych danych tylko dla legendy i breakdown ---
+  // generateSampleSummaryData(); // USUNIĘTO wywołanie (nie nadpisujemy totalHours)
+  // Możesz tu dodać pobieranie i generowanie wykresu/legendy z prawdziwych danych w przyszłości
   generateSampleSummaryData();
 }
 
@@ -156,7 +187,7 @@ function generateSampleSummaryData() {
   ];
 
   const totalHours = sampleData.reduce((sum, item) => sum + item.hours, 0);
-  document.getElementById('totalHours').textContent = `${totalHours}h`;
+  // document.getElementById('totalHours').textContent = `${totalHours}h`;
 
   // Generate chart
   drawPieChart(sampleData, totalHours);
