@@ -14,8 +14,19 @@ const defaultConfig = {
   font_size: 16
 };
 
+// NOWE: statyczne kolory projektów 1..15
+const PROJECT_COLORS = [
+  '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+  '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+  '#4a5568', '#48bb78', '#f56565', '#ed8936', '#9f7aea'
+];
+
 let summaryMonth = new Date().getMonth();
 let summaryYear = new Date().getFullYear();
+
+// NOWE: cache nazw projektów
+const projectNames = new Map();
+let projectsLoaded = false;
 
 async function onConfigChange(config) {
   const primaryColor = config.primary_color || defaultConfig.primary_color;
@@ -162,158 +173,265 @@ function formatHM(hours, minutes) {
   return `${hh}:${mm}`;
 }
 
+// NOWE: format mm:hh (zgodnie z wymaganiem dla legendy)
+function formatMMHH(hours, minutes) {
+  const h = Number.isFinite(hours) ? hours : parseInt(hours || 0, 10) || 0;
+  const m = Number.isFinite(minutes) ? minutes : parseInt(minutes || 0, 10) || 0;
+  const hh = String(h).padStart(2, '0');
+  const mm = String(m).padStart(2, '0');
+  return `${mm}:${hh}`;
+}
+
+// NOWE: pobierz nazwy projektów przypisanych do usera
+async function loadMyProjects() {
+  if (projectsLoaded) return projectNames;
+  const token = localStorage.getItem('token');
+  if (!token) return projectNames;
+  try {
+    const resp = await fetch('/user_projects/my_projects/', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    if (resp.ok) {
+      const data = await resp.json();
+      (data || []).forEach(p => {
+        if (p && typeof p.project_id !== 'undefined') {
+          projectNames.set(String(p.project_id), p.project_name || `Projekt ${p.project_id}`);
+        }
+      });
+      projectsLoaded = true;
+    }
+  } catch {}
+  return projectNames;
+}
+
+// NOWE: mapowanie koloru do project_id (1..15 → stałe; reszta deterministycznie)
+function colorForProjectId(id) {
+  const idx = (Math.max(1, parseInt(id, 10)) - 1) % PROJECT_COLORS.length;
+  return PROJECT_COLORS[idx];
+}
+
+// NOWE: budowa danych do wykresu z odpowiedzi summary
+function buildChartData(summary) {
+  const ph = summary?.project_hours || {};
+  const entries = Object.entries(ph).map(([pid, val]) => {
+    const hours = val?.hours || 0;
+    const minutes = val?.minutes || 0;
+    const totalMin = (hours * 60) + minutes;
+    return {
+      project_id: parseInt(pid, 10),
+      name: projectNames.get(String(pid)) || `Projekt ${pid}`,
+      minutes: totalMin,
+      hours,
+      mins: minutes,
+      color: colorForProjectId(pid)
+    };
+  }).filter(x => x.minutes > 0);
+
+  const grandTotal = entries.reduce((s, i) => s + i.minutes, 0) || 1;
+  entries.forEach(i => { i.percent = (i.minutes / grandTotal) * 100; });
+  // lepsza czytelność: sort malejąco po czasie
+  entries.sort((a, b) => b.minutes - a.minutes);
+  return { entries, grandTotal };
+}
+
+// NOWE: stan wykresu i tooltip
+let chartState = { slices: [], centerX: 0, centerY: 0, radius: 120, hoveredIndex: -1, totalMinutes: 0 };
+let chartTooltipEl = null;
+
+function ensureTooltip() {
+  if (chartTooltipEl) return chartTooltipEl;
+  chartTooltipEl = document.createElement('div');
+  chartTooltipEl.className = 'chart-tooltip';
+  chartTooltipEl.style.display = 'none';
+  document.body.appendChild(chartTooltipEl);
+  return chartTooltipEl;
+}
+
+function showTooltip(x, y, text) {
+  const el = ensureTooltip();
+  el.textContent = text;
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  el.style.display = 'block';
+}
+
+function hideTooltip() {
+  if (chartTooltipEl) chartTooltipEl.style.display = 'none';
+}
+
+// NOWE: rysowanie tortu + interaktywność
+function drawPieChartFromData(data) {
+  const canvas = document.getElementById('projectChart');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const baseRadius = 120;
+
+  // clear
+  ctx.clearRect(0, 0, width, height);
+
+  // przygotuj kąty
+  let currentAngle = -Math.PI / 2;
+  chartState.slices = [];
+  chartState.centerX = centerX;
+  chartState.centerY = centerY;
+  chartState.radius = baseRadius;
+  chartState.totalMinutes = data.grandTotal;
+
+  data.entries.forEach((item, index) => {
+    const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
+    const start = currentAngle;
+    const end = currentAngle + sliceAngle;
+    chartState.slices.push({ start, end, item });
+    currentAngle = end;
+  });
+
+  // narysuj kawałki (z podświetleniem hover)
+  chartState.slices.forEach((slice, index) => {
+    const hovered = index === chartState.hoveredIndex;
+    const r = hovered ? baseRadius + 8 : baseRadius;
+
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, r, slice.start, slice.end);
+    ctx.closePath();
+    ctx.fillStyle = slice.item.color;
+    ctx.fill();
+
+    // krawędź
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  });
+
+  // procenty na wykresie
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 14px Segoe UI, Tahoma, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  chartState.slices.forEach((slice, index) => {
+    const mid = (slice.start + slice.end) / 2;
+    const r = (index === chartState.hoveredIndex) ? baseRadius + 8 : baseRadius;
+    const labelR = r * 0.65;
+    const pct = slice.item.percent;
+
+    // ukryj bardzo małe wartości (zatłoczone)
+    if (pct < 3) return;
+
+    const lx = centerX + Math.cos(mid) * labelR;
+    const ly = centerY + Math.sin(mid) * labelR;
+    ctx.fillText(`${Math.round(pct)}%`, lx, ly);
+  });
+
+  // obsługa interakcji
+  if (!canvas._interactiveBound) {
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+      const dx = mx - chartState.centerX;
+      const dy = my - chartState.centerY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+
+      let newHover = -1;
+      if (dist <= chartState.radius + 10) {
+        let angle = Math.atan2(dy, dx);
+        if (angle < -Math.PI / 2) { /* pozostawiamy zakres -π..π */ }
+        // przesunięcie, bo zaczynamy od -π/2
+        if (angle < -Math.PI / 2) angle += 2*Math.PI;
+        const normAngle = angle;
+
+        chartState.slices.forEach((s, idx) => {
+          // normalizacja porównania
+          const start = s.start;
+          const end = s.end;
+          // dopasuj normAngle do porównania (relatywnie do -π/2)
+          if (normAngle >= start && normAngle <= end) {
+            newHover = idx;
+          }
+        });
+      }
+      if (newHover !== chartState.hoveredIndex) {
+        chartState.hoveredIndex = newHover;
+        drawPieChartFromData(data);
+      }
+      if (newHover >= 0) {
+        const item = chartState.slices[newHover].item;
+        const hhmm = formatHM(item.hours, item.mins);
+        showTooltip(e.clientX, e.clientY, `${item.name} — ${hhmm} (${Math.round(item.percent)}%)`);
+      } else {
+        hideTooltip();
+      }
+    });
+
+    canvas.addEventListener('mouseleave', () => {
+      chartState.hoveredIndex = -1;
+      hideTooltip();
+      drawPieChartFromData(data);
+    });
+
+    canvas._interactiveBound = true;
+  }
+}
+
+// NOWE: legenda z realnymi danymi (czas w formacie mm:hh)
+function generateLegendFromData(data) {
+  const legendContainer = document.getElementById('chartLegend');
+  if (!legendContainer) return;
+  legendContainer.innerHTML = '';
+
+  data.entries.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'legend-item';
+    div.innerHTML = `
+      <div class="legend-color" style="background-color:${item.color}"></div>
+      <div class="legend-text">${item.name}</div>
+      <div class="legend-hours">${formatMMHH(item.hours, item.mins)}</div>
+    `;
+    legendContainer.appendChild(div);
+  });
+}
+
 async function updateSummaryPage() {
   const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
                      'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
   document.getElementById('summaryMonthName').textContent = `${monthNames[summaryMonth]} ${summaryYear}`;
 
-  const summary = await fetchMonthlySummary(summaryMonth, summaryYear);
+  // 1) Pobierz dane
+  const [summary] = await Promise.all([
+    fetchMonthlySummary(summaryMonth, summaryYear),
+    loadMyProjects()
+  ]);
+
+  // 2) Ustaw łączny czas (hh:mm)
   if (summary) {
     const h = summary.total_hours || 0;
     const m = summary.total_minutes || 0;
-    document.getElementById('totalHours').textContent = formatHM(h, m); // hh:mm
+    document.getElementById('totalHours').textContent = formatHM(h, m);
   } else {
     document.getElementById('totalHours').textContent = '00:00';
   }
 
-  // --- poniżej zostawiamy generowanie przykładowych danych tylko dla legendy i breakdown ---
-  // generateSampleSummaryData(); // USUNIĘTO wywołanie (nie nadpisujemy totalHours)
-  // Możesz tu dodać pobieranie i generowanie wykresu/legendy z prawdziwych danych w przyszłości
-  generateSampleSummaryData();
-}
+  // 3) Jeżeli są dane projektowe – buduj wykres i legendę
+  if (summary && summary.project_hours && Object.keys(summary.project_hours).length) {
+    const chartData = buildChartData(summary);
+    drawPieChartFromData(chartData);
+    generateLegendFromData(chartData);
+  } else {
+    // brak danych – wyczyść wykres/legendę
+    const canvas = document.getElementById('projectChart');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const legendContainer = document.getElementById('chartLegend');
+    if (legendContainer) legendContainer.innerHTML = '';
+  }
 
-function generateSampleSummaryData() {
-  // Sample data - this will be replaced with real data from backend
-  const sampleData = [
-    { project: 'Projekt A - Rozwój aplikacji', hours: 45.5, color: '#4a5568' },
-    { project: 'Projekt B - Analiza danych', hours: 32.0, color: '#48bb78' },
-    { project: 'Projekt C - Testowanie', hours: 28.5, color: '#f56565' },
-    { project: 'Administracja', hours: 15.0, color: '#ed8936' },
-    { project: 'Spotkania', hours: 12.5, color: '#9f7aea' }
-  ];
-
-  const totalHours = sampleData.reduce((sum, item) => sum + item.hours, 0);
-  // document.getElementById('totalHours').textContent = `${totalHours}h`;
-
-  // Generate chart
-  drawPieChart(sampleData, totalHours);
-  
-  // Generate legend
-  generateLegend(sampleData);
-  
-  // Generate daily breakdown
-  generateDailyBreakdown();
-}
-
-function drawPieChart(data, total) {
-  const canvas = document.getElementById('projectChart');
-  const ctx = canvas.getContext('2d');
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const radius = 120;
-
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  let currentAngle = -Math.PI / 2; // Start from top
-
-  data.forEach(item => {
-    const sliceAngle = (item.hours / total) * 2 * Math.PI;
-    
-    // Draw slice
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
-    ctx.closePath();
-    ctx.fillStyle = item.color;
-    ctx.fill();
-    
-    // Draw border
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
-    currentAngle += sliceAngle;
-  });
-}
-
-function generateLegend(data) {
-  const legendContainer = document.getElementById('chartLegend');
-  legendContainer.innerHTML = '';
-
-  data.forEach(item => {
-    const legendItem = document.createElement('div');
-    legendItem.className = 'legend-item';
-    
-    legendItem.innerHTML = `
-      <div class="legend-color" style="background-color: ${item.color}"></div>
-      <div class="legend-text">${item.project}</div>
-      <div class="legend-hours">${item.hours}h</div>
-    `;
-    
-    legendContainer.appendChild(legendItem);
-  });
-}
-
-function generateDailyBreakdown() {
-  const breakdownContainer = document.getElementById('dailyBreakdown');
-  breakdownContainer.innerHTML = '';
-
-  // Sample daily data
-  const dailyData = [
-    {
-      date: '2024-01-15',
-      dayName: 'Poniedziałek',
-      projects: [
-        { name: 'Projekt A - Rozwój aplikacji', hours: 6.5 },
-        { name: 'Administracja', hours: 1.5 }
-      ]
-    },
-    {
-      date: '2024-01-16',
-      dayName: 'Wtorek',
-      projects: [
-        { name: 'Projekt B - Analiza danych', hours: 7.0 },
-        { name: 'Spotkania', hours: 1.0 }
-      ]
-    },
-    {
-      date: '2024-01-17',
-      dayName: 'Środa',
-      projects: [
-        { name: 'Projekt C - Testowanie', hours: 5.5 },
-        { name: 'Projekt A - Rozwój aplikacji', hours: 2.5 }
-      ]
-    }
-  ];
-
-  dailyData.forEach(day => {
-    const dayEntry = document.createElement('div');
-    dayEntry.className = 'day-entry';
-    
-    const dayHeader = document.createElement('div');
-    dayHeader.className = 'day-header';
-    dayHeader.textContent = `${day.dayName}, ${new Date(day.date).toLocaleDateString('pl-PL')}`;
-    
-    const projectList = document.createElement('div');
-    projectList.className = 'project-list';
-    
-    day.projects.forEach(project => {
-      const projectItem = document.createElement('div');
-      projectItem.className = 'project-item';
-      
-      projectItem.innerHTML = `
-        <div class="project-name">${project.name}</div>
-        <div class="project-hours">${project.hours}h</div>
-      `;
-      
-      projectList.appendChild(projectItem);
-    });
-    
-    dayEntry.appendChild(dayHeader);
-    dayEntry.appendChild(projectList);
-    breakdownContainer.appendChild(dayEntry);
-  });
+  // UWAGA: dotychczasowe „sample” usunięto – korzystamy wyłącznie z prawdziwych danych
 }
 
 function navigateMonth(direction) {
@@ -377,6 +495,7 @@ function initSummaryPage() {
   });
 
   // Initialize summary page
+  ensureTooltip(); // NOWE
   updateSummaryPage();
 }
 
