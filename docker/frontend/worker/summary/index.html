@@ -11,6 +11,21 @@
   <script src="/auth.js"></script>
  </head>
  <body>
+  <!-- Modal niepowodzenia autoryzacji -->
+  <div id="authFailModal" class="modal" style="display: none;">
+   <div class="modal-content">
+    <div class="modal-header">
+     <h2>Panel Apollo</h2>
+    </div>
+    <div class="modal-body">
+     <p>Nie jesteś zalogowany. Zaloguj się, aby uzyskać dostęp.</p>
+    </div>
+    <div class="modal-footer">
+     <button class="btn-primary" id="authFailOkBtn">OK</button>
+    </div>
+   </div>
+  </div>
+
   <div class="container"><!-- Header -->
    <header class="header">
     <div class="header-title" id="pageTitle">
@@ -75,7 +90,7 @@
     (async function() {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/index.html';
+        showAuthFailModal();
         return;
       }
       
@@ -86,21 +101,30 @@
         
         if (!response.ok) {
           localStorage.removeItem('token');
-          window.location.href = '/index.html';
+          showAuthFailModal();
           return;
         }
         
         const user = await response.json();
         if (user.role !== 'worker') {
-          window.location.href = '/index.html';
+          showAuthFailModal();
           return;
         }
       } catch (error) {
         console.error('Błąd weryfikacji:', error);
         localStorage.removeItem('token');
-        window.location.href = '/index.html';
+        showAuthFailModal();
       }
     })();
+
+    function showAuthFailModal() {
+      const modal = document.getElementById('authFailModal');
+      modal.style.display = 'flex';
+      
+      document.getElementById('authFailOkBtn').onclick = function() {
+        window.location.href = '/index.html';
+      };
+    }
   </script>
  </body>
 </html>
