@@ -165,22 +165,11 @@ async function fetchMonthlySummary(month, year) {
   }
 }
 
-// ZMIANA: format wyjściowy “hh h mm min”
+// ZMIANA: format wyjściowy "hh h mm min"
 function formatHM(hours, minutes) {
   const h = Number.isFinite(hours) ? hours : parseInt(hours || 0, 10) || 0;
   const m = Number.isFinite(minutes) ? minutes : parseInt(minutes || 0, 10) || 0;
-  const hh = String(h).padStart(2, '0');
-  const mm = String(m).padStart(2, '0');
-  return `${hh}h ${mm}min`;
-}
-
-// NOWE: format do legendy mm:hh (pozostaje jak wcześniej)
-function formatMMHH(hours, minutes) {
-  const h = Number.isFinite(hours) ? hours : parseInt(hours || 0, 10) || 0;
-  const m = Number.isFinite(minutes) ? minutes : parseInt(minutes || 0, 10) || 0;
-  const hh = String(h).padStart(2, '0');
-  const mm = String(m).padStart(2, '0');
-  return `${mm}:${hh}`;
+  return `${h}h ${m}min`;
 }
 
 // NOWE: pobierz przypisane projekty (mapa id → name)
@@ -234,43 +223,14 @@ function buildChartData(summary) {
 }
 
 // NOWE: interaktywny wykres (hover + tooltip z hh h mm min)
-let chartState = { slices: [], centerX: 0, centerY: 0, radius: 120, hoveredIndex: -1, totalMinutes: 0, data: null };
-let chartTooltipEl = null;
-
-function ensureTooltip() {
-  if (chartTooltipEl) return chartTooltipEl;
-  chartTooltipEl = document.createElement('div');
-  chartTooltipEl.className = 'chart-tooltip';
-  chartTooltipEl.style.display = 'none';
-  document.body.appendChild(chartTooltipEl);
-  return chartTooltipEl;
-}
-function showTooltip(x, y, text) {
-  const el = ensureTooltip();
-  el.textContent = text;
-  el.style.left = `${x}px`;
-  el.style.top = `${y}px`;
-  el.style.display = 'block';
-}
-function hideTooltip() {
-  if (chartTooltipEl) chartTooltipEl.style.display = 'none';
-}
+let chartState = { data: null };
 
 function drawPieChartFromData(data) {
   chartState.data = data;
-  chartState.hoveredIndex = -1;
   renderPieChart();
 }
 
-// Pomocnicza normalizacja kąta do zakresu 0..2π
-function normalizeAngle(angle) {
-  const full = Math.PI * 2;
-  let normalized = angle % full;
-  if (normalized < 0) normalized += full;
-  return normalized;
-}
-
-// Render wykresu kołowego wykorzystujący stan bez powiększania czynnego sektora
+// ZMIANA: prosty render wykresu bez obsługi hover
 function renderPieChart() {
   const canvas = document.getElementById('projectChart');
   if (!canvas) return;
@@ -279,7 +239,6 @@ function renderPieChart() {
 
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (!data || !data.entries.length) {
-    chartState.slices = [];
     return;
   }
 
@@ -289,117 +248,48 @@ function renderPieChart() {
   const centerY = height / 2;
   const baseRadius = 120;
 
-  chartState.centerX = centerX;
-  chartState.centerY = centerY;
-  chartState.radius = baseRadius;
-  chartState.totalMinutes = data.grandTotal;
-
   let currentAngle = -Math.PI / 2;
-  chartState.slices = [];
 
   data.entries.forEach((item) => {
     const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
     const start = currentAngle;
     const end = currentAngle + sliceAngle;
-    const normalizedStart = normalizeAngle(start);
-    const normalizedEnd = normalizeAngle(end);
-    chartState.slices.push({
-      start,
-      end,
-      item,
-      normalizedStart,
-      normalizedEnd,
-      wraps: normalizedEnd < normalizedStart
-    });
+    
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, baseRadius, start, end);
+    ctx.closePath();
+
+    ctx.fillStyle = item.color;
+    ctx.fill();
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
     currentAngle = end;
   });
 
-  chartState.slices.forEach((slice, index) => {
-    const hovered = index === chartState.hoveredIndex;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, baseRadius, slice.start, slice.end);
-    ctx.closePath();
-
-    ctx.fillStyle = slice.item.color;
-    if (hovered) {
-      ctx.save();
-      ctx.globalAlpha = 0.85;
-      ctx.fill();
-      ctx.restore();
-    } else {
-      ctx.fill();
-    }
-
-    ctx.strokeStyle = hovered ? '#2d3748' : '#ffffff';
-    ctx.lineWidth = hovered ? 5 : 3;
-    ctx.stroke();
-  });
-
+  // Dodaj etykiety procentowe
+  currentAngle = -Math.PI / 2;
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px Segoe UI, Tahoma, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  chartState.slices.forEach((slice) => {
-    if (slice.item.percent < 3) return;
-    const mid = (slice.start + slice.end) / 2;
+  
+  data.entries.forEach((item) => {
+    if (item.percent < 3) {
+      const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
+      currentAngle += sliceAngle;
+      return;
+    }
+    const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
+    const mid = currentAngle + sliceAngle / 2;
     const labelR = baseRadius * 0.65;
     const lx = centerX + Math.cos(mid) * labelR;
     const ly = centerY + Math.sin(mid) * labelR;
-    ctx.fillText(`${Math.round(slice.item.percent)}%`, lx, ly);
+    ctx.fillText(`${Math.round(item.percent)}%`, lx, ly);
+    currentAngle += sliceAngle;
   });
-
-  if (!canvas._interactiveBound) {
-    canvas.addEventListener('mousemove', handlePieMouseMove);
-    canvas.addEventListener('mouseleave', handlePieMouseLeave);
-    canvas._interactiveBound = true;
-  }
-}
-
-// Obsługa ruchu kursora po wykresie bez zmiany danych bieżącego miesiąca
-function handlePieMouseMove(e) {
-  if (!chartState.data || !chartState.slices.length) {
-    hideTooltip();
-    return;
-  }
-
-  const rect = e.currentTarget.getBoundingClientRect();
-  const mx = e.clientX - rect.left;
-  const my = e.clientY - rect.top;
-  const dx = mx - chartState.centerX;
-  const dy = my - chartState.centerY;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-
-  let newHover = -1;
-  if (dist <= chartState.radius + 10) {
-    const angle = normalizeAngle(Math.atan2(dy, dx));
-    chartState.slices.forEach((slice, idx) => {
-      if (!slice.wraps) {
-        if (angle >= slice.normalizedStart && angle <= slice.normalizedEnd) newHover = idx;
-      } else {
-        if (angle >= slice.normalizedStart || angle <= slice.normalizedEnd) newHover = idx;
-      }
-    });
-  }
-
-  if (newHover !== chartState.hoveredIndex) {
-    chartState.hoveredIndex = newHover;
-    renderPieChart();
-  }
-
-  if (newHover >= 0) {
-    const it = chartState.slices[newHover].item;
-    showTooltip(e.clientX, e.clientY, `${it.name} — ${formatHM(it.hours, it.mins)} (${Math.round(it.percent)}%)`);
-  } else {
-    hideTooltip();
-  }
-}
-
-// Reset stanu po opuszczeniu wykresu
-function handlePieMouseLeave() {
-  chartState.hoveredIndex = -1;
-  hideTooltip();
-  renderPieChart();
 }
 
 // NOWE: legenda na realnych danych (czas mm:hh jak wcześniej ustalone)
@@ -413,7 +303,7 @@ function generateLegendFromData(data) {
     div.innerHTML = `
       <div class="legend-color" style="background-color:${item.color}"></div>
       <div class="legend-text">${item.name}</div>
-      <div class="legend-hours">${formatMMHH(item.hours, item.mins)}</div>
+      <div class="legend-hours">${formatHM(item.hours, item.mins)}</div>
     `;
     legendContainer.appendChild(div);
   });
@@ -581,7 +471,6 @@ function initSummaryPage() {
   });
 
   // Inicjalizacja
-  ensureTooltip();
   updateSummaryPage();
 }
 
@@ -590,118 +479,4 @@ if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initSummaryPage);
 } else {
   initSummaryPage();
-}
-
-// NOWE: format godzin i minut
-function formatHoursMinutes(totalMinutes) {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    if (hours === 0) {
-        return `${minutes}min`;
-    } else if (minutes === 0) {
-        return `${hours}h`;
-    } else {
-        return `${hours}h ${minutes}min`;
-    }
-}
-
-// NOWE: wykres słupkowy z Chart.js
-async function renderChart(data) {
-    const ctx = document.getElementById('monthlyChart').getContext('2d');
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
-
-    const chartData = {
-        labels: data.map(entry => `Dzień ${entry.day}`),
-        datasets: [{
-            label: 'Praca',
-            data: data.map(entry => entry.minutes),
-            backgroundColor: '#48bb78',
-            borderColor: '#38a169',
-            borderWidth: 2
-        }]
-    };
-
-    const chart = new Chart(ctx, {
-        type: 'bar',
-        data: chartData,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        font: {
-                            family: 'Arial, sans-serif',
-                            size: 12,
-                            weight: 'normal',
-                            style: 'normal'
-                        }
-                    }
-                },
-                tooltip: {
-                    callbacks: {
-                        label: function(context) {
-                            const minutes = context.parsed.y;
-                            return `${context.dataset.label}: ${formatHoursMinutes(minutes)}`;
-                        }
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    title: {
-                        display: true,
-                        text: 'Czas'
-                    },
-                    ticks: {
-                        callback: function(value) {
-                            return formatHoursMinutes(value);
-                        }
-                    }
-                },
-                x: {
-                    title: {
-                        display: true,
-                        text: 'Dzień miesiąca'
-                    }
-                }
-            }
-        }
-    });
-}
-
-// NOWE: dzienny raport szczegółowy
-async function renderDailyBreakdown(data) {
-    const container = document.getElementById('dailyBreakdown');
-    container.innerHTML = '';
-
-    for (const [projectName, days] of Object.entries(data)) {
-        const projectDiv = document.createElement('div');
-        projectDiv.className = 'project-summary';
-        
-        const projectTitle = document.createElement('h3');
-        projectTitle.textContent = projectName;
-        projectDiv.appendChild(projectTitle);
-
-        let totalMinutes = 0;
-        const daysList = document.createElement('ul');
-
-        for (const [day, minutes] of Object.entries(days)) {
-            totalMinutes += minutes;
-            const li = document.createElement('li');
-            li.textContent = `Dzień ${day}: ${formatHoursMinutes(minutes)}`;
-            daysList.appendChild(li);
-        }
-
-        projectDiv.appendChild(daysList);
-
-        const totalP = document.createElement('p');
-        totalP.innerHTML = `<strong>Suma: ${formatHoursMinutes(totalMinutes)}</strong>`;
-        projectDiv.appendChild(totalP);
-
-        container.appendChild(projectDiv);
-    }
 }

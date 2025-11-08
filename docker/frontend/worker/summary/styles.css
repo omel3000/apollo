@@ -251,25 +251,6 @@ html {
   padding: 20px;
 }
 
-/* NOWE: kursor i tooltip */
-#projectChart {
-  cursor: pointer;
-}
-
-.chart-tooltip {
-  position: fixed;
-  padding: 8px 10px;
-  background: rgba(45, 55, 72, 0.95);
-  color: #fff;
-  font-size: 13px;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  pointer-events: none;
-  z-index: 1000;
-  transform: translate(10px, 10px);
-  white-space: nowrap;
-}
-
 /* Ujednolicone cyfry w legendzie */
 .legend-hours {
   font-weight: 600;
