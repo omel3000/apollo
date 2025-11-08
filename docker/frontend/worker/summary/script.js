@@ -234,7 +234,7 @@ function buildChartData(summary) {
 }
 
 // NOWE: interaktywny wykres (hover + tooltip z hh h mm min)
-let chartState = { slices: [], centerX: 0, centerY: 0, radius: 120, hoveredIndex: -1, totalMinutes: 0 };
+let chartState = { slices: [], centerX: 0, centerY: 0, radius: 120, hoveredIndex: -1, totalMinutes: 0, data: null };
 let chartTooltipEl = null;
 
 function ensureTooltip() {
@@ -257,93 +257,149 @@ function hideTooltip() {
 }
 
 function drawPieChartFromData(data) {
+  chartState.data = data;
+  chartState.hoveredIndex = -1;
+  renderPieChart();
+}
+
+// Pomocnicza normalizacja kąta do zakresu 0..2π
+function normalizeAngle(angle) {
+  const full = Math.PI * 2;
+  let normalized = angle % full;
+  if (normalized < 0) normalized += full;
+  return normalized;
+}
+
+// Render wykresu kołowego wykorzystujący stan bez powiększania czynnego sektora
+function renderPieChart() {
   const canvas = document.getElementById('projectChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
+  const data = chartState.data;
 
-  // ...clear + przygotowanie...
-  const width = canvas.width, height = canvas.height;
-  const centerX = width / 2, centerY = height / 2, baseRadius = 120;
-  ctx.clearRect(0, 0, width, height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (!data || !data.entries.length) {
+    chartState.slices = [];
+    return;
+  }
 
-  let currentAngle = -Math.PI / 2;
-  chartState.slices = [];
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const baseRadius = 120;
+
   chartState.centerX = centerX;
   chartState.centerY = centerY;
   chartState.radius = baseRadius;
   chartState.totalMinutes = data.grandTotal;
 
+  let currentAngle = -Math.PI / 2;
+  chartState.slices = [];
+
   data.entries.forEach((item) => {
     const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
     const start = currentAngle;
     const end = currentAngle + sliceAngle;
-    chartState.slices.push({ start, end, item });
+    const normalizedStart = normalizeAngle(start);
+    const normalizedEnd = normalizeAngle(end);
+    chartState.slices.push({
+      start,
+      end,
+      item,
+      normalizedStart,
+      normalizedEnd,
+      wraps: normalizedEnd < normalizedStart
+    });
     currentAngle = end;
   });
 
-  // rysowanie z podświetleniem
   chartState.slices.forEach((slice, index) => {
     const hovered = index === chartState.hoveredIndex;
-    const r = hovered ? baseRadius + 8 : baseRadius;
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, r, slice.start, slice.end);
+    ctx.arc(centerX, centerY, baseRadius, slice.start, slice.end);
     ctx.closePath();
+
     ctx.fillStyle = slice.item.color;
-    ctx.fill();
-    ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 3;
+    if (hovered) {
+      ctx.save();
+      ctx.globalAlpha = 0.85;
+      ctx.fill();
+      ctx.restore();
+    } else {
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = hovered ? '#2d3748' : '#ffffff';
+    ctx.lineWidth = hovered ? 5 : 3;
     ctx.stroke();
   });
 
-  // procenty na wykresie (dla udziałów >= 3%)
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px Segoe UI, Tahoma, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  chartState.slices.forEach((slice, index) => {
-    const pct = slice.item.percent;
-    if (pct < 3) return;
+  chartState.slices.forEach((slice) => {
+    if (slice.item.percent < 3) return;
     const mid = (slice.start + slice.end) / 2;
-    const r = (index === chartState.hoveredIndex) ? baseRadius + 8 : baseRadius;
-    const labelR = r * 0.65;
+    const labelR = baseRadius * 0.65;
     const lx = centerX + Math.cos(mid) * labelR;
     const ly = centerY + Math.sin(mid) * labelR;
-    ctx.fillText(`${Math.round(pct)}%`, lx, ly);
+    ctx.fillText(`${Math.round(slice.item.percent)}%`, lx, ly);
   });
 
   if (!canvas._interactiveBound) {
-    canvas.addEventListener('mousemove', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-      const dx = mx - chartState.centerX, dy = my - chartState.centerY;
-      const dist = Math.sqrt(dx*dx + dy*dy);
-      let newHover = -1;
-      if (dist <= chartState.radius + 10) {
-        let angle = Math.atan2(dy, dx); // -PI..PI
-        // dopasuj do porównania zaczynając od -PI/2
-        chartState.slices.forEach((s, idx) => {
-          if (angle >= s.start && angle <= s.end) newHover = idx;
-        });
-      }
-      if (newHover !== chartState.hoveredIndex) {
-        chartState.hoveredIndex = newHover;
-        drawPieChartFromData(data);
-      }
-      if (newHover >= 0) {
-        const it = chartState.slices[newHover].item;
-        showTooltip(e.clientX, e.clientY, `${it.name} — ${formatHM(it.hours, it.mins)} (${Math.round(it.percent)}%)`);
-      } else {
-        hideTooltip();
-      }
-    });
-    canvas.addEventListener('mouseleave', () => {
-      chartState.hoveredIndex = -1;
-      hideTooltip();
-      drawPieChartFromData(data);
-    });
+    canvas.addEventListener('mousemove', handlePieMouseMove);
+    canvas.addEventListener('mouseleave', handlePieMouseLeave);
     canvas._interactiveBound = true;
   }
+}
+
+// Obsługa ruchu kursora po wykresie bez zmiany danych bieżącego miesiąca
+function handlePieMouseMove(e) {
+  if (!chartState.data || !chartState.slices.length) {
+    hideTooltip();
+    return;
+  }
+
+  const rect = e.currentTarget.getBoundingClientRect();
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
+  const dx = mx - chartState.centerX;
+  const dy = my - chartState.centerY;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  let newHover = -1;
+  if (dist <= chartState.radius + 10) {
+    const angle = normalizeAngle(Math.atan2(dy, dx));
+    chartState.slices.forEach((slice, idx) => {
+      if (!slice.wraps) {
+        if (angle >= slice.normalizedStart && angle <= slice.normalizedEnd) newHover = idx;
+      } else {
+        if (angle >= slice.normalizedStart || angle <= slice.normalizedEnd) newHover = idx;
+      }
+    });
+  }
+
+  if (newHover !== chartState.hoveredIndex) {
+    chartState.hoveredIndex = newHover;
+    renderPieChart();
+  }
+
+  if (newHover >= 0) {
+    const it = chartState.slices[newHover].item;
+    showTooltip(e.clientX, e.clientY, `${it.name} — ${formatHM(it.hours, it.mins)} (${Math.round(it.percent)}%)`);
+  } else {
+    hideTooltip();
+  }
+}
+
+// Reset stanu po opuszczeniu wykresu
+function handlePieMouseLeave() {
+  chartState.hoveredIndex = -1;
+  hideTooltip();
+  renderPieChart();
 }
 
 // NOWE: legenda na realnych danych (czas mm:hh jak wcześniej ustalone)
