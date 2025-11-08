@@ -203,8 +203,75 @@ function logout() {
     window.location.href = '/index.html';
 }
 
+// Stałe skalowania widoku desktopowego
+const DESKTOP_BASE_WIDTH = 1280;
+const DESKTOP_BASE_HEIGHT = 900;
+let desktopScalingInitialized = false;
+
+function ensureDesktopScalingStyles() {
+    if (document.getElementById('apollo-desktop-style')) return;
+    const style = document.createElement('style');
+    style.id = 'apollo-desktop-style';
+    style.textContent = `
+        :root {
+            --apollo-base-width: ${DESKTOP_BASE_WIDTH}px;
+            --apollo-base-height: ${DESKTOP_BASE_HEIGHT}px;
+            --apollo-scale: 1;
+        }
+        html.apollo-force-desktop.apollo-desktop-scaled,
+        body.apollo-force-desktop.apollo-desktop-scaled {
+            overflow: hidden;
+        }
+        body.apollo-force-desktop.apollo-desktop-scaled {
+            width: var(--apollo-base-width);
+            min-height: var(--apollo-base-height);
+            transform-origin: top left;
+            transform: scale(var(--apollo-scale));
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+function updateDesktopScale() {
+    if (!document.body) return;
+    const scaleX = window.innerWidth / DESKTOP_BASE_WIDTH;
+    const scaleY = window.innerHeight / DESKTOP_BASE_HEIGHT;
+    const scale = Math.min(scaleX, scaleY, 1);
+    document.documentElement.style.setProperty('--apollo-scale', scale.toString());
+    const root = document.documentElement;
+    const body = document.body;
+    if (scale < 1) {
+        root.classList.add('apollo-desktop-scaled');
+        body.classList.add('apollo-desktop-scaled');
+        body.style.width = `${DESKTOP_BASE_WIDTH}px`;
+        body.style.minHeight = `${DESKTOP_BASE_HEIGHT}px`;
+    } else {
+        root.classList.remove('apollo-desktop-scaled');
+        body.classList.remove('apollo-desktop-scaled');
+        body.style.removeProperty('width');
+        body.style.removeProperty('min-height');
+    }
+}
+
+function initDesktopScaling() {
+    if (desktopScalingInitialized) return;
+    desktopScalingInitialized = true;
+    ensureDesktopScalingStyles();
+    const root = document.documentElement;
+    root.classList.add('apollo-force-desktop');
+    if (document.body) {
+        document.body.classList.add('apollo-force-desktop');
+    }
+    root.style.setProperty('--apollo-base-width', `${DESKTOP_BASE_WIDTH}px`);
+    root.style.setProperty('--apollo-base-height', `${DESKTOP_BASE_HEIGHT}px`);
+    updateDesktopScale();
+    window.addEventListener('resize', updateDesktopScale);
+    window.addEventListener('load', updateDesktopScale);
+}
+
 // Inicjalizacja
 document.addEventListener('DOMContentLoaded', async () => {
+    initDesktopScaling();
     // Sprawdź autoryzację przy każdym załadowaniu strony
     await checkAuth();
     
