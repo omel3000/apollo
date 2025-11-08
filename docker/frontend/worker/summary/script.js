@@ -14,7 +14,7 @@ const defaultConfig = {
   font_size: 16
 };
 
-// NOWE: statyczne kolory projektów 1..15
+// NOWE: statyczne kolory dla projektów 1..15 (deterministyczne)
 const PROJECT_COLORS = [
   '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
   '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
@@ -24,7 +24,7 @@ const PROJECT_COLORS = [
 let summaryMonth = new Date().getMonth();
 let summaryYear = new Date().getFullYear();
 
-// NOWE: cache nazw projektów
+// NOWE: cache nazw projektów (mapa id → name)
 const projectNames = new Map();
 let projectsLoaded = false;
 
@@ -165,15 +165,16 @@ async function fetchMonthlySummary(month, year) {
   }
 }
 
+// ZMIANA: format wyjściowy “hh h mm min”
 function formatHM(hours, minutes) {
   const h = Number.isFinite(hours) ? hours : parseInt(hours || 0, 10) || 0;
   const m = Number.isFinite(minutes) ? minutes : parseInt(minutes || 0, 10) || 0;
   const hh = String(h).padStart(2, '0');
   const mm = String(m).padStart(2, '0');
-  return `${hh}:${mm}`;
+  return `${hh}h ${mm}min`;
 }
 
-// NOWE: format mm:hh (zgodnie z wymaganiem dla legendy)
+// NOWE: format do legendy mm:hh (pozostaje jak wcześniej)
 function formatMMHH(hours, minutes) {
   const h = Number.isFinite(hours) ? hours : parseInt(hours || 0, 10) || 0;
   const m = Number.isFinite(minutes) ? minutes : parseInt(minutes || 0, 10) || 0;
@@ -182,7 +183,7 @@ function formatMMHH(hours, minutes) {
   return `${mm}:${hh}`;
 }
 
-// NOWE: pobierz nazwy projektów przypisanych do usera
+// NOWE: pobierz przypisane projekty (mapa id → name)
 async function loadMyProjects() {
   if (projectsLoaded) return projectNames;
   const token = localStorage.getItem('token');
@@ -194,9 +195,8 @@ async function loadMyProjects() {
     if (resp.ok) {
       const data = await resp.json();
       (data || []).forEach(p => {
-        if (p && typeof p.project_id !== 'undefined') {
-          projectNames.set(String(p.project_id), p.project_name || `Projekt ${p.project_id}`);
-        }
+        const id = String(p.project_id);
+        projectNames.set(id, p.project_name || `Projekt ${id}`);
       });
       projectsLoaded = true;
     }
@@ -204,13 +204,13 @@ async function loadMyProjects() {
   return projectNames;
 }
 
-// NOWE: mapowanie koloru do project_id (1..15 → stałe; reszta deterministycznie)
+// NOWE: kolor dla project_id
 function colorForProjectId(id) {
   const idx = (Math.max(1, parseInt(id, 10)) - 1) % PROJECT_COLORS.length;
   return PROJECT_COLORS[idx];
 }
 
-// NOWE: budowa danych do wykresu z odpowiedzi summary
+// NOWE: budowa danych do wykresu z project_hours
 function buildChartData(summary) {
   const ph = summary?.project_hours || {};
   const entries = Object.entries(ph).map(([pid, val]) => {
@@ -229,12 +229,11 @@ function buildChartData(summary) {
 
   const grandTotal = entries.reduce((s, i) => s + i.minutes, 0) || 1;
   entries.forEach(i => { i.percent = (i.minutes / grandTotal) * 100; });
-  // lepsza czytelność: sort malejąco po czasie
   entries.sort((a, b) => b.minutes - a.minutes);
   return { entries, grandTotal };
 }
 
-// NOWE: stan wykresu i tooltip
+// NOWE: interaktywny wykres (hover + tooltip z hh h mm min)
 let chartState = { slices: [], centerX: 0, centerY: 0, radius: 120, hoveredIndex: -1, totalMinutes: 0 };
 let chartTooltipEl = null;
 
@@ -246,7 +245,6 @@ function ensureTooltip() {
   document.body.appendChild(chartTooltipEl);
   return chartTooltipEl;
 }
-
 function showTooltip(x, y, text) {
   const el = ensureTooltip();
   el.textContent = text;
@@ -254,27 +252,20 @@ function showTooltip(x, y, text) {
   el.style.top = `${y}px`;
   el.style.display = 'block';
 }
-
 function hideTooltip() {
   if (chartTooltipEl) chartTooltipEl.style.display = 'none';
 }
 
-// NOWE: rysowanie tortu + interaktywność
 function drawPieChartFromData(data) {
   const canvas = document.getElementById('projectChart');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
 
-  const width = canvas.width;
-  const height = canvas.height;
-  const centerX = width / 2;
-  const centerY = height / 2;
-  const baseRadius = 120;
-
-  // clear
+  // ...clear + przygotowanie...
+  const width = canvas.width, height = canvas.height;
+  const centerX = width / 2, centerY = height / 2, baseRadius = 120;
   ctx.clearRect(0, 0, width, height);
 
-  // przygotuj kąty
   let currentAngle = -Math.PI / 2;
   chartState.slices = [];
   chartState.centerX = centerX;
@@ -282,7 +273,7 @@ function drawPieChartFromData(data) {
   chartState.radius = baseRadius;
   chartState.totalMinutes = data.grandTotal;
 
-  data.entries.forEach((item, index) => {
+  data.entries.forEach((item) => {
     const sliceAngle = (item.minutes / data.grandTotal) * Math.PI * 2;
     const start = currentAngle;
     const end = currentAngle + sliceAngle;
@@ -290,70 +281,49 @@ function drawPieChartFromData(data) {
     currentAngle = end;
   });
 
-  // narysuj kawałki (z podświetleniem hover)
+  // rysowanie z podświetleniem
   chartState.slices.forEach((slice, index) => {
     const hovered = index === chartState.hoveredIndex;
     const r = hovered ? baseRadius + 8 : baseRadius;
-
     ctx.beginPath();
     ctx.moveTo(centerX, centerY);
     ctx.arc(centerX, centerY, r, slice.start, slice.end);
     ctx.closePath();
     ctx.fillStyle = slice.item.color;
     ctx.fill();
-
-    // krawędź
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 3;
     ctx.stroke();
   });
 
-  // procenty na wykresie
+  // procenty na wykresie (dla udziałów >= 3%)
   ctx.fillStyle = '#ffffff';
   ctx.font = 'bold 14px Segoe UI, Tahoma, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
   chartState.slices.forEach((slice, index) => {
+    const pct = slice.item.percent;
+    if (pct < 3) return;
     const mid = (slice.start + slice.end) / 2;
     const r = (index === chartState.hoveredIndex) ? baseRadius + 8 : baseRadius;
     const labelR = r * 0.65;
-    const pct = slice.item.percent;
-
-    // ukryj bardzo małe wartości (zatłoczone)
-    if (pct < 3) return;
-
     const lx = centerX + Math.cos(mid) * labelR;
     const ly = centerY + Math.sin(mid) * labelR;
     ctx.fillText(`${Math.round(pct)}%`, lx, ly);
   });
 
-  // obsługa interakcji
   if (!canvas._interactiveBound) {
     canvas.addEventListener('mousemove', (e) => {
       const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-      const dx = mx - chartState.centerX;
-      const dy = my - chartState.centerY;
+      const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      const dx = mx - chartState.centerX, dy = my - chartState.centerY;
       const dist = Math.sqrt(dx*dx + dy*dy);
-
       let newHover = -1;
       if (dist <= chartState.radius + 10) {
-        let angle = Math.atan2(dy, dx);
-        if (angle < -Math.PI / 2) { /* pozostawiamy zakres -π..π */ }
-        // przesunięcie, bo zaczynamy od -π/2
-        if (angle < -Math.PI / 2) angle += 2*Math.PI;
-        const normAngle = angle;
-
+        let angle = Math.atan2(dy, dx); // -PI..PI
+        // dopasuj do porównania zaczynając od -PI/2
         chartState.slices.forEach((s, idx) => {
-          // normalizacja porównania
-          const start = s.start;
-          const end = s.end;
-          // dopasuj normAngle do porównania (relatywnie do -π/2)
-          if (normAngle >= start && normAngle <= end) {
-            newHover = idx;
-          }
+          if (angle >= s.start && angle <= s.end) newHover = idx;
         });
       }
       if (newHover !== chartState.hoveredIndex) {
@@ -361,30 +331,26 @@ function drawPieChartFromData(data) {
         drawPieChartFromData(data);
       }
       if (newHover >= 0) {
-        const item = chartState.slices[newHover].item;
-        const hhmm = formatHM(item.hours, item.mins);
-        showTooltip(e.clientX, e.clientY, `${item.name} — ${hhmm} (${Math.round(item.percent)}%)`);
+        const it = chartState.slices[newHover].item;
+        showTooltip(e.clientX, e.clientY, `${it.name} — ${formatHM(it.hours, it.mins)} (${Math.round(it.percent)}%)`);
       } else {
         hideTooltip();
       }
     });
-
     canvas.addEventListener('mouseleave', () => {
       chartState.hoveredIndex = -1;
       hideTooltip();
       drawPieChartFromData(data);
     });
-
     canvas._interactiveBound = true;
   }
 }
 
-// NOWE: legenda z realnymi danymi (czas w formacie mm:hh)
+// NOWE: legenda na realnych danych (czas mm:hh jak wcześniej ustalone)
 function generateLegendFromData(data) {
   const legendContainer = document.getElementById('chartLegend');
   if (!legendContainer) return;
   legendContainer.innerHTML = '';
-
   data.entries.forEach(item => {
     const div = document.createElement('div');
     div.className = 'legend-item';
@@ -397,33 +363,91 @@ function generateLegendFromData(data) {
   });
 }
 
+// NOWE: nazwy dni PL i format daty dd.mm
+const DAYS_PL = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+function formatDDMM(dateStr) {
+  // dateStr w formacie YYYY-MM-DD
+  const [y, m, d] = dateStr.split('-').map(v => parseInt(v, 10));
+  const dd = String(d).padStart(2, '0');
+  const mm = String(m).padStart(2, '0');
+  return `${dd}.${mm}`;
+}
+function dayNamePL(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(v => parseInt(v, 10));
+  const dt = new Date(y, m - 1, d);
+  return DAYS_PL[dt.getDay()];
+}
+
+// NOWE: szczegółowy raport dzienny z daily_hours
+function generateDailyBreakdownFromData(summary) {
+  const container = document.getElementById('dailyBreakdown');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const daily = summary?.daily_hours || [];
+  daily.forEach(day => {
+    const entry = document.createElement('div');
+    entry.className = 'day-entry';
+
+    const header = document.createElement('div');
+    header.className = 'day-header';
+    header.textContent = `${dayNamePL(day.date)}, ${formatDDMM(day.date)}`;
+    entry.appendChild(header);
+
+    const list = document.createElement('div');
+    list.className = 'project-list';
+
+    const ph = day.project_hours || {};
+    // posortuj projekty malejąco po łącznych minutach
+    const rows = Object.entries(ph).map(([pid, val]) => {
+      const hours = val?.hours || 0;
+      const minutes = val?.minutes || 0;
+      const mins = (hours * 60) + minutes;
+      return { pid, hours, minutes, mins };
+    }).sort((a, b) => b.mins - a.mins);
+
+    rows.forEach(row => {
+      const item = document.createElement('div');
+      item.className = 'project-item';
+      const name = projectNames.get(String(row.pid)) || `Projekt ${row.pid}`;
+      item.innerHTML = `
+        <div class="project-name">${name}</div>
+        <div class="project-hours">${formatHM(row.hours, row.minutes)}</div>
+      `;
+      list.appendChild(item);
+    });
+
+    entry.appendChild(list);
+    container.appendChild(entry);
+  });
+}
+
 async function updateSummaryPage() {
   const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
                      'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
   document.getElementById('summaryMonthName').textContent = `${monthNames[summaryMonth]} ${summaryYear}`;
 
-  // 1) Pobierz dane
+  // Pobierz dane i nazwy projektów
   const [summary] = await Promise.all([
     fetchMonthlySummary(summaryMonth, summaryYear),
     loadMyProjects()
   ]);
 
-  // 2) Ustaw łączny czas (hh:mm)
+  // Łączny czas “hh h mm min”
   if (summary) {
     const h = summary.total_hours || 0;
     const m = summary.total_minutes || 0;
     document.getElementById('totalHours').textContent = formatHM(h, m);
   } else {
-    document.getElementById('totalHours').textContent = '00:00';
+    document.getElementById('totalHours').textContent = '00h 00min';
   }
 
-  // 3) Jeżeli są dane projektowe – buduj wykres i legendę
+  // Wykres + legenda z realnych danych
   if (summary && summary.project_hours && Object.keys(summary.project_hours).length) {
     const chartData = buildChartData(summary);
     drawPieChartFromData(chartData);
     generateLegendFromData(chartData);
   } else {
-    // brak danych – wyczyść wykres/legendę
     const canvas = document.getElementById('projectChart');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -431,7 +455,13 @@ async function updateSummaryPage() {
     if (legendContainer) legendContainer.innerHTML = '';
   }
 
-  // UWAGA: dotychczasowe „sample” usunięto – korzystamy wyłącznie z prawdziwych danych
+  // NOWE: szczegóły miesiąca (dni)
+  if (summary && Array.isArray(summary.daily_hours)) {
+    generateDailyBreakdownFromData(summary);
+  } else {
+    const container = document.getElementById('dailyBreakdown');
+    if (container) container.innerHTML = '';
+  }
 }
 
 function navigateMonth(direction) {
@@ -494,8 +524,8 @@ function initSummaryPage() {
     window.location.href = '/index.html';
   });
 
-  // Initialize summary page
-  ensureTooltip(); // NOWE
+  // Inicjalizacja
+  ensureTooltip();
   updateSummaryPage();
 }
 
