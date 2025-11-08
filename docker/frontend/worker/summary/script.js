@@ -535,3 +535,117 @@ if (document.readyState === 'loading') {
 } else {
   initSummaryPage();
 }
+
+// NOWE: format godzin i minut
+function formatHoursMinutes(totalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours === 0) {
+        return `${minutes}min`;
+    } else if (minutes === 0) {
+        return `${hours}h`;
+    } else {
+        return `${hours}h ${minutes}min`;
+    }
+}
+
+// NOWE: wykres słupkowy z Chart.js
+async function renderChart(data) {
+    const ctx = document.getElementById('monthlyChart').getContext('2d');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+    const chartData = {
+        labels: data.map(entry => `Dzień ${entry.day}`),
+        datasets: [{
+            label: 'Praca',
+            data: data.map(entry => entry.minutes),
+            backgroundColor: '#48bb78',
+            borderColor: '#38a169',
+            borderWidth: 2
+        }]
+    };
+
+    const chart = new Chart(ctx, {
+        type: 'bar',
+        data: chartData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        font: {
+                            family: 'Arial, sans-serif',
+                            size: 12,
+                            weight: 'normal',
+                            style: 'normal'
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const minutes = context.parsed.y;
+                            return `${context.dataset.label}: ${formatHoursMinutes(minutes)}`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: {
+                        display: true,
+                        text: 'Czas'
+                    },
+                    ticks: {
+                        callback: function(value) {
+                            return formatHoursMinutes(value);
+                        }
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Dzień miesiąca'
+                    }
+                }
+            }
+        }
+    });
+}
+
+// NOWE: dzienny raport szczegółowy
+async function renderDailyBreakdown(data) {
+    const container = document.getElementById('dailyBreakdown');
+    container.innerHTML = '';
+
+    for (const [projectName, days] of Object.entries(data)) {
+        const projectDiv = document.createElement('div');
+        projectDiv.className = 'project-summary';
+        
+        const projectTitle = document.createElement('h3');
+        projectTitle.textContent = projectName;
+        projectDiv.appendChild(projectTitle);
+
+        let totalMinutes = 0;
+        const daysList = document.createElement('ul');
+
+        for (const [day, minutes] of Object.entries(days)) {
+            totalMinutes += minutes;
+            const li = document.createElement('li');
+            li.textContent = `Dzień ${day}: ${formatHoursMinutes(minutes)}`;
+            daysList.appendChild(li);
+        }
+
+        projectDiv.appendChild(daysList);
+
+        const totalP = document.createElement('p');
+        totalP.innerHTML = `<strong>Suma: ${formatHoursMinutes(totalMinutes)}</strong>`;
+        projectDiv.appendChild(totalP);
+
+        container.appendChild(projectDiv);
+    }
+}
