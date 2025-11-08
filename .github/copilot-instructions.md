@@ -48,141 +48,43 @@ docker exec -it postgres-db psql -U apollo -d apollo_prod_db
 - **admin**: Full system access including admin user management
 
 **Critical**: Only admins can create/edit/delete admin users. See `docker/backend/ENDPOINT.md` for complete permission matrix.
+## Apollo — AI agent quick guide
 
-### Auth Dependencies (in `auth.py`)
-```python
-get_current_user()           # Any authenticated user
-admin_required()             # Admin only
-admin_or_hr_required()       # Admin or HR
-can_manage_work_report()     # Owner, admin, or HR
-```
+Short, actionable notes to get productive in this repo. Preserve Polish messages and repo conventions.
 
-## Database Schema & Validation
+- Architecture: three services in Docker (Nginx frontend static files, FastAPI backend, Postgres DB). See `docker/docker-compose.yml` and `nginx/nginx.conf`.
+- Start locally: from repository root run `cd docker; docker-compose up -d`. Frontend: http://localhost/; backend: http://localhost:8000/.
 
-### Core Tables
-- `users`: user_id (PK), email (unique), role, password_hash
-- `projects`: project_id (PK), owner_user_id (FK), created_by_user_id (FK)
-- `work_reports`: report_id (PK), user_id (FK), project_id (FK), work_date, hours_spent, minutes_spent
-- `user_projects`: Many-to-many link between users and projects
-- `messages`: Admin-created announcements shown to all users
+- Key backend files (FastAPI): `docker/backend/app/main.py`, `auth.py`, `crud.py`, `models.py`, `schemas.py`, and `routers/` (users, projects, work_reports, user_projects, messages).
+- Conventions to follow strictly:
+    - All user-facing text, comments and docs must be in Polish.
+    - No frontend frameworks: vanilla JS in `frontend/` and `docker/frontend/` (see `auth.js` use for auth pattern).
+    - DB tables are created via SQLAlchemy `Base.metadata.create_all()` — no Alembic.
 
-### Time Validation Rules (Enforced in CRUD)
-1. Single report: `0 ≤ hours ≤ 24`, `0 ≤ minutes < 60`, total cannot be 0h 0m
-2. Daily sum per user: Cannot exceed 24 hours across all reports for same day
-3. All summaries normalize minutes (e.g., 90 min → 1h 30m)
-4. Users can only report time on projects they're assigned to (`user_projects` table)
+- Auth & API patterns (copy examples exactly):
+    - JWT flow: `POST /users/login` → token stored in `localStorage`; include `Authorization: Bearer <token>` on requests.
+    - Nginx must forward auth header: `proxy_set_header Authorization $http_authorization;` (see `nginx/nginx.conf`).
+    - Common fetch pattern (frontend):
+        const token = localStorage.getItem('token');
+        await fetch('/users/me', { headers: { 'Authorization': `Bearer ${token}` } });
 
-## Frontend Structure & Patterns
+- Backend coding patterns you must mirror:
+    - Routers call CRUD functions; routers catch `ValueError` and return HTTP 400. (See `routers/*.py`.)
+    - Business validation belongs in `crud.py` (raise `ValueError` for validation). Use SQLAlchemy `IntegrityError` handling for FK/unique violations.
+    - Pydantic schemas: `*Create` for input, `*Read` for output, `*Update` for partial updates (`schemas.py`).
 
-### Directory Layout
-```
-frontend/
-  index.html          # Login page (public)
-  auth.js             # Shared auth module
-  start/              # Worker panel (requires 'worker' role)
-  user/               # User dashboard
-  worker/             # Extended worker features
-    reports/          # Report management
-    summary/          # Time summaries
-```
+- Domain-specific rules to preserve (implementations live in `crud.py`):
+    - Time constraints: single report 0 ≤ hours ≤ 24, 0 ≤ minutes < 60, total != 0; daily sum per user ≤ 24h; minutes normalized (e.g., 90m → 1h30m).
+    - Users can report time only on projects they belong to (`user_projects` link table).
 
-### Auth Pattern (in all protected pages)
+- Dev workflows & useful commands:
+    - Start services: `cd docker; docker-compose up -d` (live code volume mounts for backend allow quick iteration).
+    - Rebuild backend after model/schema changes: `docker-compose up -d --build backend`.
+    - Access DB inside container: `docker exec -it postgres-db psql -U apollo -d apollo_test_db`.
+
+- When adding endpoints: add schemas → add crud validation → add router with auth dependency → include in `main.py` → update `docker/backend/ENDPOINT.md` permission matrix.
+
+- Files to reference while coding: `docker/backend/app/auth.py`, `crud.py`, `routers/*.py`, `docker/backend/ENDPOINT.md`, `nginx/nginx.conf`, `frontend/auth.js`.
+
+If anything here is unclear or you'd like more detail (examples, tests, or small edits to a file), tell me which area to expand. 
 ```javascript
-// Include auth.js in <head>
-<script src="/auth.js"></script>
-
-// Pages automatically check auth on load
-// auth.js calls getCurrentUser(), verifies role, shows/hides content
-// Redirects to /index.html if unauthorized
-```
-
-### API Call Pattern
-```javascript
-const token = localStorage.getItem('token');
-const response = await fetch('/users/me', {
-    headers: { 'Authorization': `Bearer ${token}` }
-});
-```
-
-## Backend Code Patterns
-
-### Router Structure (`routers/` directory)
-Each router follows this pattern:
-```python
-from fastapi import APIRouter, Depends, HTTPException
-from auth import get_current_user, admin_or_hr_required
-from crud import create_*, get_*, update_*, delete_*
-
-router = APIRouter()
-
-@router.post("/", response_model=SchemaRead)
-def create_endpoint(
-    data: SchemaCreate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_hr_required)
-):
-    try:
-        result = create_function(db, data, current_user.user_id)
-        return result
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-```
-
-### CRUD Layer (`crud.py`)
-- All business logic and validation happens here
-- Raise `ValueError` for validation errors (caught by routers as 400 errors)
-- Use `IntegrityError` handling for FK constraint violations
-- Complex aggregations (monthly summaries) implemented here with SQLAlchemy `func`
-
-### Schema Pattern (`schemas.py`)
-- `*Create`: Input validation (Pydantic models)
-- `*Read`: Output serialization (with `from_attributes = True`)
-- `*Update`: Partial update schemas
-
-## Key Integration Points
-
-### Nginx Reverse Proxy
-`nginx/nginx.conf` routes:
-- `/users/*` → `backend:8000/users/*`
-- `/projects/*` → `backend:8000/projects/*`
-- `/work_reports/*` → `backend:8000/work_reports/*`
-- `/messages` → `backend:8000/messages`
-- `/user_projects/*` → `backend:8000/user_projects/*`
-- Everything else → Static frontend files
-
-**Critical**: `proxy_set_header Authorization $http_authorization;` preserves JWT tokens
-
-### Docker Networking
-Services communicate via internal network:
-- Backend connects to DB: `postgresql://apollo:apollo123@postgres-db:5432/apollo_test_db`
-- Frontend calls backend via Nginx proxy (no direct connection)
-
-## Project-Specific Conventions
-
-1. **Polish Language**: All user-facing messages, comments, and documentation in Polish
-2. **No Frontend Framework**: Pure vanilla JS - no React/Vue/Angular
-3. **DB Migrations**: Tables auto-created by SQLAlchemy `Base.metadata.create_all()` (no Alembic in use)
-4. **Error Messages**: Return descriptive Polish messages in HTTPException detail
-5. **Timestamps**: Use timezone-aware timestamps (`DateTime(timezone=True)`)
-6. **Email Normalization**: Always lowercase emails in CRUD operations
-
-## Common Development Tasks
-
-### Adding New Endpoint
-1. Define schema in `schemas.py` (*Create, *Read models)
-2. Add CRUD function in `crud.py` with validation
-3. Create router endpoint in `routers/*.py` with auth dependency
-4. Register router in `main.py` with `app.include_router()`
-5. Update `ENDPOINT.md` permission matrix
-
-### Modifying Database Schema
-1. Update model in `models.py`
-2. Either: Destroy containers and recreate, OR write manual ALTER statements
-3. Update `DB_create.md` and `DB_opis.md` with changes
-4. Rebuild backend container: `docker-compose up -d --build backend`
-
-## Reference Documentation
-- **Full API endpoints**: `docker/backend/ENDPOINT.md` (permission matrix)
-- **Database schema**: `docker/DB_create.md` (SQL) and `docker/DB_opis.md` (descriptions)
-- **Backend details**: `docker/backend/README.md`
-- **Docker commands**: `docker/README.md`
