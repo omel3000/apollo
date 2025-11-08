@@ -16,4 +16,105 @@
     }
 
     // ...existing code...
+
+    async function renderChart(data) {
+        // ...existing code...
+
+        const chart = new Chart(ctx, {
+            type: 'bar',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            font: {
+                                family: 'Arial, sans-serif',
+                                size: 12,
+                                weight: 'normal'
+                            },
+                            generateLabels: function(chart) {
+                                const datasets = chart.data.datasets;
+                                return datasets.map((dataset, i) => {
+                                    return {
+                                        text: dataset.label,
+                                        fillStyle: dataset.backgroundColor,
+                                        strokeStyle: dataset.borderColor,
+                                        lineWidth: dataset.borderWidth,
+                                        hidden: !chart.isDatasetVisible(i),
+                                        index: i
+                                    };
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const minutes = context.parsed.y;
+                                return `${context.dataset.label}: ${formatHoursMinutes(minutes)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Czas'
+                        },
+                        ticks: {
+                            callback: function(value) {
+                                return formatHoursMinutes(value);
+                            }
+                        }
+                    },
+                    x: {
+                        title: {
+                            display: true,
+                            text: 'Dzień miesiąca'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    async function renderDetailedSummary(data) {
+        const container = document.getElementById('detailedSummary');
+        container.innerHTML = '';
+
+        for (const [projectName, days] of Object.entries(data)) {
+            const projectDiv = document.createElement('div');
+            projectDiv.className = 'project-summary';
+            
+            const projectTitle = document.createElement('h3');
+            projectTitle.textContent = projectName;
+            projectDiv.appendChild(projectTitle);
+
+            let totalMinutes = 0;
+            const daysList = document.createElement('ul');
+
+            for (const [day, minutes] of Object.entries(days)) {
+                totalMinutes += minutes;
+                const li = document.createElement('li');
+                li.textContent = `Dzień ${day}: ${formatHoursMinutes(minutes)}`;
+                daysList.appendChild(li);
+            }
+
+            projectDiv.appendChild(daysList);
+
+            const totalP = document.createElement('p');
+            totalP.innerHTML = `<strong>Suma: ${formatHoursMinutes(totalMinutes)}</strong>`;
+            projectDiv.appendChild(totalP);
+
+            container.appendChild(projectDiv);
+        }
+    }
+
+    // ...existing code...
 </script>
