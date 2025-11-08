@@ -71,8 +71,36 @@
   </div>
   <script src="script.js"></script>
   <script>
-   // Walidacja roli przy załadowaniu strony
-   checkAuthAndRole('worker');
+    // Walidacja autentykacji i roli przy załadowaniu strony
+    (async function() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        window.location.href = '/index.html';
+        return;
+      }
+      
+      try {
+        const response = await fetch('/users/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!response.ok) {
+          localStorage.removeItem('token');
+          window.location.href = '/index.html';
+          return;
+        }
+        
+        const user = await response.json();
+        if (user.role !== 'worker') {
+          window.location.href = '/index.html';
+          return;
+        }
+      } catch (error) {
+        console.error('Błąd weryfikacji:', error);
+        localStorage.removeItem('token');
+        window.location.href = '/index.html';
+      }
+    })();
   </script>
  </body>
 </html>
