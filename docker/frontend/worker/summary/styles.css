@@ -122,21 +122,18 @@ html {
 /* Main Content */
 .main-content {
   flex: 1;
-  padding: 90px 30px 40px 30px;
+  padding: 90px 15px 40px 15px;
   overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 30px;
+  max-width: 100%;
 }
 
 /* Date Navigation */
 .date-navigation {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0;
-  margin-left: auto;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
 }
 
 .nav-button {
@@ -198,29 +195,21 @@ html {
 
 /* Summary Page Styles */
 .summary-header {
-  text-align: left;
+  text-align: center;
+  margin-bottom: 30px;
 }
 
 .month-display {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
   gap: 20px;
-  flex-wrap: wrap;
-  width: 100%;
 }
 
 .month-name {
-  flex: 1 1 auto;
-  text-align: left;
-}
-
-.date-navigation {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0;
-  margin-left: auto;
+  font-size: 36px;
+  font-weight: 700;
+  color: #2d3748;
 }
 
 .summary-content {
@@ -228,25 +217,11 @@ html {
   flex-direction: column;
   gap: 30px;
   width: 100%;
-  align-items: stretch;
-}
-
-.summary-content > * {
-  width: 100%;
-}
-
-.summary-content .content-panel {
-  width: 100%;
 }
 
 .chart-panel {
   width: 100%;
   max-width: none;
-  display: grid;
-  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
-  column-gap: 36px;
-  row-gap: 24px;
-  align-items: flex-start;
 }
 
 .daily-panel {
@@ -255,16 +230,11 @@ html {
 }
 
 .total-hours {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 0;
+  text-align: center;
+  margin-bottom: 30px;
   padding: 20px;
   background: #f7fafc;
   border-radius: 12px;
-  text-align: left;
 }
 
 .total-label {
@@ -283,13 +253,11 @@ html {
 .chart-container {
   display: flex;
   justify-content: center;
-  margin: 0;
-  padding: 0;
-  width: 100%;
+  margin-bottom: 30px;
+  padding: 20px;
 }
 
 .chart-legend {
-  align-self: stretch;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -394,8 +362,8 @@ html {
 
   .main-content {
     grid-area: main;
-    padding: 80px 16px 24px 16px;
-    gap: 24px;
+    width: 100%;
+    padding-bottom: 16px;
   }
 
   .summary-content {
@@ -457,8 +425,9 @@ html {
 
 @media (max-width: 640px) {
   .date-navigation {
-    margin-left: 0;
-    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
   }
 
   .nav-button,
@@ -560,14 +529,6 @@ html {
 
   .day-entry {
     padding: 12px;
-  }
-
-  .main-content {
-    padding: 70px 15px 24px 15px;
-  }
-
-  .total-hours {
-    gap: 8px;
   }
 }
 
