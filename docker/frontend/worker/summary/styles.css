@@ -122,8 +122,9 @@ html {
 /* Main Content */
 .main-content {
   flex: 1;
-  padding: 90px 30px 40px 30px;
+  padding: 90px 15px 40px 15px;
   overflow-y: auto;
+  max-width: 100%;
 }
 
 /* Date Navigation */
@@ -179,6 +180,8 @@ html {
   padding: 30px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   margin-bottom: 30px;
+  width: 100%;
+  max-width: none;
 }
 
 .panel-header {
@@ -213,14 +216,17 @@ html {
   display: flex;
   flex-direction: column;
   gap: 30px;
+  width: 100%;
 }
 
 .chart-panel {
   width: 100%;
+  max-width: none;
 }
 
 .daily-panel {
   width: 100%;
+  max-width: none;
 }
 
 .total-hours {
@@ -353,7 +359,7 @@ html {
 
 @media (max-width: 768px) {
   .container {
-    padding: 20px;
+    padding: 0;
   }
 
   .content-panel {
