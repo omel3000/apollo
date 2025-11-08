@@ -154,20 +154,26 @@ async function fetchMonthlySummary(month, year) {
   }
 }
 
+function formatHM(hours, minutes) {
+  const h = Number.isFinite(hours) ? hours : parseInt(hours || 0, 10) || 0;
+  const m = Number.isFinite(minutes) ? minutes : parseInt(minutes || 0, 10) || 0;
+  const hh = String(h).padStart(2, '0');
+  const mm = String(m).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
 async function updateSummaryPage() {
   const monthNames = ['Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
                      'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'];
   document.getElementById('summaryMonthName').textContent = `${monthNames[summaryMonth]} ${summaryYear}`;
 
-  // --- NOWE: pobierz dane z backendu ---
   const summary = await fetchMonthlySummary(summaryMonth, summaryYear);
   if (summary) {
-    // Formatowanie hh:mm
     const h = summary.total_hours || 0;
     const m = summary.total_minutes || 0;
-    document.getElementById('totalHours').textContent = `${h}h ${m.toString().padStart(2, '0')}min`;
+    document.getElementById('totalHours').textContent = formatHM(h, m); // hh:mm
   } else {
-    document.getElementById('totalHours').textContent = '0h 00min';
+    document.getElementById('totalHours').textContent = '00:00';
   }
 
   // --- poniżej zostawiamy generowanie przykładowych danych tylko dla legendy i breakdown ---
@@ -354,7 +360,7 @@ function showNotification(message, type) {
 }
 
 // Event listeners initialization
-document.addEventListener('DOMContentLoaded', function() {
+function initSummaryPage() {
   // Summary page event listeners
   document.getElementById('prevMonthBtn').addEventListener('click', () => navigateMonth(-1));
   document.getElementById('nextMonthBtn').addEventListener('click', () => navigateMonth(1));
@@ -371,4 +377,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize summary page
   updateSummaryPage();
-});
+}
+
+// ZAMIANA poprzedniego listenera DOMContentLoaded na bezpieczną inicjalizację
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSummaryPage);
+} else {
+  initSummaryPage();
+}
