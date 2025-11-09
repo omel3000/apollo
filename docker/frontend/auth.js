@@ -254,7 +254,7 @@ function updateDesktopScale() {
 }
 
 function initDesktopScaling() {
-    if (desktopScalingInitialized) return;
+    if (desktopScalingInitialized || !window.location.pathname.startsWith('/worker')) return;
     desktopScalingInitialized = true;
     ensureDesktopScalingStyles();
     const root = document.documentElement;
