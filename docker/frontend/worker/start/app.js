@@ -75,7 +75,7 @@ function personalizeView(user) {
 
   if (welcomeMessage) {
     const name = user.first_name || user.full_name || user.email || 'Pracowniku';
-    welcomeMessage.textContent = `Witaj ponownie, ${name}!`;
+    welcomeMessage.textContent = `Witaj w systemie Apollo!`;
   }
 
   if (badge) {
