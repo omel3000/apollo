@@ -5,9 +5,10 @@
   <title>Panel Pracownika</title>
   <style>
     /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
-    html { visibility: hidden; }
+    /* html { visibility: hidden; } */
   </style>
   <script src="/worker/auth-worker.js"></script>
+  <script src="/worker/messages.js"></script>
 </head>
 <body>
   <!-- Górna belka -->
@@ -35,23 +36,10 @@
     <h2>Witaj w systemie!</h2>
     <h3>Komunikaty</h3>
     
-    <!-- Pojedynczy komunikat do łatwego kopiowania -->
-    <section>
-      <div>
-        <strong>Witaj, witaj</strong><br>
-        System top stopm top<br>
-        <small>09.11.2025, 11:29</small>
-      </div>
-    </section>
-    
-    <!-- Przykładowe pole na kolejne komunikaty -->
-    <section>
-      <div>
-        <strong>Aktualności</strong><br>
-        Najważniejsze, żeby wszyscy się kochali!<br>
-        <small>07.11.2025, 12:19</small>
-      </div>
-    </section>
+    <div id="messages-container">
+      <!-- Komunikaty zostaną załadowane dynamicznie -->
+      <p>Ładowanie komunikatów...</p>
+    </div>
     
   </main>
 </body>
