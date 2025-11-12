@@ -5,10 +5,11 @@
   <title>Rejestracja Czasu Pracy</title>
   <style>
     /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
-    html { visibility: hidden; }
+    /* html { visibility: hidden; } */
   </style>
   <script src="/worker/auth-worker.js"></script>
   <script src="/logout.js"></script>
+  <script src="/worker/date-navigator.js"></script>
 </head>
 <body>
   <!-- Top bar -->
@@ -38,15 +39,15 @@
 
   <!-- Main panel - date, total time, form -->
   <main>
-    <h2>Środa</h2>
-    <p>12.11.2025</p>
+    <h2 id="dayName"></h2>
+    <p id="dateDisplay">test</p>
     <p>Łącznie: 1h 0min</p>
 
     <!-- Przyciski do zmiany dnia -->
     <form method="get" action="/worker/reports.html">
-      <button type="button">&lt;-</button>
-      <button type="button">Bieżący dzień</button>
-      <button type="button">-&gt;</button>
+      <button type="button" id="prevDayBtn">&lt;-</button>
+      <button type="button" id="todayBtn">Bieżący dzień</button>
+      <button type="button" id="nextDayBtn">-&gt;</button>
     </form>
 
     <hr>
@@ -59,7 +60,7 @@
       <textarea name="opis" id="opis"></textarea><br><br>
 
       <label for="czas_h">Czas pracy:</label>
-      <input type="number" id="czas_h" name="czas_h" min="0" value="0"> h
+      <input type="number" id="czas_h" name="czas_h" min="0" max="24" value="0"> h
       <input type="number" id="czas_m" name="czas_m" min="0" max="59" value="0"> min
       <br><br>
 
