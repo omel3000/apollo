@@ -1,14 +1,15 @@
 document.addEventListener('DOMContentLoaded', function() {
   // Wypełnij listę projektów
-  fetch('/user_projects/my_projects')
+  fetch('/user_projects/my_projects') // poprawiona ścieżka
     .then(res => res.json())
     .then(data => {
       const select = document.getElementById('projektSelect');
       select.innerHTML = '';
       data.forEach(proj => {
+        // poprawione pola na project_id i project_name
         const opt = document.createElement('option');
-        opt.value = proj.id;
-        opt.textContent = proj.name;
+        opt.value = proj.project_id;
+        opt.textContent = proj.project_name;
         select.appendChild(opt);
       });
     });
