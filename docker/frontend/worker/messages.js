@@ -9,10 +9,16 @@ async function loadMessages() {
     const response = await fetch('/messages/', {
       method: 'GET',
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
       }
     });
     
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      window.location.replace('/');
+      return;
+    }
     if (!response.ok) {
       throw new Error('Nie udało się pobrać komunikatów');
     }

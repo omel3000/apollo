@@ -7,7 +7,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Wypełnij listę projektów
   fetch('/user_projects/my_projects', {
-    headers: { 'Authorization': `Bearer ${token}` }
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Accept': 'application/json'
+    }
   })
     .then(res => {
       if (res.status === 401) {
@@ -15,9 +18,16 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.replace('/');
         return Promise.reject(new Error('Unauthorized'));
       }
+      if (!res.ok) {
+        return res.text().then(t => Promise.reject(new Error(t || 'Błąd pobierania projektów')));
+      }
       return res.json();
     })
     .then(data => {
+      if (!Array.isArray(data)) {
+        alert('Błąd API: niepoprawny format odpowiedzi przy pobieraniu projektów.');
+        return;
+      }
       const select = document.getElementById('projektSelect');
       select.innerHTML = '';
       data.forEach(proj => {
@@ -28,7 +38,12 @@ document.addEventListener('DOMContentLoaded', function() {
         select.appendChild(opt);
       });
     })
-    .catch(() => {/* już obsłużone wyżej lub brak akcji */});
+    .catch(err => {
+      if (err && err.message !== 'Unauthorized') {
+        console.error(err);
+        alert('Nie udało się pobrać listy projektów.');
+      }
+    });
 
   // Obsługa zapisu wpisu
   document.getElementById('saveBtn').addEventListener('click', function(e) {
@@ -62,6 +77,7 @@ document.addEventListener('DOMContentLoaded', function() {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
         'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify({
@@ -81,9 +97,9 @@ document.addEventListener('DOMContentLoaded', function() {
       if (res.ok) {
         alert('Wpis dodany!');
         document.querySelector('form[action="/worker/addreport"]').reset();
-      } else {
-        return res.text().then(t => { throw new Error(t); });
+        return;
       }
+      return res.text().then(t => { throw new Error(t || 'Błąd zapisu wpisu'); });
     })
     .catch(err => alert('Błąd: ' + (err?.message || 'Nieznany błąd')));
   });
