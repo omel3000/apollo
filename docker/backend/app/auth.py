@@ -1,14 +1,16 @@
 import os
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from models import User
 from database import get_db
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
+import logging
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="users/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/users/login", auto_error=False)
+logger = logging.getLogger("apollo.auth")
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -31,19 +33,33 @@ def create_access_token(data: dict, expires_delta: timedelta = None):
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def get_current_user(
+    request: Request,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Niepoprawny lub wygasły token",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        if auth_header and auth_header.lower().startswith("bearer "):
+            token = auth_header.split(" ", 1)[1].strip()
+        else:
+            logger.warning("Brak nagłówka Authorization dla %s %s", request.method, request.url.path)
+            raise credentials_exception
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id_str = payload.get("sub")
         if user_id_str is None:
             raise credentials_exception
         user_id = int(user_id_str)
-    except (JWTError, ValueError):
+    except (JWTError, ValueError) as exc:
+        logger.warning("Błędny token JWT dla %s %s: %s", request.method, request.url.path, exc)
         raise credentials_exception
 
     user = db.query(User).filter(User.user_id == user_id).first()
