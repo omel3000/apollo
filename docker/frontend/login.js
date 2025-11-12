@@ -1,11 +1,75 @@
+// Walidacja tokenu i przekierowanie
+async function checkExistingLogin() {
+  const token = localStorage.getItem('token');
+
+  if (!token) {
+    // Brak tokenu - pokaż formularz logowania
+    return false;
+  }
+
+  try {
+    // Sprawdź czy token jest prawidłowy
+    const response = await fetch('/users/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    if (!response.ok) {
+      // Token nieprawidłowy - usuń go
+      console.warn('Token nieprawidłowy lub wygasły');
+      localStorage.removeItem('token');
+      return false;
+    }
+
+    const userData = await response.json();
+
+    // Token prawidłowy - przekieruj na właściwą stronę
+    redirectByRole(userData.role);
+    return true;
+
+  } catch (error) {
+    console.error('Błąd podczas walidacji tokenu:', error);
+    localStorage.removeItem('token');
+    return false;
+  }
+}
+
+// Funkcja przekierowująca na podstawie roli
+function redirectByRole(role) {
+  if (role === 'worker') {
+    window.location.href = '/worker/';
+  } else if (role === 'admin') {
+    window.location.href = '/admin/';
+  } else if (role === 'hr') {
+    window.location.href = '/hr/';
+  } else {
+    console.warn('Nieznana rola użytkownika:', role);
+    localStorage.removeItem('token');
+  }
+}
+
 // Obsługa logowania i przekierowania
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const loginForm = document.querySelector('form');
-  
   if (!loginForm) {
     console.error('Formularz logowania nie został znaleziony');
     return;
   }
+
+  // Ukryj formularz do czasu sprawdzenia czy użytkownik jest zalogowany
+  loginForm.hidden = true;
+
+  // Sprawdź czy użytkownik jest już zalogowany (oraz czy token jest poprawny)
+  const alreadyLoggedIn = await checkExistingLogin();
+  if (alreadyLoggedIn) {
+    // Przekierowanie nastąpiło w checkExistingLogin
+    return;
+  }
+
+  // Brak lub niepoprawny token - pokaż formularz
+  loginForm.hidden = false;
 
   loginForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -58,18 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const userData = await userResponse.json();
 
       // Krok 3: Przekieruj na podstawie roli
-      if (userData.role === 'worker') {
-        window.location.href = '/worker/';
-      } else if (userData.role === 'admin') {
-        // Możesz dodać przekierowanie dla admina w przyszłości
-        window.location.href = '/admin/'; // Tymczasowo też na worker
-      } else if (userData.role === 'hr') {
-        // Możesz dodać przekierowanie dla HR w przyszłości
-        window.location.href = '/hr/'; // Tymczasowo też na worker
-      } else {
-        alert('Nieznana rola użytkownika');
-        localStorage.removeItem('token');
-      }
+      redirectByRole(userData.role);
 
     } catch (error) {
       console.error('Błąd podczas logowania:', error);
