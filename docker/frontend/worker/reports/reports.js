@@ -1,7 +1,22 @@
 document.addEventListener('DOMContentLoaded', function() {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    window.location.replace('/');
+    return;
+  }
+
   // Wypełnij listę projektów
-  fetch('/user_projects/my_projects') // poprawiona ścieżka
-    .then(res => res.json())
+  fetch('/user_projects/my_projects', {
+    headers: { 'Authorization': `Bearer ${token}` }
+  })
+    .then(res => {
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        window.location.replace('/');
+        return Promise.reject(new Error('Unauthorized'));
+      }
+      return res.json();
+    })
     .then(data => {
       const select = document.getElementById('projektSelect');
       select.innerHTML = '';
@@ -12,7 +27,8 @@ document.addEventListener('DOMContentLoaded', function() {
         opt.textContent = proj.project_name;
         select.appendChild(opt);
       });
-    });
+    })
+    .catch(() => {/* już obsłużone wyżej lub brak akcji */});
 
   // Obsługa zapisu wpisu
   document.getElementById('saveBtn').addEventListener('click', function(e) {
@@ -44,7 +60,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     fetch('/work_reports/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify({
         project_id,
         work_date,
@@ -54,13 +73,19 @@ document.addEventListener('DOMContentLoaded', function() {
       })
     })
     .then(res => {
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        window.location.replace('/');
+        return Promise.reject(new Error('Unauthorized'));
+      }
       if (res.ok) {
         alert('Wpis dodany!');
         document.querySelector('form[action="/worker/addreport"]').reset();
       } else {
-        res.text().then(t => alert('Błąd: ' + t));
+        return res.text().then(t => { throw new Error(t); });
       }
-    });
+    })
+    .catch(err => alert('Błąd: ' + (err?.message || 'Nieznany błąd')));
   });
 });
 
