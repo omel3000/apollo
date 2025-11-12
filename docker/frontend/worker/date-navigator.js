@@ -1,6 +1,7 @@
 (function() {
   const dayNames = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
   let currentDate = new Date();
+  window.currentDate = currentDate; // Global variable for current date
 
   function updateDateDisplay() {
     const dayName = dayNames[currentDate.getDay()];
@@ -14,16 +15,19 @@
 
     document.getElementById('prevDayBtn').addEventListener('click', function() {
       currentDate.setDate(currentDate.getDate() - 1);
+      window.currentDate = currentDate;
       updateDateDisplay();
     });
 
     document.getElementById('nextDayBtn').addEventListener('click', function() {
       currentDate.setDate(currentDate.getDate() + 1);
+      window.currentDate = currentDate;
       updateDateDisplay();
     });
 
     document.getElementById('todayBtn').addEventListener('click', function() {
       currentDate = new Date();
+      window.currentDate = currentDate;
       updateDateDisplay();
     });
   });

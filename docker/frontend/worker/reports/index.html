@@ -10,6 +10,7 @@
   <script src="/worker/auth-worker.js"></script>
   <script src="/logout.js"></script>
   <script src="/worker/date-navigator.js"></script>
+  <script src="/worker/reports.js"></script> <!-- Nowy plik JS do obsługi raportów -->
 </head>
 <body>
   <!-- Top bar -->
@@ -39,8 +40,8 @@
 
   <!-- Main panel - date, total time, form -->
   <main>
-    <h2 id="dayName"></h2>
-    <p id="dateDisplay">test</p>
+    <h2 id="dayName">Dzień tygodnia</h2>
+    <p id="dateDisplay">Data dd.mm.rrrr</p>
     <p>Łącznie: 1h 0min</p>
 
     <!-- Przyciski do zmiany dnia -->
@@ -53,8 +54,10 @@
     <hr>
     <!-- Form to register working time -->
     <form method="post" action="/worker/addreport">
-      <label for="projekt">Projekt:</label>
-      <input type="text" name="projekt" id="projekt"><br><br>
+      <label for="projektSelect">Projekt:</label>
+      <select name="projekt" id="projektSelect">
+        <option value="">Ładowanie...</option>
+      </select><br><br>
 
       <label for="opis">Opis (opcjonalny):</label>
       <textarea name="opis" id="opis"></textarea><br><br>
@@ -64,7 +67,7 @@
       <input type="number" id="czas_m" name="czas_m" min="0" max="59" value="0"> min
       <br><br>
 
-      <button type="submit">Dodaj kolejny wpis</button>
+      <button type="submit" id="saveBtn">Zapisz</button>
       <button type="reset">Usuń</button>
     </form>
   </main>
