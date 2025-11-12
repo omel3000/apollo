@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Podsumowania miesięczne</title>
+</head>
+<body>
+  <!-- Top bar -->
+  <header>
+    <h1 style="display:inline-block;">Podsumowania miesięczne</h1>
+    <div style="float:right;">
+      <a href="/worker/account/">Konto</a>
+      <a href="/logout">Wyloguj</a>
+    </div>
+  </header>
+  <hr>
+
+  <!-- Navigation -->
+  <nav>
+    <ul>
+      <li><a href="/worker/">Strona główna</a></li>
+      <li><a href="/worker/reports/">Rejestracja czasu pracy</a></li>
+      <li><a href="/worker/summary/">Podsumowania</a></li>
+    </ul>
+  </nav>
+  <hr>
+
+  <!-- Main summary section -->
+  <main>
+    <h2>Listopad 2025</h2>
+    <form method="get" action="/worker/summary.html">
+      <button type="button">&lt;-</button>
+      <button type="button">Bieżący miesiąc</button>
+      <button type="button">-&gt;</button>
+    </form>
+
+    <h3>Łącznie: <span style="font-weight:bold;">33h 39min</span></h3>
+    <!-- Placeholder na wykres -->
+    <div>
+      <p>[ Miejsce na wykres (np. kołowy) ]</p>
+    </div>
+
+    <hr>
+
+    <section>
+      <h3>Szczegółowe rozpisanie</h3>
+      <!-- Przykładowy dzień -->
+      <div>
+        <strong>Czwartek, 06.11</strong>
+        <div>
+          <div>masno — 2h 10min</div>
+        </div>
+      </div>
+
+      <div>
+        <strong>Piątek, 07.11</strong>
+        <div>
+          <div>masno — 4h 45min</div>
+          <div>string — 1h 45min</div>
+        </div>
+      </div>
+
+      <div>
+        <strong>Sobota, 08.11</strong>
+        <div>
+          <div>string — 8h 59min</div>
+        </div>
+      </div>
+
+      <div>
+        <strong>Wtorek, 11.11</strong>
+        <div>
+          <div>masno — 2h 10min</div>
+        </div>
+      </div>
+      <!-- Dodawaj kolejne dni kopiując powyższy blok -->
+
+    </section>
+  </main>
+</body>
+</html>
