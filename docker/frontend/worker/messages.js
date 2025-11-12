@@ -1,6 +1,18 @@
 async function loadMessages() {
   try {
-    const response = await fetch('/messages/');
+    const token = localStorage.getItem('token');
+    if (!token) {
+      displayErrorMessage('Brak tokenu autoryzacji');
+      return;
+    }
+    
+    const response = await fetch('/messages/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
     if (!response.ok) {
       throw new Error('Nie udało się pobrać komunikatów');
     }
@@ -74,10 +86,11 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-function displayErrorMessage() {
+function displayErrorMessage(customMessage) {
   const container = document.getElementById('messages-container');
   if (container) {
-    container.innerHTML = '<p style="color: red;">Nie udało się załadować komunikatów. Spróbuj ponownie później.</p>';
+    const message = customMessage || 'Nie udało się załadować komunikatów. Spróbuj ponownie później.';
+    container.innerHTML = `<p style="color: red;">${message}</p>`;
   }
 }
 
