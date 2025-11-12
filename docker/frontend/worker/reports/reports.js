@@ -1,14 +1,17 @@
 document.addEventListener('DOMContentLoaded', function() {
-  const token = localStorage.getItem('token');
+  const rawToken = localStorage.getItem('token');
+  const token = rawToken ? rawToken.trim() : '';
   if (!token) {
+    localStorage.removeItem('token');
     window.location.replace('/');
     return;
   }
+  const authHeader = token.toLowerCase().startsWith('bearer ') ? token : `Bearer ${token}`;
 
   // Wypełnij listę projektów
   fetch('/user_projects/my_projects', {
     headers: {
-      'Authorization': `Bearer ${token}`,
+      'Authorization': authHeader,
       'Accept': 'application/json'
     }
   })
@@ -78,7 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
-        'Authorization': `Bearer ${token}`
+        'Authorization': authHeader
       },
       body: JSON.stringify({
         project_id,
