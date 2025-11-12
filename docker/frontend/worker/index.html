@@ -1,76 +1,53 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pl">
- <head>
+<head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel Pracownika</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iI2U2N2Y3MSIvPjx0ZXh0IHg9IjQiIHk9IjEyIiBmb250LXNpemU9IjExIiBmaWxsPSIjZmZmIj5BOzwvdGV4dD48L3N2Zz4=">
-  <link rel="stylesheet" href="styles.css">
- </head>
- <body>
-  <!-- Loading State -->
-  <div id="loadingState" style="display: flex; justify-content: center; align-items: center; min-height: 100vh; width: 100vw; position: fixed; top: 0; left: 0; background: #f7fafc; z-index: 9999;">
-    <p style="font-size: 18px; color: #4a5568;">Weryfikacja uprawnień...</p>
-  </div>
-  
-  <!-- Main Container -->
-  <div class="container" id="mainContent" style="display: none;">
-   <!-- Header -->
-   <header class="header">
-    <div class="header-title" id="pageTitle">Panel Pracownika</div>
-    <div class="header-icons">
-     <button class="icon-button" id="accountBtn" aria-label="Ustawienia konta">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="#4a5568">
-       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-      </svg>
-     </button>
-     <button class="icon-button" id="logoutBtnHeader" aria-label="Wyloguj" onclick="logout()">
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="#4a5568">
-       <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
-      </svg>
-     </button>
+</head>
+<body>
+  <!-- Górna belka -->
+  <header>
+    <h1 style="display:inline-block;">Panel Pracownika</h1>
+    <div style="float:right;">
+      <a href="/worker/account">Konto</a>
+      <a href="/logout">Wyloguj</a>
     </div>
-   </header>
+  </header>
+  <hr>
 
-   <!-- Sidebar -->
-   <aside class="sidebar">
-    <nav class="menu">
-     <div class="menu-item active" id="menuHome">
-      <span class="menu-icon">🏠</span>
-      <span id="menuHomeText">Strona główna</span>
-     </div>
-     <div class="menu-item" id="menuTime">
-      <span class="menu-icon">⏰</span>
-      <a href="./reports/" class="menu-link" id="menuTimeText">Rejestracja czasu pracy</a>
-     </div>
-     <div class="menu-item" id="menuSummary">
-      <span class="menu-icon">📊</span>
-      <a href="./summary/" class="menu-link" id="menuSummaryText">Podsumowania</a>
-     </div>
-    </nav>
-   </aside>
+  <!-- Menu boczne -->
+  <nav>
+    <ul>
+      <li><a href="/worker/">Strona główna</a></li>
+      <li><a href="/worker/reports/">Rejestracja czasu pracy</a></li>
+      <li><a href="/worker/summary/">Podsumowania</a></li>
+    </ul>
+  </nav>
+  <hr>
 
-   <!-- Main Content -->
-   <main class="main-content">
-    <div class="messages-panel">
-     <!-- Welcome Banner -->
-     <div class="welcome-banner">
-      <div class="welcome-text" id="welcomeMessage">Witaj w systemie!</div>
-     </div>
-     
-     <!-- Messages Section -->
-     <h2 class="panel-header" id="messagesTitle">Komunikaty</h2>
-     
-     <!-- Komunikaty będą wstawiane dynamicznie przez JavaScript -->
-     <div class="message-item" id="loadingMessages" style="text-align: center; color: #a0aec0;">
-      <div class="message-text">Ładowanie komunikatów...</div>
-     </div>
-    </div>
-   </main>
-  </div>
-
-  <!-- Scripts -->
-  <script src="../auth.js"></script>
-  <script src="app.js"></script>
- </body>
+  <!-- Powitanie i komunikaty -->
+  <main>
+    <h2>Witaj w systemie!</h2>
+    <h3>Komunikaty</h3>
+    
+    <!-- Pojedynczy komunikat do łatwego kopiowania -->
+    <section>
+      <div>
+        <strong>Witaj, witaj</strong><br>
+        System top stopm top<br>
+        <small>09.11.2025, 11:29</small>
+      </div>
+    </section>
+    
+    <!-- Przykładowe pole na kolejne komunikaty -->
+    <section>
+      <div>
+        <strong>Aktualności</strong><br>
+        Najważniejsze, żeby wszyscy się kochali!<br>
+        <small>07.11.2025, 12:19</small>
+      </div>
+    </section>
+    
+  </main>
+</body>
 </html>

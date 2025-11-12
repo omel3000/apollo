@@ -59,13 +59,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
       // Krok 3: Przekieruj na podstawie roli
       if (userData.role === 'worker') {
-        window.location.href = '/new/worker/';
+        window.location.href = '/worker/';
       } else if (userData.role === 'admin') {
         // Możesz dodać przekierowanie dla admina w przyszłości
-        window.location.href = '/new/worker/'; // Tymczasowo też na worker
+        window.location.href = '/admin/'; // Tymczasowo też na worker
       } else if (userData.role === 'hr') {
         // Możesz dodać przekierowanie dla HR w przyszłości
-        window.location.href = '/new/worker/'; // Tymczasowo też na worker
+        window.location.href = '/hr/'; // Tymczasowo też na worker
       } else {
         alert('Nieznana rola użytkownika');
         localStorage.removeItem('token');

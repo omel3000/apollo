@@ -1,88 +1,66 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Raporty | Panel Pracownika</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iI2U2N2Y3MSIvPjx0ZXh0IHg9IjQiIHk9IjEyIiBmb250LXNpemU9IjExIiBmaWxsPSIjZmZmIj5BOzwvdGV4dD48L3N2Zz4=">
-  <link rel="stylesheet" href="../styles.css">
-  <link rel="stylesheet" href="reports.css">
+  <title>Rejestracja Czasu Pracy</title>
 </head>
 <body>
-  <div id="loadingState" style="display:flex;justify-content:center;align-items:center;min-height:100vh;width:100vw;position:fixed;top:0;left:0;background:#f7fafc;z-index:9999;">
-    <p style="font-size:18px;color:#4a5568;">Weryfikacja uprawnień...</p>
-  </div>
+  <!-- Top bar -->
+  <header>
+    <h1 style="display:inline-block;">Rejestracja Czasu Pracy</h1>
+    <div style="float:right;">
+      <a href="/worker/account/">Konto</a>
+      <a href="/logout">Wyloguj</a>
+    </div>
+  </header>
+  <hr>
 
-  <div class="container" id="mainContentReports" style="display:none;">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-title">Rejestracja Czasu Pracy</div>
-      <div class="header-icons">
-        <button class="icon-button" id="accountBtn" aria-label="Ustawienia konta">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="#4a5568">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-          </svg>
-        </button>
-        <button class="icon-button" id="logoutBtnHeader" aria-label="Wyloguj" onclick="logout()">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="#4a5568">
-            <path d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
-          </svg>
-        </button>
-      </div>
-    </header>
+  <!-- Navigation -->
+  <nav>
+    <ul>
+      <li><a href="/worker/">Strona główna</a></li>
+      <li><a href="/worker/reports/">Rejestracja czasu pracy</a></li>
+      <li><a href="/worker/summary/">Podsumowania</a></li>
+    </ul>
+  </nav>
+  <hr>
+<!-- Example calendar panel (placeholder) -->
+  <aside>
+    <h3>Kalendarz</h3>
+    <p>[Tu będzie kalendarz]</p>
+  </aside>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <nav class="menu">
-        <div class="menu-item" id="menuHome"><span class="menu-icon">🏠</span><a href="../" class="menu-link">Strona główna</a></div>
-        <div class="menu-item active" id="menuTime"><span class="menu-icon">⏰</span><span class="menu-link">Rejestracja czasu pracy</span></div>
-        <div class="menu-item" id="menuSummary"><span class="menu-icon">📊</span><a href="../summary/" class="menu-link">Podsumowania</a></div>
-      </nav>
-    </aside>
+  <!-- Main panel - date, total time, form -->
+  <main>
+    <h2>Środa</h2>
+    <p>12.11.2025</p>
+    <p>Łącznie: 1h 0min</p>
 
-    <!-- Main Content -->
-    <main class="main-content">
-      <div class="left-panel">
-        <div class="content-panel">
-          <div class="date-display">
-            <div class="day-name" id="selectedDayName">Poniedziałek</div>
-            <div class="date-text" id="selectedDate">01.01.2024</div>
-            <!-- NOWE: Suma godzin/minut za dzień -->
-            <div class="daily-summary" id="dailySummary" style="margin-top: 10px; font-size: 18px; font-weight: 600; color: #4a5568;">Łącznie: 0h 0min</div>
-            <div class="date-navigation">
-              <button class="nav-button" id="prevDayBtn" aria-label="Poprzedni dzień">←</button>
-              <button class="today-button" id="todayBtn">Bieżący dzień</button>
-              <button class="nav-button" id="nextDayBtn" aria-label="Następny dzień">→</button>
-            </div>
-          </div>
-        </div>
+    <!-- Przyciski do zmiany dnia -->
+    <form method="get" action="/worker/reports.html">
+      <button type="button">&lt;-</button>
+      <button type="button">Bieżący dzień</button>
+      <button type="button">-&gt;</button>
+    </form>
 
-        <div class="content-panel">
-          <div id="entriesContainer"></div>
-          <button class="btn btn-add" id="addEntryBtn">Dodaj kolejny wpis</button>
-        </div>
-      </div>
+    <hr>
+    <!-- Form to register working time -->
+    <form method="post" action="/worker/addreport">
+      <label for="projekt">Projekt:</label>
+      <input type="text" name="projekt" id="projekt"><br><br>
 
-      <div class="right-panel">
-        <div class="content-panel">
-          <div class="calendar-header">
-            <div class="month-year-selector">
-              <select class="month-select" id="monthSelect">
-                <option value="0">Styczeń</option><option value="1">Luty</option><option value="2">Marzec</option>
-                <option value="3">Kwiecień</option><option value="4">Maj</option><option value="5">Czerwiec</option>
-                <option value="6">Lipiec</option><option value="7">Sierpień</option><option value="8">Wrzesień</option>
-                <option value="9">Październik</option><option value="10">Listopad</option><option value="11">Grudzień</option>
-              </select>
-              <select class="year-select" id="yearSelect"></select>
-            </div>
-          </div>
-          <div class="calendar-grid" id="calendarGrid"></div>
-        </div>
-      </div>
-    </main>
-  </div>
+      <label for="opis">Opis (opcjonalny):</label>
+      <textarea name="opis" id="opis"></textarea><br><br>
 
-  <script src="../../auth.js"></script>
-  <script src="reports.js"></script>
+      <label for="czas_h">Czas pracy:</label>
+      <input type="number" id="czas_h" name="czas_h" min="0" value="0"> h
+      <input type="number" id="czas_m" name="czas_m" min="0" max="59" value="0"> min
+      <br><br>
+
+      <button type="submit">Dodaj kolejny wpis</button>
+      <button type="reset">Usuń</button>
+    </form>
+  </main>
+
 </body>
 </html>

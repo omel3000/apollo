@@ -1,27 +1,25 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="pl">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
   <title>Logowanie</title>
-  <!-- osadzony favicon aby uniknąć żądania /favicon.ico -->
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxNiAxNiI+PHJlY3Qgd2lkdGg9IjE2IiBoZWlnaHQ9IjE2IiByeD0iMyIgZmlsbD0iI2U2N2Y3MSIvPjx0ZXh0IHg9IjQiIHk9IjEyIiBmb250LXNpemU9IjExIiBmaWxsPSIjZmZmIj5BOzwvdGV4dD48L3N2Zz4=">
-  <link rel="stylesheet" href="style.css" />
-  <script src="auth.js" defer></script>
+  <script src="login.js" defer></script>
 </head>
 <body>
-  <main class="card" role="main">
-    <h1 class="title">Apollo</h1>
-    <form id="loginForm" aria-label="Formularz logowania">
-      <label for="login">Login</label>
-      <input id="login" name="login" type="text" autocomplete="username" required autofocus />
+  <h2>Apollo</h2>
+  <form method="post">
+    <label for="login">Login</label>
+    <input type="text" id="login" name="login" required>
 
-      <label for="haslo">Hasło</label>
-      <input id="haslo" name="haslo" type="password" autocomplete="current-password" required />
+    <br><br>
 
-      <button type="submit" class="btn">Zaloguj</button>
-      <p id="errorMessage" class="error-message" style="display: none; color: red; text-align: center; margin-top: 1rem;"></p>
-    </form>
-  </main>
+    <label for="haslo">Hasło</label>
+    <input type="password" id="haslo" name="haslo" required>
+
+    <br><br>
+
+    <button type="submit">Zaloguj</button>
+  </form>
 </body>
 </html>
+
