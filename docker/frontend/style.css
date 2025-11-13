@@ -176,13 +176,20 @@ body {
 }
 
 /* Główna zawartość - margines dla sidebara */
+@media (max-width: 767px) {
+    main.col-md-9 {
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+}
+
 @media (min-width: 768px) and (max-width: 991px) {
     main.col-md-9 {
         margin-left: 200px !important;
         width: calc(100% - 200px) !important;
         max-width: calc(100% - 200px) !important;
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
     }
 }
 
@@ -191,8 +198,8 @@ body {
         margin-left: 240px !important;
         width: calc(100% - 240px) !important;
         max-width: calc(100% - 240px) !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
+        padding-left: 2.5rem !important;
+        padding-right: 2.5rem !important;
     }
 }
 
