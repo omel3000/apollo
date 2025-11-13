@@ -54,24 +54,26 @@ function displayMessages(messages) {
   }
   
   messages.forEach(msg => {
-    const section = document.createElement('section');
     const div = document.createElement('div');
+    div.className = 'list-group-item list-group-item-light';
     
     const title = document.createElement('p');
     title.innerHTML = `<strong>${escapeHtml(msg.title)}</strong>`;
+    title.className = 'mb-2';
     
     const content = document.createElement('p');
     content.textContent = msg.content;
+    content.className = 'mb-2';
     
     const date = document.createElement('p');
     date.innerHTML = `<small>${formatDate(msg.created_at)}</small>`;
+    date.className = 'mb-0 text-muted';
     
     div.appendChild(title);
     div.appendChild(content);
     div.appendChild(date);
-    section.appendChild(div);
     
-    container.appendChild(section);
+    container.appendChild(div);
   });
 }
 
