@@ -235,6 +235,14 @@ function buildReportForm(report) {
 
   const form = document.createElement('form');
   form.addEventListener('submit', (event) => event.preventDefault());
+  
+  // Store original values for change detection
+  const originalValues = {
+    project_id: report.project_id,
+    description: report.description || '',
+    hours: Number(report.hours_spent) || 0,
+    minutes: Number(report.minutes_spent) || 0
+  };
 
   // Projekt
   const projectGroup = document.createElement('div');
@@ -346,15 +354,39 @@ function buildReportForm(report) {
   
   const saveButton = document.createElement('button');
   saveButton.type = 'button';
-  saveButton.className = 'btn btn-primary';
-  saveButton.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz';
+  saveButton.className = 'btn btn-primary btn-save-changes';
+  saveButton.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz zmiany';
+  saveButton.disabled = true; // Domyślnie nieaktywny
   saveButton.addEventListener('click', () => handleUpdateReport(report.report_id, form));
   
   const deleteButton = document.createElement('button');
   deleteButton.type = 'button';
-  deleteButton.className = 'btn btn-outline-danger';
+  deleteButton.className = 'btn btn-outline-secondary';
   deleteButton.innerHTML = '<i class="bi bi-trash me-1"></i>Usuń';
   deleteButton.addEventListener('click', () => handleDeleteReport(report.report_id));
+  
+  // Funkcja sprawdzająca zmiany
+  const checkForChanges = () => {
+    const currentProject = Number(projectSelect.value);
+    const currentDescription = descriptionArea.value;
+    const currentHours = Number(hoursInput.value) || 0;
+    const currentMinutes = Number(minutesInput.value) || 0;
+    
+    const hasChanges = (
+      currentProject !== originalValues.project_id ||
+      currentDescription !== originalValues.description ||
+      currentHours !== originalValues.hours ||
+      currentMinutes !== originalValues.minutes
+    );
+    
+    saveButton.disabled = !hasChanges;
+  };
+  
+  // Dodaj event listenery do wykrywania zmian
+  projectSelect.addEventListener('change', checkForChanges);
+  descriptionArea.addEventListener('input', checkForChanges);
+  hoursInput.addEventListener('input', checkForChanges);
+  minutesInput.addEventListener('input', checkForChanges);
   
   buttonGroup.appendChild(saveButton);
   buttonGroup.appendChild(deleteButton);
@@ -454,10 +486,12 @@ function setupSaveHandler() {
       }
 
       alert('Wpis dodany!');
-      const form = document.querySelector('form[action="/worker/addreport"]');
-      if (form) {
-        form.reset();
-      }
+      
+      // Wyczyść formularz
+      projectSelectElement.value = '';
+      document.getElementById('opis').value = '';
+      document.getElementById('czas_h').value = '0';
+      document.getElementById('czas_m').value = '0';
 
       pendingWorkDate = workDate;
       refreshReportsIfReady();

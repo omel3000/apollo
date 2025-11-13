@@ -330,3 +330,17 @@ html, body {
     border-color: #BF6E50 !important;
     box-shadow: 0 2px 8px rgba(191, 110, 80, 0.15) !important;
 }
+
+/* Przycisk zapisz zmian - nieaktywny domyślnie */
+#existingReports .btn-save-changes:disabled {
+    background-color: #736A65 !important;
+    border-color: #736A65 !important;
+    color: #F2EEEB !important;
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+#existingReports .btn-save-changes:not(:disabled) {
+    background-color: #BF6E50 !important;
+    border-color: #BF6E50 !important;
+}
