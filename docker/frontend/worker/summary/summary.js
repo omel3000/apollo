@@ -1,7 +1,7 @@
 let authHeader = '';
 let currentYear = null;
 let currentMonth = null; // 0-11
-let projectsMap = {}; // Map project_id -> project_name
+let projectsMap = {}; // Map project_id -> { name, time_type }
 
 const monthNamesPl = [
   'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -67,10 +67,13 @@ async function loadProjects() {
     throw new Error('Błąd API: niepoprawny format odpowiedzi przy pobieraniu projektów');
   }
 
-  // Build map
+  // Build map (name + time_type)
   projectsMap = {};
   data.forEach(project => {
-    projectsMap[project.project_id] = project.project_name;
+    projectsMap[project.project_id] = {
+      name: project.project_name,
+      time_type: project.time_type || 'constant'
+    };
   });
 
   console.log('Projects loaded:', projectsMap);
@@ -239,25 +242,106 @@ function renderSummary(data) {
 
     dayItem.appendChild(headerRow);
 
-    // Lista projektów dla dnia
-    const projectsList = document.createElement('ul');
-    projectsList.className = 'mb-0 ps-3';
+    // Lista szczegółowych wpisów dla dnia
+    const entriesList = document.createElement('ul');
+    entriesList.className = 'mb-0 ps-3';
 
-    Object.keys(projectHours).forEach(projectIdStr => {
-      const projectId = parseInt(projectIdStr, 10);
-      const projectData = projectHours[projectIdStr];
-      const hours = projectData.hours || 0;
-      const minutes = projectData.minutes || 0;
-      const projectName = projectsMap[projectId] || `Projekt #${projectId}`;
+    const placeholder = document.createElement('li');
+    placeholder.className = 'text-muted';
+    placeholder.textContent = 'Ładowanie wpisów...';
+    entriesList.appendChild(placeholder);
 
-      const li = document.createElement('li');
-      li.textContent = `${projectName} — ${hours}h ${minutes}min`;
-      projectsList.appendChild(li);
-    });
-
-    dayItem.appendChild(projectsList);
+    dayItem.appendChild(entriesList);
     listContainer.appendChild(dayItem);
+
+    // Pobierz szczegółowe wpisy dla dnia i wyrenderuj
+    fetchDayReports(dayData.date)
+      .then(reports => {
+        // Sortowanie: od najwcześniejszych godzin do najpóźniejszych
+        const sorted = reports.slice().sort((a, b) => {
+          // primary: time_from asc (missing -> Infinity)
+          const aTf = parseHHMMToMinutes(a.time_from);
+          const bTf = parseHHMMToMinutes(b.time_from);
+          const aKey = (aTf === null ? Number.POSITIVE_INFINITY : aTf);
+          const bKey = (bTf === null ? Number.POSITIVE_INFINITY : bTf);
+          if (aKey !== bKey) return aKey - bKey;
+          // secondary: created_at asc
+          const aCt = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bCt = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return aCt - bCt;
+        });
+
+        entriesList.innerHTML = '';
+        if (sorted.length === 0) {
+          const emptyLi = document.createElement('li');
+          emptyLi.className = 'text-muted';
+          emptyLi.textContent = 'Brak wpisów tego dnia.';
+          entriesList.appendChild(emptyLi);
+          return;
+        }
+
+        sorted.forEach(rep => {
+          const li = document.createElement('li');
+          const proj = projectsMap[rep.project_id] || { name: `Projekt #${rep.project_id}`, time_type: 'constant' };
+          const h = Number(rep.hours_spent) || 0;
+          const m = Number(rep.minutes_spent) || 0;
+          // Zbuduj tekst w zależności od typu czasu
+          if (proj.time_type === 'from_to' && rep.time_from && rep.time_to) {
+            li.textContent = `${rep.time_from}–${rep.time_to} (${h}h ${String(m).padStart(2,'0')}min) — ${proj.name}`;
+          } else {
+            li.textContent = `${proj.name} — ${h}h ${String(m).padStart(2,'0')}min`;
+          }
+          // Opis (opcjonalny) pod spodem
+          if (rep.description) {
+            const desc = document.createElement('div');
+            desc.className = 'text-muted small';
+            desc.textContent = rep.description;
+            li.appendChild(document.createElement('br'));
+            li.appendChild(desc);
+          }
+          entriesList.appendChild(li);
+        });
+      })
+      .catch(err => {
+        console.error('Błąd pobierania wpisów dnia', dayData.date, err);
+        entriesList.innerHTML = '';
+        const errorLi = document.createElement('li');
+        errorLi.className = 'text-danger';
+        errorLi.textContent = 'Nie udało się pobrać wpisów dla tego dnia.';
+        entriesList.appendChild(errorLi);
+      });
   });
+}
+
+// Helpers
+function parseHHMMToMinutes(val) {
+  if (!val || typeof val !== 'string') return null;
+  const parts = val.split(':');
+  if (parts.length < 2) return null;
+  const h = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
+}
+
+async function fetchDayReports(workDate) {
+  const resp = await fetch(`/work_reports/?work_date=${encodeURIComponent(workDate)}`, {
+    headers: {
+      'Authorization': authHeader,
+      'Accept': 'application/json'
+    }
+  });
+  if (resp.status === 401) {
+    handleUnauthorized();
+    return [];
+  }
+  if (!resp.ok) {
+    const msg = await safeReadText(resp);
+    throw new Error(msg || 'Błąd pobierania wpisów dnia');
+  }
+  const data = await resp.json();
+  if (!Array.isArray(data)) return [];
+  return data;
 }
 
 function handleUnauthorized() {
@@ -365,7 +449,7 @@ function renderPieChart(data) {
   
   projectEntries.forEach(([projectIdStr, minutes], index) => {
     const projectId = parseInt(projectIdStr, 10);
-    const projectName = projectsMap[projectId] || `Projekt #${projectId}`;
+    const projectName = (projectsMap[projectId] && projectsMap[projectId].name) || `Projekt #${projectId}`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     
