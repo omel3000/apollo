@@ -25,54 +25,10 @@ body.login-page {
     min-height: 100vh !important;
     width: 100vw !important;
     padding: 1rem !important;
-    box-sizing: border-box !important;
 }
 
 .login-card {
-    width: 100% !important;
     max-width: 400px !important;
-    margin: 0 auto !important;
-}
-
-/* Responsywność dla małych ekranów */
-@media (max-width: 576px) {
-    .login-card {
-        max-width: 100% !important;
-        padding: 1.5rem !important;
-    }
-    
-    .login-container {
-        padding: 0.5rem !important;
-    }
-}
-
-@media (min-height: 600px) and (max-height: 800px) {
-    /* Średnie wysokości ekranów - zmniejsz padding */
-    .login-card {
-        padding: 1.5rem !important;
-    }
-    
-    .login-card h2 {
-        font-size: 1.5rem !important;
-        margin-bottom: 1rem !important;
-    }
-}
-
-@media (max-height: 599px) {
-    /* Bardzo małe wysokości - kompaktowy widok */
-    .login-card {
-        padding: 1rem !important;
-    }
-    
-    .login-card h2 {
-        font-size: 1.3rem !important;
-        margin-bottom: 0.75rem !important;
-    }
-    
-    .login-card .mb-3,
-    .login-card .mb-4 {
-        margin-bottom: 0.75rem !important;
-    }
 }
 
 /* 2. ZMIANA KOLORÓW PRZEWODNICH BOOTSTRAPA */
