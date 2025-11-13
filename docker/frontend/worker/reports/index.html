@@ -95,34 +95,8 @@
 
                 <!-- Kalendarz i nawigacja datami -->
                 <div class="row">
-                    <!-- Kalendarz -->
-                    <div class="col-lg-4 col-md-12 mb-4">
-                        <div class="card shadow-sm">
-                            <div class="card-header bg-primary text-white">
-                                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Kalendarz</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="calendarContainer">
-                                    <div id="calControls" class="d-flex justify-content-between align-items-center mb-3">
-                                        <button type="button" id="calPrevMonth" class="btn btn-sm btn-outline-secondary" aria-label="Poprzedni miesiąc">
-                                            <i class="bi bi-chevron-left"></i>
-                                        </button>
-                                        <div class="d-flex gap-2">
-                                            <select id="calMonthSelect" class="form-select form-select-sm" aria-label="Miesiąc"></select>
-                                            <select id="calYearSelect" class="form-select form-select-sm" aria-label="Rok"></select>
-                                        </div>
-                                        <button type="button" id="calNextMonth" class="btn btn-sm btn-outline-secondary" aria-label="Następny miesiąc">
-                                            <i class="bi bi-chevron-right"></i>
-                                        </button>
-                                    </div>
-                                    <div id="calGrid"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Główny panel - data i formularz -->
-                    <div class="col-lg-8 col-md-12">
+                    <div class="col-lg-8 col-md-12 order-lg-1 order-2">
                         <!-- Informacja o dniu -->
                         <div class="card shadow-sm mb-4">
                             <div class="card-body">
@@ -209,6 +183,32 @@
                             <div class="card-body">
                                 <div id="existingReports">
                                     <p class="text-muted">Ładowanie wpisów...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kalendarz -->
+                    <div class="col-lg-4 col-md-12 mb-4 order-lg-2 order-1">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Kalendarz</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="calendarContainer">
+                                    <div id="calControls" class="d-flex justify-content-between align-items-center mb-3">
+                                        <button type="button" id="calPrevMonth" class="btn btn-sm btn-outline-secondary" aria-label="Poprzedni miesiąc">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <select id="calMonthSelect" class="form-select form-select-sm" aria-label="Miesiąc"></select>
+                                            <select id="calYearSelect" class="form-select form-select-sm" aria-label="Rok"></select>
+                                        </div>
+                                        <button type="button" id="calNextMonth" class="btn btn-sm btn-outline-secondary" aria-label="Następny miesiąc">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div id="calGrid"></div>
                                 </div>
                             </div>
                         </div>
