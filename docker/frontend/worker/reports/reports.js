@@ -11,9 +11,14 @@ window.handleWorkDateChange = function(newDate) {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
+  console.log('reports.js: DOMContentLoaded fired');
+  
   const rawToken = localStorage.getItem('token');
   const token = rawToken ? rawToken.trim() : '';
+  console.log('reports.js: token exists:', !!token);
+  
   if (!token) {
+    console.warn('reports.js: No token, redirecting');
     handleUnauthorized();
     return;
   }
@@ -21,16 +26,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   authHeader = token.toLowerCase().startsWith('bearer ') ? token : `Bearer ${token}`;
   reportsContainer = document.getElementById('existingReports');
   mainProjectSelect = document.getElementById('projektSelect');
+  
+  console.log('reports.js: Elements found - container:', !!reportsContainer, 'select:', !!mainProjectSelect);
 
   try {
+    console.log('reports.js: Starting loadProjects');
     await loadProjects();
+    console.log('reports.js: Projects loaded, count:', projectsCache.length);
     projectsReady = true;
     if (!pendingWorkDate) {
       pendingWorkDate = window.getCurrentWorkDate() || toApiDate(new Date());
     }
+    console.log('reports.js: Calling refreshReportsIfReady with date:', pendingWorkDate);
     refreshReportsIfReady();
   } catch (error) {
-    console.error(error);
+    console.error('reports.js: Error loading projects:', error);
     alert('Nie udało się pobrać listy projektów.');
   }
 
@@ -38,6 +48,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function loadProjects() {
+  console.log('loadProjects: Fetching /user_projects/my_projects');
+  
   const response = await fetch('/user_projects/my_projects', {
     headers: {
       'Authorization': authHeader,
@@ -45,18 +57,25 @@ async function loadProjects() {
     }
   });
 
+  console.log('loadProjects: Response status:', response.status);
+
   if (response.status === 401) {
+    console.warn('loadProjects: Unauthorized');
     handleUnauthorized();
     return;
   }
 
   if (!response.ok) {
     const message = await safeReadText(response);
+    console.error('loadProjects: Response not OK:', message);
     throw new Error(message || 'Błąd pobierania projektów');
   }
 
   const data = await response.json();
+  console.log('loadProjects: Data received:', data);
+  
   if (!Array.isArray(data)) {
+    console.error('loadProjects: Data is not an array');
     throw new Error('Błąd API: niepoprawny format odpowiedzi przy pobieraniu projektów');
   }
 
@@ -64,6 +83,8 @@ async function loadProjects() {
     project_id: Number(project.project_id),
     project_name: project.project_name
   }));
+
+  console.log('loadProjects: Projects cached:', projectsCache);
 
   if (mainProjectSelect) {
     populateProjectSelect(mainProjectSelect);
@@ -337,18 +358,30 @@ function toApiDate(date) {
 }
 
 function refreshReportsIfReady() {
+  console.log('refreshReportsIfReady: Checking conditions...');
+  console.log('  pendingWorkDate:', pendingWorkDate);
+  console.log('  authHeader:', !!authHeader);
+  console.log('  projectsReady:', projectsReady);
+  console.log('  reportsContainer:', !!reportsContainer);
+  
   if (!pendingWorkDate) {
+    console.log('refreshReportsIfReady: No pending work date');
     return;
   }
   if (!authHeader) {
+    console.log('refreshReportsIfReady: No auth header');
     return;
   }
   if (!projectsReady) {
+    console.log('refreshReportsIfReady: Projects not ready');
     return;
   }
   if (!reportsContainer) {
+    console.log('refreshReportsIfReady: No reports container');
     return;
   }
+  
+  console.log('refreshReportsIfReady: All conditions met, loading reports');
   loadReportsForDate(pendingWorkDate);
 }
 
