@@ -467,8 +467,8 @@ function renderPieChart(data) {
   // Ustal rozmiar canvas na podstawie aktualnej szerokości kontenera (responsywnie)
   const dpr = window.devicePixelRatio || 1;
   const parentWidth = canvas.parentElement?.clientWidth || 400;
-  // Ogranicz maksymalną szerokość do sensownej wartości
-  const cssWidth = Math.min(parentWidth - 40, 500); // padding + max width
+  // Ogranicz do mniejszego rozmiaru, żeby zmieścił się w karcie
+  const cssWidth = Math.min(parentWidth * 0.85, 350); // 85% szerokości rodzica, max 350px
   const cssHeight = cssWidth; // kwadrat dla wykresu kołowego
   
   canvas.width = Math.floor(cssWidth * dpr);
@@ -486,7 +486,7 @@ function renderPieChart(data) {
 
   const centerX = cssWidth / 2;
   const centerY = cssHeight / 2;
-  const radius = Math.min(cssWidth, cssHeight) / 2 - 40; // padding 40px dla etykiet
+  const radius = Math.min(cssWidth, cssHeight) / 2 - 20; // padding 20px
 
   // Calculate project totals in minutes
   const projectTotals = {};
@@ -546,19 +546,14 @@ function renderPieChart(data) {
     
     // Draw percentage label in the middle of slice
     const labelAngle = currentAngle + sliceAngle / 2;
-    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.65);
-    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.65);
+    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
+    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
     
-    ctx.fillStyle = '#fff';
-    ctx.strokeStyle = '#000';
-    ctx.lineWidth = 3;
-    const fontSize = Math.max(10, Math.min(14, cssWidth / 30));
+    ctx.fillStyle = '#000';
+    const fontSize = Math.max(11, Math.min(14, cssWidth / 25));
     ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    
-    // Rysuj tekst z obramowaniem dla lepszej czytelności
-    ctx.strokeText(`${percentage.toFixed(1)}%`, labelX, labelY);
     ctx.fillText(`${percentage.toFixed(1)}%`, labelX, labelY);
     
     currentAngle += sliceAngle;
@@ -567,10 +562,11 @@ function renderPieChart(data) {
   // Zewnętrzna legenda (HTML) poniżej canvas – responsywna, bez nachodzenia na wykres
   const legendContainer = ensureLegendContainer(canvas);
   legendContainer.innerHTML = '';
-  legendContainer.style.display = 'grid';
-  legendContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(220px, 1fr))';
-  legendContainer.style.gap = '8px 16px';
-  legendContainer.style.marginTop = '12px';
+  legendContainer.style.display = 'flex';
+  legendContainer.style.flexDirection = 'column';
+  legendContainer.style.gap = '6px';
+  legendContainer.style.marginTop = '16px';
+  legendContainer.style.fontSize = '14px';
 
   projectEntries.forEach(([projectIdStr, minutes]) => {
     const projectId = parseInt(projectIdStr, 10);
