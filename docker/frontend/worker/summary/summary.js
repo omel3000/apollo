@@ -110,6 +110,43 @@ async function loadProjects() {
   console.log('Projects loaded:', projectsMap);
 }
 
+function populateMonthYearSelects(monthSelect, yearSelect) {
+  // Miesiące
+  monthSelect.innerHTML = '';
+  monthNamesPl.forEach((name, idx) => {
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = name;
+    monthSelect.appendChild(opt);
+  });
+
+  // Lata w zakresie +/-5 od bieżącego
+  yearSelect.innerHTML = '';
+  const baseYear = new Date().getFullYear();
+  for (let y = baseYear - 5; y <= baseYear + 5; y++) {
+    const opt = document.createElement('option');
+    opt.value = String(y);
+    opt.textContent = String(y);
+    yearSelect.appendChild(opt);
+  }
+}
+
+function syncMonthYearSelects(monthSelect, yearSelect) {
+  if (monthSelect) {
+    monthSelect.value = String(currentMonth);
+  }
+  if (yearSelect) {
+    let exists = Array.from(yearSelect.options).some(o => Number(o.value) === currentYear);
+    if (!exists) {
+      const opt = document.createElement('option');
+      opt.value = String(currentYear);
+      opt.textContent = String(currentYear);
+      yearSelect.appendChild(opt);
+    }
+    yearSelect.value = String(currentYear);
+  }
+}
+
 function setupNavigation() {
   const buttons = document.querySelectorAll('main form button');
   if (buttons.length < 3) {
