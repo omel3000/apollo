@@ -223,7 +223,14 @@ function setupChangePasswordForm() {
 }
 
 function showMessage(container, message, type) {
-  container.innerHTML = `<div class="message ${type}">${message}</div>`;
+  const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+  const iconClass = type === 'success' ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill';
+  container.innerHTML = `
+    <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+      <i class="bi ${iconClass} me-2"></i>${message}
+      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+  `;
 }
 
 function handleUnauthorized() {
