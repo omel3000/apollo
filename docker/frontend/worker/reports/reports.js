@@ -680,7 +680,7 @@ function setupSaveHandler() {
   if (comp) comp.textContent = '';
 
       pendingWorkDate = workDate;
-      loadReportedDatesForMonth(); // Odśwież kalendarz
+      await loadReportedDatesForMonth(); // Odśwież kalendarz
       refreshReportsIfReady();
     } catch (error) {
       alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
@@ -857,7 +857,7 @@ function refreshReportsIfReady() {
 // Simple Calendar (PL)
 // =====================
 
-function initCalendar() {
+async function initCalendar() {
   const container = document.getElementById('calendarContainer');
   if (!container) {
     console.warn('Calendar container not found');
@@ -902,36 +902,36 @@ function initCalendar() {
   console.log('Calendar initialized to:', calYear, calMonth);
   
   syncMonthYearControls();
-  loadReportedDatesForMonth();
+  await loadReportedDatesForMonth();
   renderCalendar();
 
   // Handlers
-  monthSelect.addEventListener('change', () => {
+  monthSelect.addEventListener('change', async () => {
     calMonth = parseInt(monthSelect.value, 10);
     console.log('Month changed to:', calMonth);
-    loadReportedDatesForMonth();
+    await loadReportedDatesForMonth();
     renderCalendar();
   });
-  yearSelect.addEventListener('change', () => {
+  yearSelect.addEventListener('change', async () => {
     calYear = parseInt(yearSelect.value, 10);
     console.log('Year changed to:', calYear);
-    loadReportedDatesForMonth();
+    await loadReportedDatesForMonth();
     renderCalendar();
   });
-  prevBtn.addEventListener('click', () => {
+  prevBtn.addEventListener('click', async () => {
     calMonth--;
     if (calMonth < 0) { calMonth = 11; calYear--; }
     console.log('Previous month:', calYear, calMonth);
     syncMonthYearControls();
-    loadReportedDatesForMonth();
+    await loadReportedDatesForMonth();
     renderCalendar();
   });
-  nextBtn.addEventListener('click', () => {
+  nextBtn.addEventListener('click', async () => {
     calMonth++;
     if (calMonth > 11) { calMonth = 0; calYear++; }
     console.log('Next month:', calYear, calMonth);
     syncMonthYearControls();
-    loadReportedDatesForMonth();
+    await loadReportedDatesForMonth();
     renderCalendar();
   });
 }
@@ -1005,11 +1005,12 @@ async function loadReportedDatesForMonth() {
       data.daily_hours.forEach(dayData => {
         if (dayData.date) {
           reportedDates.add(dayData.date);
+          console.log('Added reported date:', dayData.date);
         }
       });
     }
     
-    console.log('Reported dates loaded:', reportedDates.size);
+    console.log('Reported dates loaded:', reportedDates.size, 'dates:', Array.from(reportedDates));
   } catch (error) {
     console.error('Error loading reported dates:', error);
   }
@@ -1078,6 +1079,8 @@ function renderCalendar() {
         // Sprawdź czy jest raport
         const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const hasReport = reportedDates.has(dateStr);
+        
+        console.log(`Day ${day}: dateStr=${dateStr}, hasReport=${hasReport}, isWeekend=${isWeekend}, isHoliday=${isHoliday}`);
 
         // Priorytet kolorowania:
         // 1. Weekend/święto z raportem -> fioletowy
@@ -1249,7 +1252,7 @@ async function handleUpdateReport(reportId, formElement) {
     }
 
     alert('Wpis zaktualizowany!');
-    loadReportedDatesForMonth(); // Odśwież kalendarz
+    await loadReportedDatesForMonth(); // Odśwież kalendarz
     refreshReportsIfReady();
   } catch (error) {
     alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
@@ -1282,7 +1285,7 @@ async function handleDeleteReport(reportId) {
     }
 
     alert('Wpis usunięty!');
-    loadReportedDatesForMonth(); // Odśwież kalendarz
+    await loadReportedDatesForMonth(); // Odśwież kalendarz
     refreshReportsIfReady();
   } catch (error) {
     alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
