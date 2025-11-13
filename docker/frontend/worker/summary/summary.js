@@ -294,7 +294,7 @@ function renderSummary(data) {
           // Tekst czasu po nazwie projektu
           let detailsText = ' — ';
           if (proj.time_type === 'from_to' && rep.time_from && rep.time_to) {
-            detailsText += `${rep.time_from}–${rep.time_to} (${h}h ${String(m).padStart(2,'0')}min)`;
+            detailsText += `${rep.time_from} – ${rep.time_to} (${h}h ${String(m).padStart(2,'0')}min)`;
           } else {
             detailsText += `${h}h ${String(m).padStart(2,'0')}min`;
           }
