@@ -2,6 +2,31 @@ let authHeader = '';
 let currentYear = null;
 let currentMonth = null; // 0-11
 let projectsMap = {}; // Map project_id -> { name, time_type }
+let lastSummaryData = null; // do ponownego renderowania wykresu przy resize
+
+// 15 kolorów (główne + pokrewne, inspirowane paletą Bootstrap i odcieniami)
+const PROJECT_COLORS = [
+  '#0d6efd', // blue
+  '#6ea8fe', // blue light
+  '#6610f2', // indigo
+  '#a370f7', // indigo light
+  '#198754', // green
+  '#51cf66', // green light
+  '#dc3545', // red
+  '#ff6b6b', // red light
+  '#fd7e14', // orange
+  '#ff922b', // orange light
+  '#20c997', // teal
+  '#63e6be', // teal light
+  '#0dcaf0', // cyan
+  '#66d9ff', // cyan light
+  '#6c757d'  // gray
+];
+
+function getProjectColor(projectId) {
+  const idx = Math.abs(parseInt(projectId, 10)) % PROJECT_COLORS.length; // np. 20 % 15 = 5
+  return PROJECT_COLORS[idx];
+}
 
 const monthNamesPl = [
   'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -40,6 +65,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch (error) {
     console.error('Initialization error:', error);
   }
+  // Re-render wykres przy zmianie rozmiaru okna (responsywnie)
+  window.addEventListener('resize', () => {
+    if (lastSummaryData) {
+      renderPieChart(lastSummaryData);
+    }
+  });
 });
 
 async function loadProjects() {
@@ -151,6 +182,7 @@ async function loadMonthlySummary() {
 
     const data = await response.json();
     console.log('Monthly summary data:', data);
+    lastSummaryData = data; // zapamiętaj do ponownego renderu
     
     renderSummary(data);
   } catch (error) {
@@ -369,15 +401,23 @@ async function safeReadText(response) {
 function renderPieChart(data) {
   const canvas = document.getElementById('projectChart');
   if (!canvas) return;
-  
+
+  // Ustal rozmiar canvas na podstawie aktualnej szerokości kontenera (responsywnie)
+  const dpr = window.devicePixelRatio || 1;
+  const cssWidth = canvas.clientWidth || 600; // fallback
+  const cssHeight = Math.min(420, cssWidth); // zachowaj sensowną wysokość
+  canvas.width = Math.floor(cssWidth * dpr);
+  canvas.height = Math.floor(cssHeight * dpr);
   const ctx = canvas.getContext('2d');
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const radius = 150;
-  
-  // Clear canvas
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // skalowanie do DPR
+
+  // Czyść canvas w jednostkach CSS
+  ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+  const centerX = cssWidth / 2;
+  const centerY = cssHeight / 2;
+  const radius = Math.min(cssWidth, cssHeight) / 2 - 20; // padding 20px
+
   // Calculate project totals in minutes
   const projectTotals = {};
   const dailyHours = data.daily_hours || [];
@@ -405,21 +445,18 @@ function renderPieChart(data) {
     ctx.fillStyle = '#666';
     ctx.font = '16px Arial';
     ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
     ctx.fillText('Brak danych', centerX, centerY);
+    // Wyczyść legendę (jeśli była)
+    ensureLegendContainer(canvas).innerHTML = '';
     return;
   }
-  
-  // Predefined colors
-  const colors = [
-    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
-    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40'
-  ];
   
   // Sort projects by time (descending - most hours first)
   const projectEntries = Object.entries(projectTotals).sort((a, b) => b[1] - a[1]);
   
   // Draw pie slices
-  let currentAngle = -Math.PI / 2; // Start at top
+  let currentAngle = -Math.PI / 2; // start at top
   
   projectEntries.forEach(([projectIdStr, minutes], index) => {
     const projectId = parseInt(projectIdStr, 10);
@@ -431,7 +468,7 @@ function renderPieChart(data) {
     ctx.moveTo(centerX, centerY);
     ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
     ctx.closePath();
-    ctx.fillStyle = colors[index % colors.length];
+    ctx.fillStyle = getProjectColor(projectId);
     ctx.fill();
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
@@ -443,33 +480,58 @@ function renderPieChart(data) {
     const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
     
     ctx.fillStyle = '#000';
-    ctx.font = 'bold 14px Arial';
+    ctx.font = (cssWidth < 480 ? 'bold 12px Arial' : 'bold 14px Arial');
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(`${percentage.toFixed(1)}%`, labelX, labelY);
     
     currentAngle += sliceAngle;
   });
-  
-  // Draw legend below chart
-  const legendY = canvas.height - 80;
-  let legendX = 20;
-  const legendItemWidth = 180;
-  
-  projectEntries.forEach(([projectIdStr, minutes], index) => {
+
+  // Zewnętrzna legenda (HTML) poniżej canvas – responsywna, bez nachodzenia na wykres
+  const legendContainer = ensureLegendContainer(canvas);
+  legendContainer.innerHTML = '';
+  legendContainer.style.display = 'grid';
+  legendContainer.style.gridTemplateColumns = 'repeat(auto-fit, minmax(220px, 1fr))';
+  legendContainer.style.gap = '8px 16px';
+  legendContainer.style.marginTop = '12px';
+
+  projectEntries.forEach(([projectIdStr, minutes]) => {
     const projectId = parseInt(projectIdStr, 10);
     const projectName = (projectsMap[projectId] && projectsMap[projectId].name) || `Projekt #${projectId}`;
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    
-    // Color box
-    ctx.fillStyle = colors[index % colors.length];
-    ctx.fillRect(legendX, legendY + (index * 25), 15, 15);
-    
-    // Text
-    ctx.fillStyle = '#000';
-    ctx.font = '12px Arial';
-    ctx.textAlign = 'left';
-    ctx.fillText(`${projectName} (${hours}h ${mins}min)`, legendX + 20, legendY + (index * 25) + 12);
+    const color = getProjectColor(projectId);
+
+    const item = document.createElement('div');
+    item.style.display = 'flex';
+    item.style.alignItems = 'center';
+    item.style.minHeight = '22px';
+
+    const swatch = document.createElement('span');
+    swatch.style.display = 'inline-block';
+    swatch.style.width = '14px';
+    swatch.style.height = '14px';
+    swatch.style.borderRadius = '3px';
+    swatch.style.background = color;
+    swatch.style.marginRight = '8px';
+
+    const label = document.createElement('span');
+    label.textContent = `${projectName} (${hours}h ${mins}min)`;
+
+    item.appendChild(swatch);
+    item.appendChild(label);
+    legendContainer.appendChild(item);
   });
+}
+
+function ensureLegendContainer(canvas) {
+  let container = document.getElementById('projectChartLegend');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'projectChartLegend';
+    // Wstaw tuż po canvas
+    canvas.insertAdjacentElement('afterend', container);
+  }
+  return container;
 }
