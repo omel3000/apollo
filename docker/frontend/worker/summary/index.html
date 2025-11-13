@@ -9,6 +9,7 @@
   </style>
   <script src="/worker/auth-worker.js"></script>
   <script src="/logout.js"></script>
+  <script src="/worker/summary/summary.js" defer></script>
 </head>
 <body>
   <!-- Top bar -->
@@ -33,14 +34,14 @@
 
   <!-- Main summary section -->
   <main>
-    <h2>Listopad 2025</h2>
+    <h2>Ładowanie...</h2>
     <form method="get" action="/worker/summary.html">
       <button type="button">&lt;-</button>
       <button type="button">Bieżący miesiąc</button>
       <button type="button">-&gt;</button>
     </form>
 
-    <h3>Łącznie: <span style="font-weight:bold;">33h 39min</span></h3>
+    <h3>Łącznie: <span style="font-weight:bold;">0h 0min</span></h3>
     <!-- Placeholder na wykres -->
     <div>
       <p>[ Miejsce na wykres (np. kołowy) ]</p>
@@ -50,37 +51,7 @@
 
     <section>
       <h3>Szczegółowe rozpisanie</h3>
-      <!-- Przykładowy dzień -->
-      <div>
-        <strong>Czwartek, 06.11</strong>
-        <div>
-          <div>masno — 2h 10min</div>
-        </div>
-      </div>
-
-      <div>
-        <strong>Piątek, 07.11</strong>
-        <div>
-          <div>masno — 4h 45min</div>
-          <div>string — 1h 45min</div>
-        </div>
-      </div>
-
-      <div>
-        <strong>Sobota, 08.11</strong>
-        <div>
-          <div>string — 8h 59min</div>
-        </div>
-      </div>
-
-      <div>
-        <strong>Wtorek, 11.11</strong>
-        <div>
-          <div>masno — 2h 10min</div>
-        </div>
-      </div>
-      <!-- Dodawaj kolejne dni kopiując powyższy blok -->
-
+      <p>Ładowanie danych...</p>
     </section>
   </main>
 </body>
