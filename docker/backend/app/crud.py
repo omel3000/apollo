@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, select  # dodano select
-from models import User, Project, Message, WorkReport, UserProject
+from models import User, Project, Message, WorkReport, UserProject, TimeType
 from auth import hash_password
 from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate
 from pydantic import BaseModel
@@ -57,7 +57,8 @@ def create_project(db: Session, project: ProjectCreate, user_id: int):
         description=project.description,
         created_by_user_id=user_id,
         owner_user_id=project.owner_user_id,
-        time_type=project.time_type
+        # upewnij się, że zapisujemy poprawny Enum w DB
+        time_type=TimeType(project.time_type)
     )
     db.add(db_project)
     db.commit()
@@ -90,10 +91,11 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
         raise ValueError(f"Projekt o id {report.project_id} nie istnieje.")
 
     # Walidacja time_from i time_to w zależności od time_type projektu
-    if project.time_type == "from_to":
+    time_type_value = project.time_type.value if hasattr(project.time_type, "value") else project.time_type
+    if time_type_value == "from_to":
         if report.time_from is None or report.time_to is None:
             raise ValueError(f"Projekt '{project.project_name}' wymaga podania czasu od (time_from) i czasu do (time_to).")
-    elif project.time_type == "constant":
+    elif time_type_value == "constant":
         # Dla constant nie wymagamy time_from/time_to - ustawiamy na None
         report.time_from = None
         report.time_to = None
@@ -105,6 +107,22 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
     ).first()
     if assignment is None:
         raise ValueError(f"Użytkownik o id {user_id} nie jest przypisany do projektu o id {report.project_id}.")
+
+    # Walidacja konfliktu zakresów czasu (dotyczy tylko gdy podano przedziały czasowe)
+    if report.time_from is not None and report.time_to is not None:
+        existing_with_times = db.query(WorkReport).filter(
+            WorkReport.user_id == user_id,
+            WorkReport.work_date == report.work_date,
+            WorkReport.time_from.isnot(None),
+            WorkReport.time_to.isnot(None)
+        ).all()
+
+        new_start = report.time_from
+        new_end = report.time_to
+        for r in existing_with_times:
+            # sprawdź nakładanie się przedziałów: start < other_end i end > other_start
+            if new_start < r.time_to and new_end > r.time_from:
+                raise ValueError("w podanych godzinach masz już dodany czas pracy - sprawdź zaraportowany dzisiejszy czas i popraw")
 
     # Sprawdź łączny czas pracy w danym dniu
     existing_time = db.query(
@@ -204,13 +222,30 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
         raise ValueError(f"Projekt o id {report_data.project_id} nie istnieje.")
 
     # Walidacja time_from i time_to w zależności od time_type projektu
-    if project.time_type == "from_to":
+    time_type_value = project.time_type.value if hasattr(project.time_type, "value") else project.time_type
+    if time_type_value == "from_to":
         if report_data.time_from is None or report_data.time_to is None:
             raise ValueError(f"Projekt '{project.project_name}' wymaga podania czasu od (time_from) i czasu do (time_to).")
-    elif project.time_type == "constant":
+    elif time_type_value == "constant":
         # Dla constant nie wymagamy time_from/time_to - ustawiamy na None
         report_data.time_from = None
         report_data.time_to = None
+
+    # Walidacja konfliktu zakresów czasu (dotyczy tylko gdy podano przedziały czasowe)
+    if report_data.time_from is not None and report_data.time_to is not None:
+        existing_with_times = db.query(WorkReport).filter(
+            WorkReport.user_id == db_report.user_id,
+            WorkReport.work_date == report_data.work_date,
+            WorkReport.report_id != report_id,
+            WorkReport.time_from.isnot(None),
+            WorkReport.time_to.isnot(None)
+        ).all()
+
+        new_start = report_data.time_from
+        new_end = report_data.time_to
+        for r in existing_with_times:
+            if new_start < r.time_to and new_end > r.time_from:
+                raise ValueError("w podanych godzinach masz już dodany czas pracy - sprawdź zaraportowany dzisiejszy czas i popraw")
     
     # Sprawdź łączny czas pracy w danym dniu (bez uwzględniania aktualnie edytowanego raportu)
     existing_time = db.query(
@@ -453,7 +488,8 @@ def update_project(db: Session, project_id: int, project_update: ProjectUpdate):
     if project_update.description is not None:
         project.description = project_update.description
     if project_update.time_type is not None:
-        project.time_type = project_update.time_type
+        # konwersja do Enum modelu
+        project.time_type = TimeType(project_update.time_type)
 
     db.commit()
     db.refresh(project)
