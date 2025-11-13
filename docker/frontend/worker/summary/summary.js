@@ -466,10 +466,18 @@ function renderPieChart(data) {
 
   // Ustal rozmiar canvas na podstawie aktualnej szerokości kontenera (responsywnie)
   const dpr = window.devicePixelRatio || 1;
-  const cssWidth = canvas.clientWidth || 600; // fallback
-  const cssHeight = Math.min(420, cssWidth); // zachowaj sensowną wysokość
+  const parentWidth = canvas.parentElement?.clientWidth || 400;
+  // Ogranicz maksymalną szerokość do sensownej wartości
+  const cssWidth = Math.min(parentWidth - 40, 500); // padding + max width
+  const cssHeight = cssWidth; // kwadrat dla wykresu kołowego
+  
   canvas.width = Math.floor(cssWidth * dpr);
   canvas.height = Math.floor(cssHeight * dpr);
+  
+  // Ustaw style CSS dla responsywności
+  canvas.style.width = cssWidth + 'px';
+  canvas.style.height = cssHeight + 'px';
+  
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // skalowanie do DPR
 
@@ -478,7 +486,7 @@ function renderPieChart(data) {
 
   const centerX = cssWidth / 2;
   const centerY = cssHeight / 2;
-  const radius = Math.min(cssWidth, cssHeight) / 2 - 20; // padding 20px
+  const radius = Math.min(cssWidth, cssHeight) / 2 - 40; // padding 40px dla etykiet
 
   // Calculate project totals in minutes
   const projectTotals = {};
@@ -538,13 +546,19 @@ function renderPieChart(data) {
     
     // Draw percentage label in the middle of slice
     const labelAngle = currentAngle + sliceAngle / 2;
-    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
-    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.65);
+    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.65);
     
-    ctx.fillStyle = '#000';
-    ctx.font = (cssWidth < 480 ? 'bold 12px Arial' : 'bold 14px Arial');
+    ctx.fillStyle = '#fff';
+    ctx.strokeStyle = '#000';
+    ctx.lineWidth = 3;
+    const fontSize = Math.max(10, Math.min(14, cssWidth / 30));
+    ctx.font = `bold ${fontSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    
+    // Rysuj tekst z obramowaniem dla lepszej czytelności
+    ctx.strokeText(`${percentage.toFixed(1)}%`, labelX, labelY);
     ctx.fillText(`${percentage.toFixed(1)}%`, labelX, labelY);
     
     currentAngle += sliceAngle;
