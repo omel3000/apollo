@@ -285,12 +285,21 @@ function renderSummary(data) {
           const proj = projectsMap[rep.project_id] || { name: `Projekt #${rep.project_id}`, time_type: 'constant' };
           const h = Number(rep.hours_spent) || 0;
           const m = Number(rep.minutes_spent) || 0;
-          // Zbuduj tekst w zależności od typu czasu
+
+          // Nazwa projektu najpierw i pogrubiona
+          const strongName = document.createElement('strong');
+          strongName.textContent = proj.name;
+          li.appendChild(strongName);
+
+          // Tekst czasu po nazwie projektu
+          let detailsText = ' — ';
           if (proj.time_type === 'from_to' && rep.time_from && rep.time_to) {
-            li.textContent = `${rep.time_from}–${rep.time_to} (${h}h ${String(m).padStart(2,'0')}min) — ${proj.name}`;
+            detailsText += `${rep.time_from}–${rep.time_to} (${h}h ${String(m).padStart(2,'0')}min)`;
           } else {
-            li.textContent = `${proj.name} — ${h}h ${String(m).padStart(2,'0')}min`;
+            detailsText += `${h}h ${String(m).padStart(2,'0')}min`;
           }
+          li.appendChild(document.createTextNode(detailsText));
+
           // Opis (opcjonalny) pod spodem
           if (rep.description) {
             const desc = document.createElement('div');
