@@ -15,6 +15,53 @@
     <script src="/worker/auth-worker.js" defer></script>
     <script src="/worker/messages.js" defer></script>
     <script src="/logout.js" defer></script>
+    <script>
+        // Obsługa mobilnego menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const body = document.body;
+            
+            // Utwórz backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'sidebar-backdrop';
+            document.body.appendChild(backdrop);
+            
+            // Toggle menu
+            navbarToggler.addEventListener('click', function() {
+                const isExpanded = navbarToggler.getAttribute('aria-expanded') === 'true';
+                
+                if (!isExpanded) {
+                    body.classList.add('menu-open');
+                    backdrop.classList.add('show');
+                } else {
+                    body.classList.remove('menu-open');
+                    backdrop.classList.remove('show');
+                }
+            });
+            
+            // Zamknij menu po kliknięciu w backdrop
+            backdrop.addEventListener('click', function() {
+                sidebar.classList.remove('show');
+                backdrop.classList.remove('show');
+                body.classList.remove('menu-open');
+                navbarToggler.setAttribute('aria-expanded', 'false');
+                navbarToggler.classList.add('collapsed');
+            });
+            
+            // Zamknij menu po kliknięciu w link
+            const sidebarLinks = sidebar.querySelectorAll('.nav-link');
+            sidebarLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    sidebar.classList.remove('show');
+                    backdrop.classList.remove('show');
+                    body.classList.remove('menu-open');
+                    navbarToggler.setAttribute('aria-expanded', 'false');
+                    navbarToggler.classList.add('collapsed');
+                });
+            });
+        });
+    </script>
 </head>
 <body>
     
