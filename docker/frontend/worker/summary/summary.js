@@ -293,9 +293,11 @@ function renderPieChart(data) {
     '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40'
   ];
   
+  // Sort projects by time (descending - most hours first)
+  const projectEntries = Object.entries(projectTotals).sort((a, b) => b[1] - a[1]);
+  
   // Draw pie slices
   let currentAngle = -Math.PI / 2; // Start at top
-  const projectEntries = Object.entries(projectTotals);
   
   projectEntries.forEach(([projectIdStr, minutes], index) => {
     const projectId = parseInt(projectIdStr, 10);
