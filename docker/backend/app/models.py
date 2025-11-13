@@ -1,7 +1,12 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Boolean, Enum, Time
 from sqlalchemy.sql import func
 from database import Base
+import enum
+
+class TimeType(str, enum.Enum):
+    constant = "constant"
+    from_to = "from_to"
 
 class User(Base):
     __tablename__ = "users"
@@ -25,6 +30,7 @@ class Project(Base):
     description = Column(String(1000))
     created_by_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     owner_user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)  # obowiązkowe pole
+    time_type = Column(Enum(TimeType), nullable=False, default=TimeType.constant)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class Message(Base):
@@ -45,7 +51,9 @@ class WorkReport(Base):
     work_date = Column(Date, nullable=False)
     hours_spent = Column(Integer, nullable=False, default=0)
     minutes_spent = Column(Integer, nullable=False, default=0)
-    description = Column(String(1000), nullable=True)  
+    description = Column(String(1000), nullable=True)
+    time_from = Column(Time, nullable=True)
+    time_to = Column(Time, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class UserProject(Base):

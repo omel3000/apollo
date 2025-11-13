@@ -56,7 +56,8 @@ def create_project(db: Session, project: ProjectCreate, user_id: int):
         project_name=project.project_name,
         description=project.description,
         created_by_user_id=user_id,
-        owner_user_id=project.owner_user_id
+        owner_user_id=project.owner_user_id,
+        time_type=project.time_type
     )
     db.add(db_project)
     db.commit()
@@ -87,6 +88,15 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
     project = db.query(Project).filter(Project.project_id == report.project_id).first()
     if project is None:
         raise ValueError(f"Projekt o id {report.project_id} nie istnieje.")
+
+    # Walidacja time_from i time_to w zależności od time_type projektu
+    if project.time_type == "from_to":
+        if report.time_from is None or report.time_to is None:
+            raise ValueError(f"Projekt '{project.project_name}' wymaga podania czasu od (time_from) i czasu do (time_to).")
+    elif project.time_type == "constant":
+        # Dla constant nie wymagamy time_from/time_to - ustawiamy na None
+        report.time_from = None
+        report.time_to = None
 
     # Opcjonalnie: sprawdź czy użytkownik jest przypisany do projektu
     assignment = db.query(UserProject).filter(
@@ -134,6 +144,8 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
         hours_spent=report.hours_spent,
         minutes_spent=report.minutes_spent,
         description=report.description,
+        time_from=report.time_from,
+        time_to=report.time_to
     )
     db.add(db_report)
     db.commit()
@@ -186,6 +198,20 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
     if not db_report:
         return None
     
+    # Sprawdź czy projekt istnieje i pobierz jego time_type
+    project = db.query(Project).filter(Project.project_id == report_data.project_id).first()
+    if project is None:
+        raise ValueError(f"Projekt o id {report_data.project_id} nie istnieje.")
+
+    # Walidacja time_from i time_to w zależności od time_type projektu
+    if project.time_type == "from_to":
+        if report_data.time_from is None or report_data.time_to is None:
+            raise ValueError(f"Projekt '{project.project_name}' wymaga podania czasu od (time_from) i czasu do (time_to).")
+    elif project.time_type == "constant":
+        # Dla constant nie wymagamy time_from/time_to - ustawiamy na None
+        report_data.time_from = None
+        report_data.time_to = None
+    
     # Sprawdź łączny czas pracy w danym dniu (bez uwzględniania aktualnie edytowanego raportu)
     existing_time = db.query(
         func.sum(WorkReport.hours_spent),
@@ -223,6 +249,8 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
     db_report.description = report_data.description
     db_report.work_date = report_data.work_date
     db_report.project_id = report_data.project_id
+    db_report.time_from = report_data.time_from
+    db_report.time_to = report_data.time_to
     db.commit()
     db.refresh(db_report)
     return db_report
@@ -424,6 +452,8 @@ def update_project(db: Session, project_id: int, project_update: ProjectUpdate):
         project.project_name = project_update.project_name
     if project_update.description is not None:
         project.description = project_update.description
+    if project_update.time_type is not None:
+        project.time_type = project_update.time_type
 
     db.commit()
     db.refresh(project)

@@ -1,7 +1,12 @@
 # schemas.py
 from typing import Optional, Annotated, List, Dict
-from datetime import date, datetime
+from datetime import date, datetime, time
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from enum import Enum
+
+class TimeTypeEnum(str, Enum):
+    constant = "constant"
+    from_to = "from_to"
 
 class UserBase(BaseModel):
     first_name: str
@@ -39,6 +44,7 @@ class ProjectCreate(BaseModel):
     project_name: str
     description: Optional[str]
     owner_user_id: int
+    time_type: TimeTypeEnum
 
 class ProjectRead(BaseModel):
     project_id: int
@@ -46,6 +52,7 @@ class ProjectRead(BaseModel):
     description: Optional[str]
     owner_user_id: int
     created_by_user_id: int
+    time_type: TimeTypeEnum
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -54,6 +61,7 @@ class ProjectUpdate(BaseModel):
     project_name: Optional[str] = None
     description: Optional[str] = None
     owner_user_id: Optional[int] = None
+    time_type: Optional[TimeTypeEnum] = None
 
 class MessageBase(BaseModel):
     title: str
@@ -79,6 +87,8 @@ class WorkReportBase(BaseModel):
     hours_spent: Hours = 0
     minutes_spent: Minutes = 0
     description: Optional[str] = None
+    time_from: Optional[time] = None
+    time_to: Optional[time] = None
 
     # dodatkowa normalizacja/konwersje można tu dodać jeśli potrzeba
 
