@@ -54,16 +54,10 @@
     <hr>
 
     <section>
-      <h3>Twoje wpisy dla wybranego dnia</h3>
-      <div id="existingReports">
-        <p>Ładowanie wpisów...</p>
-      </div>
-
-      <hr>
-
+      <h3>Twoje wpisy:</h3>
+      
       <!-- Form to register working time -->
-      <h4>Dodaj nowy wpis</h4>
-      <form method="post" action="/worker/addreport">
+      <form method="post" action="/worker/addreport" style="margin-bottom: 20px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
         <label for="projektSelect">Projekt:</label>
         <select name="projekt" id="projektSelect">
           <option value="">Ładowanie...</option>
@@ -80,6 +74,10 @@
         <button type="submit" id="saveBtn">Zapisz</button>
         <button type="reset">Usuń</button>
       </form>
+
+      <div id="existingReports">
+        <p>Ładowanie wpisów...</p>
+      </div>
     </section>
   </main>
 
