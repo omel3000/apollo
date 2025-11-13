@@ -317,3 +317,16 @@ html, body {
     background-color: #261C1E !important;
     color: #F2EEEB !important;
 }
+
+/* 6. KARTY WPISÓW CZASU PRACY */
+
+/* Karty z wpisami */
+#existingReports .card {
+    border: 2px solid #D9D1CA !important;
+    transition: all 0.2s ease !important;
+}
+
+#existingReports .card:hover {
+    border-color: #BF6E50 !important;
+    box-shadow: 0 2px 8px rgba(191, 110, 80, 0.15) !important;
+}

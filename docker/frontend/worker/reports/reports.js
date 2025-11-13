@@ -226,94 +226,149 @@ function updateTotalTime(reports) {
 }
 
 function buildReportForm(report) {
+  const card = document.createElement('div');
+  card.className = 'card mb-3';
+  card.dataset.reportId = report.report_id;
+
+  const cardBody = document.createElement('div');
+  cardBody.className = 'card-body';
+
   const form = document.createElement('form');
-  form.className = 'report-entry';
-  form.dataset.reportId = report.report_id;
-  form.style.marginBottom = '20px';
-  form.style.padding = '10px';
-  form.style.border = '1px solid #ccc';
-  form.style.borderRadius = '5px';
   form.addEventListener('submit', (event) => event.preventDefault());
 
+  // Projekt
+  const projectGroup = document.createElement('div');
+  projectGroup.className = 'mb-3';
+  
   const projectLabel = document.createElement('label');
   const projectFieldId = `existing-project-${report.report_id}`;
   projectLabel.setAttribute('for', projectFieldId);
+  projectLabel.className = 'form-label';
   projectLabel.textContent = 'Projekt:';
-
+  
   const projectSelect = document.createElement('select');
   projectSelect.id = projectFieldId;
   projectSelect.name = 'project';
+  projectSelect.className = 'form-select';
   populateProjectSelect(projectSelect, report.project_id);
+  
+  projectGroup.appendChild(projectLabel);
+  projectGroup.appendChild(projectSelect);
 
-  const breakAfterProject = document.createElement('br');
-  const breakAfterProject2 = document.createElement('br');
-
+  // Opis
+  const descriptionGroup = document.createElement('div');
+  descriptionGroup.className = 'mb-3';
+  
   const descriptionLabel = document.createElement('label');
   const descriptionId = `existing-description-${report.report_id}`;
   descriptionLabel.setAttribute('for', descriptionId);
+  descriptionLabel.className = 'form-label';
   descriptionLabel.textContent = 'Opis (opcjonalny):';
-
+  
   const descriptionArea = document.createElement('textarea');
   descriptionArea.id = descriptionId;
   descriptionArea.name = 'description';
+  descriptionArea.className = 'form-control';
+  descriptionArea.rows = 3;
   descriptionArea.value = report.description || '';
+  
+  descriptionGroup.appendChild(descriptionLabel);
+  descriptionGroup.appendChild(descriptionArea);
 
-  const breakAfterDescription = document.createElement('br');
-  const breakAfterDescription2 = document.createElement('br');
-
+  // Czas pracy
+  const timeGroup = document.createElement('div');
+  timeGroup.className = 'mb-3';
+  
   const timeLabel = document.createElement('label');
+  timeLabel.className = 'form-label';
   timeLabel.textContent = 'Czas pracy:';
-
+  
+  const timeRow = document.createElement('div');
+  timeRow.className = 'row g-2';
+  
+  // Godziny
+  const hoursCol = document.createElement('div');
+  hoursCol.className = 'col-6';
+  
+  const hoursInputGroup = document.createElement('div');
+  hoursInputGroup.className = 'input-group';
+  
   const hoursInput = document.createElement('input');
   hoursInput.type = 'number';
   hoursInput.name = 'hours';
   hoursInput.min = '0';
   hoursInput.max = '24';
   hoursInput.value = Number(report.hours_spent) || 0;
-
+  hoursInput.className = 'form-control';
+  hoursInput.setAttribute('aria-label', 'Godziny');
+  
+  const hoursSpan = document.createElement('span');
+  hoursSpan.className = 'input-group-text';
+  hoursSpan.textContent = 'h';
+  
+  hoursInputGroup.appendChild(hoursInput);
+  hoursInputGroup.appendChild(hoursSpan);
+  hoursCol.appendChild(hoursInputGroup);
+  
+  // Minuty
+  const minutesCol = document.createElement('div');
+  minutesCol.className = 'col-6';
+  
+  const minutesInputGroup = document.createElement('div');
+  minutesInputGroup.className = 'input-group';
+  
   const minutesInput = document.createElement('input');
   minutesInput.type = 'number';
   minutesInput.name = 'minutes';
   minutesInput.min = '0';
   minutesInput.max = '59';
   minutesInput.value = Number(report.minutes_spent) || 0;
+  minutesInput.className = 'form-control';
+  minutesInput.setAttribute('aria-label', 'Minuty');
+  
+  const minutesSpan = document.createElement('span');
+  minutesSpan.className = 'input-group-text';
+  minutesSpan.textContent = 'min';
+  
+  minutesInputGroup.appendChild(minutesInput);
+  minutesInputGroup.appendChild(minutesSpan);
+  minutesCol.appendChild(minutesInputGroup);
+  
+  timeRow.appendChild(hoursCol);
+  timeRow.appendChild(minutesCol);
+  
+  timeGroup.appendChild(timeLabel);
+  timeGroup.appendChild(timeRow);
 
-  const hoursLabel = document.createTextNode(' h ');
-  const minutesLabel = document.createTextNode(' min');
-
-  const breakAfterTime = document.createElement('br');
-  const breakAfterTime2 = document.createElement('br');
-
+  // Przyciski
+  const buttonGroup = document.createElement('div');
+  buttonGroup.className = 'd-flex gap-2';
+  
   const saveButton = document.createElement('button');
   saveButton.type = 'button';
-  saveButton.textContent = 'Zapisz';
+  saveButton.className = 'btn btn-primary';
+  saveButton.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz';
   saveButton.addEventListener('click', () => handleUpdateReport(report.report_id, form));
-
+  
   const deleteButton = document.createElement('button');
   deleteButton.type = 'button';
-  deleteButton.textContent = 'Usuń';
-  deleteButton.style.marginLeft = '10px';
+  deleteButton.className = 'btn btn-outline-danger';
+  deleteButton.innerHTML = '<i class="bi bi-trash me-1"></i>Usuń';
   deleteButton.addEventListener('click', () => handleDeleteReport(report.report_id));
+  
+  buttonGroup.appendChild(saveButton);
+  buttonGroup.appendChild(deleteButton);
 
-  form.appendChild(projectLabel);
-  form.appendChild(projectSelect);
-  form.appendChild(breakAfterProject);
-  form.appendChild(breakAfterProject2);
-  form.appendChild(descriptionLabel);
-  form.appendChild(descriptionArea);
-  form.appendChild(breakAfterDescription);
-  form.appendChild(breakAfterDescription2);
-  form.appendChild(timeLabel);
-  form.appendChild(hoursInput);
-  form.appendChild(hoursLabel);
-  form.appendChild(minutesInput);
-  form.appendChild(minutesLabel);
-  form.appendChild(breakAfterTime);
-  form.appendChild(breakAfterTime2);
-  form.appendChild(saveButton);
-  form.appendChild(deleteButton);
+  // Złożenie formularza
+  form.appendChild(projectGroup);
+  form.appendChild(descriptionGroup);
+  form.appendChild(timeGroup);
+  form.appendChild(buttonGroup);
 
-  return form;
+  cardBody.appendChild(form);
+  card.appendChild(cardBody);
+
+  return card;
 }
 
 function populateProjectSelect(selectElement, selectedId) {
