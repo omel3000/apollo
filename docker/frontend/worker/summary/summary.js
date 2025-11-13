@@ -166,6 +166,9 @@ function renderSummary(data) {
     totalElement.textContent = `${totalHours}h ${totalMinutes}min`;
   }
   
+  // Render pie chart
+  renderPieChart(data);
+  
   // Render detailed breakdown
   const section = document.querySelector('main section');
   if (!section) return;
@@ -239,4 +242,110 @@ async function safeReadText(response) {
   } catch (error) {
     return '';
   }
+}
+
+function renderPieChart(data) {
+  const canvas = document.getElementById('projectChart');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = 150;
+  
+  // Clear canvas
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Calculate project totals in minutes
+  const projectTotals = {};
+  const dailyHours = data.daily_hours || [];
+  
+  dailyHours.forEach(dayData => {
+    const projectHours = dayData.project_hours || {};
+    Object.keys(projectHours).forEach(projectIdStr => {
+      const projectId = parseInt(projectIdStr, 10);
+      const projectData = projectHours[projectIdStr];
+      const hours = projectData.hours || 0;
+      const minutes = projectData.minutes || 0;
+      const totalMinutes = hours * 60 + minutes;
+      
+      if (!projectTotals[projectId]) {
+        projectTotals[projectId] = 0;
+      }
+      projectTotals[projectId] += totalMinutes;
+    });
+  });
+  
+  // Calculate total and percentages
+  const totalMinutes = Object.values(projectTotals).reduce((sum, mins) => sum + mins, 0);
+  
+  if (totalMinutes === 0) {
+    ctx.fillStyle = '#666';
+    ctx.font = '16px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('Brak danych', centerX, centerY);
+    return;
+  }
+  
+  // Predefined colors
+  const colors = [
+    '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF',
+    '#FF9F40', '#FF6384', '#C9CBCF', '#4BC0C0', '#FF9F40'
+  ];
+  
+  // Draw pie slices
+  let currentAngle = -Math.PI / 2; // Start at top
+  const projectEntries = Object.entries(projectTotals);
+  
+  projectEntries.forEach(([projectIdStr, minutes], index) => {
+    const projectId = parseInt(projectIdStr, 10);
+    const percentage = (minutes / totalMinutes) * 100;
+    const sliceAngle = (minutes / totalMinutes) * 2 * Math.PI;
+    
+    // Draw slice
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, currentAngle, currentAngle + sliceAngle);
+    ctx.closePath();
+    ctx.fillStyle = colors[index % colors.length];
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw percentage label in the middle of slice
+    const labelAngle = currentAngle + sliceAngle / 2;
+    const labelX = centerX + Math.cos(labelAngle) * (radius * 0.7);
+    const labelY = centerY + Math.sin(labelAngle) * (radius * 0.7);
+    
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 14px Arial';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${percentage.toFixed(1)}%`, labelX, labelY);
+    
+    currentAngle += sliceAngle;
+  });
+  
+  // Draw legend below chart
+  const legendY = canvas.height - 80;
+  let legendX = 20;
+  const legendItemWidth = 180;
+  
+  projectEntries.forEach(([projectIdStr, minutes], index) => {
+    const projectId = parseInt(projectIdStr, 10);
+    const projectName = projectsMap[projectId] || `Projekt #${projectId}`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    
+    // Color box
+    ctx.fillStyle = colors[index % colors.length];
+    ctx.fillRect(legendX, legendY + (index * 25), 15, 15);
+    
+    // Text
+    ctx.fillStyle = '#000';
+    ctx.font = '12px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${projectName} (${hours}h ${mins}min)`, legendX + 20, legendY + (index * 25) + 12);
+  });
 }
