@@ -469,12 +469,20 @@ function refreshReportsIfReady() {
 
 function initCalendar() {
   const container = document.getElementById('calendarContainer');
-  if (!container) return; // nothing to do
+  if (!container) {
+    console.warn('Calendar container not found');
+    return;
+  }
 
   const monthSelect = document.getElementById('calMonthSelect');
   const yearSelect = document.getElementById('calYearSelect');
   const prevBtn = document.getElementById('calPrevMonth');
   const nextBtn = document.getElementById('calNextMonth');
+
+  if (!monthSelect || !yearSelect || !prevBtn || !nextBtn) {
+    console.warn('Calendar controls not found');
+    return;
+  }
 
   // Populate month select
   monthSelect.innerHTML = '';
@@ -487,7 +495,7 @@ function initCalendar() {
 
   // Populate year select (currentYear-5 .. currentYear+5)
   yearSelect.innerHTML = '';
-  const today = window.currentDate instanceof Date ? window.currentDate : new Date();
+  const today = new Date(); // Always use current date for initialization
   const baseYear = today.getFullYear();
   for (let y = baseYear - 5; y <= baseYear + 5; y++) {
     const opt = document.createElement('option');
@@ -496,31 +504,38 @@ function initCalendar() {
     yearSelect.appendChild(opt);
   }
 
-  // Default calendar month/year from currentDate if present
-  const init = window.currentDate instanceof Date ? window.currentDate : new Date();
-  calYear = init.getFullYear();
-  calMonth = init.getMonth();
+  // ALWAYS initialize to current month/year
+  const initDate = new Date();
+  calYear = initDate.getFullYear();
+  calMonth = initDate.getMonth();
+  
+  console.log('Calendar initialized to:', calYear, calMonth);
+  
   syncMonthYearControls();
   renderCalendar();
 
   // Handlers
   monthSelect.addEventListener('change', () => {
     calMonth = parseInt(monthSelect.value, 10);
+    console.log('Month changed to:', calMonth);
     renderCalendar();
   });
   yearSelect.addEventListener('change', () => {
     calYear = parseInt(yearSelect.value, 10);
+    console.log('Year changed to:', calYear);
     renderCalendar();
   });
   prevBtn.addEventListener('click', () => {
     calMonth--;
     if (calMonth < 0) { calMonth = 11; calYear--; }
+    console.log('Previous month:', calYear, calMonth);
     syncMonthYearControls();
     renderCalendar();
   });
   nextBtn.addEventListener('click', () => {
     calMonth++;
     if (calMonth > 11) { calMonth = 0; calYear++; }
+    console.log('Next month:', calYear, calMonth);
     syncMonthYearControls();
     renderCalendar();
   });
@@ -529,16 +544,27 @@ function initCalendar() {
 function syncMonthYearControls() {
   const monthSelect = document.getElementById('calMonthSelect');
   const yearSelect = document.getElementById('calYearSelect');
-  if (monthSelect) monthSelect.value = String(calMonth);
+  
+  if (!monthSelect || !yearSelect) {
+    console.warn('Month/Year selects not found in syncMonthYearControls');
+    return;
+  }
+  
+  console.log('Syncing controls to:', calYear, calMonth);
+  
+  if (monthSelect) {
+    monthSelect.value = String(calMonth);
+  }
+  
   if (yearSelect) {
     // Ensure selected year exists in options; if not, extend range
     let yearOption = Array.from(yearSelect.options).some(o => Number(o.value) === calYear);
     if (!yearOption) {
+      console.log('Adding year option:', calYear);
       // Extend to include calYear
       const opt = document.createElement('option');
       opt.value = String(calYear);
       opt.textContent = String(calYear);
-      // Insert in sorted order (keep simple: append and sort visually not required)
       yearSelect.appendChild(opt);
     }
     yearSelect.value = String(calYear);
@@ -547,7 +573,12 @@ function syncMonthYearControls() {
 
 function renderCalendar() {
   const grid = document.getElementById('calGrid');
-  if (!grid) return;
+  if (!grid) {
+    console.warn('Calendar grid not found');
+    return;
+  }
+
+  console.log('Rendering calendar for:', calYear, calMonth);
 
   // Build table
   const table = document.createElement('table');
@@ -575,14 +606,20 @@ function renderCalendar() {
   const startOffset = (jsDow + 6) % 7; // 0-based index for Monday start
   const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
 
+  console.log('Days in month:', daysInMonth, 'Start offset:', startOffset);
+
   let day = 1;
-  for (let r = 0; r < 6; r++) {
+  let rowsNeeded = Math.ceil((daysInMonth + startOffset) / 7);
+  
+  for (let r = 0; r < rowsNeeded; r++) {
     const tr = document.createElement('tr');
     for (let c = 0; c < 7; c++) {
       const td = document.createElement('td');
       td.style.border = '1px solid #eee';
       td.style.padding = '4px';
       td.style.textAlign = 'center';
+      td.style.minHeight = '30px';
+      
       if (r === 0 && c < startOffset) {
         td.textContent = '';
       } else if (day > daysInMonth) {
@@ -592,6 +629,7 @@ function renderCalendar() {
         btn.type = 'button';
         btn.textContent = String(day);
         btn.style.minWidth = '2em';
+        btn.style.cursor = 'pointer';
         btn.dataset.day = String(day);
         btn.addEventListener('click', onCalendarDayClick);
 
@@ -614,6 +652,8 @@ function renderCalendar() {
 
   grid.innerHTML = '';
   grid.appendChild(table);
+  
+  console.log('Calendar rendered successfully');
 }
 
 function highlightSelectedDay(dateObj) {
