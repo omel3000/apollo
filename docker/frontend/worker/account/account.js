@@ -1,6 +1,8 @@
 let authHeader = '';
 let failedAttempts = 0;
 const MAX_FAILED_ATTEMPTS = 3;
+const FAILED_ATTEMPTS_KEY = 'account_failed_attempts';
+const TOKEN_KEY = 'account_token_hash';
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('account.js: DOMContentLoaded fired');
@@ -17,10 +19,53 @@ document.addEventListener('DOMContentLoaded', () => {
 
   authHeader = token.toLowerCase().startsWith('bearer ') ? token : `Bearer ${token}`;
   
+  // Initialize or reset failed attempts based on token
+  initializeFailedAttempts(token);
+  
   // Setup form handlers
   setupChangeEmailForm();
   setupChangePasswordForm();
 });
+
+function initializeFailedAttempts(currentToken) {
+  // Create a simple hash of the token to detect if it's a new login
+  const tokenHash = simpleHash(currentToken);
+  const storedTokenHash = localStorage.getItem(TOKEN_KEY);
+  
+  if (storedTokenHash !== tokenHash) {
+    // New token = new login, reset attempts
+    console.log('New token detected, resetting failed attempts');
+    failedAttempts = 0;
+    localStorage.setItem(TOKEN_KEY, tokenHash);
+    localStorage.setItem(FAILED_ATTEMPTS_KEY, '0');
+  } else {
+    // Same token, load existing attempts
+    const stored = localStorage.getItem(FAILED_ATTEMPTS_KEY);
+    failedAttempts = stored ? parseInt(stored, 10) : 0;
+    console.log('Loaded failed attempts:', failedAttempts);
+  }
+}
+
+function incrementFailedAttempts() {
+  failedAttempts++;
+  localStorage.setItem(FAILED_ATTEMPTS_KEY, failedAttempts.toString());
+}
+
+function resetFailedAttempts() {
+  failedAttempts = 0;
+  localStorage.setItem(FAILED_ATTEMPTS_KEY, '0');
+}
+
+function simpleHash(str) {
+  // Simple hash function for token comparison
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash.toString();
+}
 
 function setupChangeEmailForm() {
   const form = document.getElementById('changeEmailForm');
@@ -60,7 +105,7 @@ function setupChangeEmailForm() {
         const errorData = await safeReadJson(response);
         const errorMessage = errorData.detail || 'Błędne hasło';
         
-        failedAttempts++;
+        incrementFailedAttempts();
         
         if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
           showMessage(messageDiv, `Błędne hasło. Przekroczono limit prób (${MAX_FAILED_ATTEMPTS}). Wylogowywanie...`, 'error');
@@ -84,7 +129,7 @@ function setupChangeEmailForm() {
       showMessage(messageDiv, 'Adres email został zmieniony pomyślnie!', 'success');
       
       // Reset failed attempts on success
-      failedAttempts = 0;
+      resetFailedAttempts();
       
       // Clear form
       form.reset();
@@ -141,7 +186,7 @@ function setupChangePasswordForm() {
         const errorData = await safeReadJson(response);
         const errorMessage = errorData.detail || 'Błędne hasło';
         
-        failedAttempts++;
+        incrementFailedAttempts();
         
         if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
           showMessage(messageDiv, `Błędne hasło. Przekroczono limit prób (${MAX_FAILED_ATTEMPTS}). Wylogowywanie...`, 'error');
@@ -165,7 +210,7 @@ function setupChangePasswordForm() {
       showMessage(messageDiv, 'Hasło zostało zmienione pomyślnie!', 'success');
       
       // Reset failed attempts on success
-      failedAttempts = 0;
+      resetFailedAttempts();
       
       // Clear form
       form.reset();
@@ -183,6 +228,8 @@ function showMessage(container, message, type) {
 
 function handleUnauthorized() {
   localStorage.removeItem('token');
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(FAILED_ATTEMPTS_KEY);
   window.location.replace('/');
 }
 
