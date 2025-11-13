@@ -1,4 +1,7 @@
 let authHeader = '';
+let emailFailedAttempts = 0;
+let passwordFailedAttempts = 0;
+const MAX_FAILED_ATTEMPTS = 3;
 
 document.addEventListener('DOMContentLoaded', () => {
   console.log('account.js: DOMContentLoaded fired');
@@ -55,7 +58,19 @@ function setupChangeEmailForm() {
       });
 
       if (response.status === 401) {
-        handleUnauthorized();
+        const errorData = await safeReadJson(response);
+        const errorMessage = errorData.detail || 'Błędne hasło';
+        
+        emailFailedAttempts++;
+        
+        if (emailFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+          showMessage(messageDiv, `Błędne hasło. Przekroczono limit prób (${MAX_FAILED_ATTEMPTS}). Wylogowywanie...`, 'error');
+          setTimeout(() => handleUnauthorized(), 2000);
+          return;
+        }
+        
+        const remainingAttempts = MAX_FAILED_ATTEMPTS - emailFailedAttempts;
+        showMessage(messageDiv, `${errorMessage}. Pozostało prób: ${remainingAttempts}`, 'error');
         return;
       }
 
@@ -68,6 +83,9 @@ function setupChangeEmailForm() {
 
       const data = await response.json();
       showMessage(messageDiv, 'Adres email został zmieniony pomyślnie!', 'success');
+      
+      // Reset failed attempts on success
+      emailFailedAttempts = 0;
       
       // Clear form
       form.reset();
@@ -105,11 +123,6 @@ function setupChangePasswordForm() {
       return;
     }
     
-    if (newPassword.length < 6) {
-      showMessage(messageDiv, 'Nowe hasło musi mieć co najmniej 6 znaków.', 'error');
-      return;
-    }
-    
     try {
       const response = await fetch('/users/me/change-password', {
         method: 'PUT',
@@ -126,7 +139,19 @@ function setupChangePasswordForm() {
       });
 
       if (response.status === 401) {
-        handleUnauthorized();
+        const errorData = await safeReadJson(response);
+        const errorMessage = errorData.detail || 'Błędne hasło';
+        
+        passwordFailedAttempts++;
+        
+        if (passwordFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+          showMessage(messageDiv, `Błędne hasło. Przekroczono limit prób (${MAX_FAILED_ATTEMPTS}). Wylogowywanie...`, 'error');
+          setTimeout(() => handleUnauthorized(), 2000);
+          return;
+        }
+        
+        const remainingAttempts = MAX_FAILED_ATTEMPTS - passwordFailedAttempts;
+        showMessage(messageDiv, `${errorMessage}. Pozostało prób: ${remainingAttempts}`, 'error');
         return;
       }
 
@@ -139,6 +164,9 @@ function setupChangePasswordForm() {
 
       const data = await response.json();
       showMessage(messageDiv, 'Hasło zostało zmienione pomyślnie!', 'success');
+      
+      // Reset failed attempts on success
+      passwordFailedAttempts = 0;
       
       // Clear form
       form.reset();
