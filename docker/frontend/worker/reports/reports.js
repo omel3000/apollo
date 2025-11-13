@@ -154,6 +154,7 @@ function renderReports(reports) {
 
   if (!reports.length) {
     setReportsContainerMessage('Brak wpisów dla wybranego dnia.');
+    updateTotalTime([]);
     return;
   }
 
@@ -162,12 +163,34 @@ function renderReports(reports) {
     fragment.appendChild(buildReportForm(report));
   });
   reportsContainer.appendChild(fragment);
+  updateTotalTime(reports);
+}
+
+function updateTotalTime(reports) {
+  let totalMinutes = 0;
+  reports.forEach(report => {
+    const hours = Number(report.hours_spent) || 0;
+    const minutes = Number(report.minutes_spent) || 0;
+    totalMinutes += (hours * 60) + minutes;
+  });
+
+  const totalHours = Math.floor(totalMinutes / 60);
+  const remainingMinutes = totalMinutes % 60;
+
+  const totalTimeElement = document.getElementById('totalTime');
+  if (totalTimeElement) {
+    totalTimeElement.textContent = `Łącznie: ${totalHours}h ${remainingMinutes}min`;
+  }
 }
 
 function buildReportForm(report) {
   const form = document.createElement('form');
   form.className = 'report-entry';
   form.dataset.reportId = report.report_id;
+  form.style.marginBottom = '20px';
+  form.style.padding = '10px';
+  form.style.border = '1px solid #ccc';
+  form.style.borderRadius = '5px';
   form.addEventListener('submit', (event) => event.preventDefault());
 
   const projectLabel = document.createElement('label');
@@ -177,7 +200,7 @@ function buildReportForm(report) {
 
   const projectSelect = document.createElement('select');
   projectSelect.id = projectFieldId;
-  projectSelect.disabled = true;
+  projectSelect.name = 'project';
   populateProjectSelect(projectSelect, report.project_id);
 
   const breakAfterProject = document.createElement('br');
@@ -190,8 +213,8 @@ function buildReportForm(report) {
 
   const descriptionArea = document.createElement('textarea');
   descriptionArea.id = descriptionId;
+  descriptionArea.name = 'description';
   descriptionArea.value = report.description || '';
-  descriptionArea.readOnly = true;
 
   const breakAfterDescription = document.createElement('br');
   const breakAfterDescription2 = document.createElement('br');
@@ -201,23 +224,34 @@ function buildReportForm(report) {
 
   const hoursInput = document.createElement('input');
   hoursInput.type = 'number';
+  hoursInput.name = 'hours';
   hoursInput.min = '0';
   hoursInput.max = '24';
   hoursInput.value = Number(report.hours_spent) || 0;
-  hoursInput.disabled = true;
 
   const minutesInput = document.createElement('input');
   minutesInput.type = 'number';
+  minutesInput.name = 'minutes';
   minutesInput.min = '0';
   minutesInput.max = '59';
   minutesInput.value = Number(report.minutes_spent) || 0;
-  minutesInput.disabled = true;
 
   const hoursLabel = document.createTextNode(' h ');
   const minutesLabel = document.createTextNode(' min');
 
   const breakAfterTime = document.createElement('br');
   const breakAfterTime2 = document.createElement('br');
+
+  const saveButton = document.createElement('button');
+  saveButton.type = 'button';
+  saveButton.textContent = 'Zapisz';
+  saveButton.addEventListener('click', () => handleUpdateReport(report.report_id, form));
+
+  const deleteButton = document.createElement('button');
+  deleteButton.type = 'button';
+  deleteButton.textContent = 'Usuń';
+  deleteButton.style.marginLeft = '10px';
+  deleteButton.addEventListener('click', () => handleDeleteReport(report.report_id));
 
   form.appendChild(projectLabel);
   form.appendChild(projectSelect);
@@ -234,6 +268,8 @@ function buildReportForm(report) {
   form.appendChild(minutesLabel);
   form.appendChild(breakAfterTime);
   form.appendChild(breakAfterTime2);
+  form.appendChild(saveButton);
+  form.appendChild(deleteButton);
 
   return form;
 }
@@ -383,6 +419,97 @@ function refreshReportsIfReady() {
   
   console.log('refreshReportsIfReady: All conditions met, loading reports');
   loadReportsForDate(pendingWorkDate);
+}
+
+async function handleUpdateReport(reportId, formElement) {
+  console.log('handleUpdateReport: Updating report', reportId);
+  
+  const projectSelect = formElement.querySelector('select[name="project"]');
+  const descriptionArea = formElement.querySelector('textarea[name="description"]');
+  const hoursInput = formElement.querySelector('input[name="hours"]');
+  const minutesInput = formElement.querySelector('input[name="minutes"]');
+
+  const projectId = parseInt(projectSelect.value, 10);
+  const description = descriptionArea.value;
+  const hours = parseInt(hoursInput.value, 10);
+  const minutes = parseInt(minutesInput.value, 10);
+
+  if (!projectId) {
+    alert('Wybierz projekt!');
+    return;
+  }
+
+  if ((hours === 0 && minutes === 0) || hours > 24 || hours < 0 || minutes < 0 || minutes > 59) {
+    alert('Podaj poprawny czas pracy (nie może być 0, max 24h)!');
+    return;
+  }
+
+  let workDate = pendingWorkDate || window.getCurrentWorkDate() || toApiDate(new Date());
+
+  try {
+    const response = await fetch(`/work_reports/${reportId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Authorization': authHeader
+      },
+      body: JSON.stringify({
+        project_id: projectId,
+        work_date: workDate,
+        hours_spent: hours,
+        minutes_spent: minutes,
+        description
+      })
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      const message = await safeReadText(response);
+      throw new Error(message || 'Błąd aktualizacji wpisu');
+    }
+
+    alert('Wpis zaktualizowany!');
+    refreshReportsIfReady();
+  } catch (error) {
+    alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
+  }
+}
+
+async function handleDeleteReport(reportId) {
+  console.log('handleDeleteReport: Deleting report', reportId);
+  
+  if (!confirm('Czy na pewno chcesz usunąć ten wpis?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/work_reports/${reportId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': authHeader
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok && response.status !== 204) {
+      const message = await safeReadText(response);
+      throw new Error(message || 'Błąd usuwania wpisu');
+    }
+
+    alert('Wpis usunięty!');
+    refreshReportsIfReady();
+  } catch (error) {
+    alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
+  }
 }
 
 // Funkcja do pobierania aktualnej daty z nawigacji

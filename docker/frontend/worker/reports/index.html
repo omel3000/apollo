@@ -42,7 +42,7 @@
   <main>
     <h2 id="dayName">Dzień tygodnia</h2>
     <p id="dateDisplay">Data dd.mm.rrrr</p>
-    <p>Łącznie: 1h 0min</p>
+    <p id="totalTime">Łącznie: 0h 0min</p>
 
     <!-- Przyciski do zmiany dnia -->
     <form method="get" action="/worker/reports.html">
@@ -52,32 +52,34 @@
     </form>
 
     <hr>
-    <!-- Form to register working time -->
-    <form method="post" action="/worker/addreport">
-      <label for="projektSelect">Projekt:</label>
-      <select name="projekt" id="projektSelect">
-        <option value="">Ładowanie...</option>
-      </select><br><br>
-
-      <label for="opis">Opis (opcjonalny):</label>
-      <textarea name="opis" id="opis"></textarea><br><br>
-
-      <label for="czas_h">Czas pracy:</label>
-      <input type="number" id="czas_h" name="czas_h" min="0" max="24" value="0"> h
-      <input type="number" id="czas_m" name="czas_m" min="0" max="59" value="0"> min
-      <br><br>
-
-      <button type="submit" id="saveBtn">Zapisz</button>
-      <button type="reset">Usuń</button>
-    </form>
-
-    <hr>
 
     <section>
       <h3>Twoje wpisy dla wybranego dnia</h3>
       <div id="existingReports">
         <p>Ładowanie wpisów...</p>
       </div>
+
+      <hr>
+
+      <!-- Form to register working time -->
+      <h4>Dodaj nowy wpis</h4>
+      <form method="post" action="/worker/addreport">
+        <label for="projektSelect">Projekt:</label>
+        <select name="projekt" id="projektSelect">
+          <option value="">Ładowanie...</option>
+        </select><br><br>
+
+        <label for="opis">Opis (opcjonalny):</label>
+        <textarea name="opis" id="opis"></textarea><br><br>
+
+        <label for="czas_h">Czas pracy:</label>
+        <input type="number" id="czas_h" name="czas_h" min="0" max="24" value="0"> h
+        <input type="number" id="czas_m" name="czas_m" min="0" max="59" value="0"> min
+        <br><br>
+
+        <button type="submit" id="saveBtn">Zapisz</button>
+        <button type="reset">Usuń</button>
+      </form>
     </section>
   </main>
 
