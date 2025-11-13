@@ -24,30 +24,55 @@
   function updateDateDisplay() {
     const dayName = dayNames[currentDate.getDay()];
     const dateStr = currentDate.toLocaleDateString('pl-PL');
-    document.getElementById('dayName').textContent = dayName;
-    document.getElementById('dateDisplay').textContent = dateStr;
+    const dayNameEl = document.getElementById('dayName');
+    const dateDisplayEl = document.getElementById('dateDisplay');
+    if (dayNameEl) dayNameEl.textContent = dayName;
+    if (dateDisplayEl) dateDisplayEl.textContent = dateStr;
     notifyDateChange();
   }
+
+  // Listen for external date changes (from calendar clicks)
+  document.addEventListener('calendardatechange', function(e) {
+    if (e && e.detail && e.detail.date) {
+      currentDate = new Date(e.detail.date);
+      window.currentDate = currentDate;
+      updateDateDisplay();
+    }
+  });
 
   document.addEventListener('DOMContentLoaded', function() {
     updateDateDisplay();
 
-    document.getElementById('prevDayBtn').addEventListener('click', function() {
-      currentDate.setDate(currentDate.getDate() - 1);
-      window.currentDate = currentDate;
-      updateDateDisplay();
-    });
+    const prevBtn = document.getElementById('prevDayBtn');
+    const nextBtn = document.getElementById('nextDayBtn');
+    const todayBtn = document.getElementById('todayBtn');
 
-    document.getElementById('nextDayBtn').addEventListener('click', function() {
-      currentDate.setDate(currentDate.getDate() + 1);
-      window.currentDate = currentDate;
-      updateDateDisplay();
-    });
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function() {
+        // Use window.currentDate to ensure we work with the latest date
+        currentDate = new Date(window.currentDate);
+        currentDate.setDate(currentDate.getDate() - 1);
+        window.currentDate = currentDate;
+        updateDateDisplay();
+      });
+    }
 
-    document.getElementById('todayBtn').addEventListener('click', function() {
-      currentDate = new Date();
-      window.currentDate = currentDate;
-      updateDateDisplay();
-    });
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function() {
+        // Use window.currentDate to ensure we work with the latest date
+        currentDate = new Date(window.currentDate);
+        currentDate.setDate(currentDate.getDate() + 1);
+        window.currentDate = currentDate;
+        updateDateDisplay();
+      });
+    }
+
+    if (todayBtn) {
+      todayBtn.addEventListener('click', function() {
+        currentDate = new Date();
+        window.currentDate = currentDate;
+        updateDateDisplay();
+      });
+    }
   });
 })();

@@ -680,12 +680,21 @@ function onCalendarDayClick(ev) {
   const day = parseInt(btn.dataset.day, 10);
   if (!Number.isFinite(day)) return;
   const picked = new Date(calYear, calMonth, day);
+  
   // Update global currentDate
   window.currentDate = picked;
+  
+  // Notify date-navigator to update its internal state
+  document.dispatchEvent(new CustomEvent('calendardatechange', {
+    detail: { date: picked }
+  }));
+  
   // Update header (dayName, dateDisplay)
   updateHeaderFromDate(picked);
-  // Notify the rest of the app (mimic date-navigator)
+  
+  // Notify the rest of the app
   notifyWorkDateChange(picked);
+  
   // Highlight
   highlightSelectedDay(picked);
 }
