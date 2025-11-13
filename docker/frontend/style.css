@@ -198,10 +198,11 @@ body {
 
 /* Badge z sumą czasu dla dnia w podsumowaniu - w kolorach motywu */
 .badge-summary-day {
-    background-color: #736A65 !important;
+    background-color: #261C1E !important; /* Ciemny brąz - jak navbar */
     color: #F2EEEB !important;
     font-size: 0.85rem !important;
     padding: 0.35rem 0.65rem !important;
+    border: 2px solid #BF6E50 !important; /* Obramówka w kolorze akcentu */
 }
 
 /* Główna zawartość - margines dla sidebara */
