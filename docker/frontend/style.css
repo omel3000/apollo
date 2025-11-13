@@ -312,6 +312,13 @@ html, body {
     color: #F2EEEB !important;
 }
 
+/* Przycisk Usuń - hover w kolorze czerwonym */
+#existingReports .btn-outline-secondary:hover {
+    background-color: #dc3545 !important;
+    border-color: #dc3545 !important;
+    color: #261C1E !important;
+}
+
 /* Card header kalendarza */
 .card-header.bg-primary {
     background-color: #261C1E !important;
