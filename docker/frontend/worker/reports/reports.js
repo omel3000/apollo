@@ -453,11 +453,40 @@ function buildReportForm(report) {
   // Dodaj event listenery do wykrywania zmian
   projectSelect.addEventListener('change', () => {
     // Przy zmianie projektu przebuduj sekcję czasu zgodnie z time_type
-    const rebuilt = buildReportForm({ ...report, project_id: Number(projectSelect.value) });
+    const newProjectId = Number(projectSelect.value);
+    const rebuilt = buildReportForm({ ...report, project_id: newProjectId });
     const newTimeGroup = rebuilt.querySelector('.time-group');
-    if (newTimeGroup) {
-      form.replaceChild(newTimeGroup, timeGroup);
+
+    // Zastąp aktualną sekcję czasu najnowszą wersją
+    const currentTimeGroup = form.querySelector('.time-group');
+    if (newTimeGroup && currentTimeGroup && currentTimeGroup.parentNode === form) {
+      form.replaceChild(newTimeGroup, currentTimeGroup);
+
+      // Jeśli nowy projekt jest typu from_to, dołącz listenery obliczające przepracowany czas
+      const pType = (getProjectById(newProjectId)?.time_type) || 'constant';
+      if (pType === 'from_to') {
+        const tf = form.querySelector('input[name="time_from"]');
+        const tt = form.querySelector('input[name="time_to"]');
+        const calcText = form.querySelector('.time-group small.text-muted');
+        const updateCalc = () => {
+          const f = tf ? tf.value : '';
+          const t = tt ? tt.value : '';
+          if (!calcText) return;
+          if (!f || !t) { calcText.textContent = ''; return; }
+          const diff = diffHHMM(f, t);
+          if (!diff || diff.totalMinutes <= 0) {
+            calcText.textContent = 'przepracowany czas: -';
+          } else {
+            calcText.textContent = `przepracowany czas: ${diff.hours}h ${String(diff.minutes).padStart(2,'0')}min`;
+          }
+        };
+        if (tf) tf.addEventListener('input', updateCalc);
+        if (tt) tt.addEventListener('input', updateCalc);
+        // inicjalne wyliczenie (jeśli pola mają wartości)
+        updateCalc();
+      }
     }
+
     checkForChanges();
   });
   descriptionArea.addEventListener('input', checkForChanges);
