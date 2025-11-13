@@ -351,3 +351,8 @@ html, body {
     background-color: #BF6E50 !important;
     border-color: #BF6E50 !important;
 }
+
+#existingReports .btn-save-changes:not(:disabled):hover {
+    background-color: #736A65 !important;
+    border-color: #736A65 !important;
+}
