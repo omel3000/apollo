@@ -233,8 +233,8 @@ function renderSummary(data) {
     const totalM = dayTotalMin % 60;
 
     const totalEl = document.createElement('span');
-    totalEl.className = 'badge bg-primary';
-    totalEl.textContent = `${totalH}h ${totalM}min`;
+    totalEl.className = 'badge badge-summary-day';
+    totalEl.textContent = `Łącznie: ${totalH}h ${totalM}min`;
     headerRow.appendChild(totalEl);
 
     dayItem.appendChild(headerRow);
