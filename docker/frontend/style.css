@@ -49,6 +49,20 @@ body {
     z-index: 1000 !important; /* Wysoki z-index żeby był nad sidebar */
 }
 
+/* Odstęp wewnątrz kontenera nawigacji, aby „Apollo” i przyciski nie stykały się z krawędziami (uwzględnij notche/safe-area) */
+.navbar .container-fluid {
+    padding-left: max(1rem, env(safe-area-inset-left)) !important;
+    padding-right: max(1.25rem, env(safe-area-inset-right)) !important;
+}
+
+/* Minimalny dystans dla elementów po prawej stronie (Konto/Wyloguj) i przycisku hamburgera */
+.navbar .navbar-toggler {
+    margin-right: 0.25rem !important;
+}
+.navbar .d-flex.align-items-center.ms-auto {
+    margin-right: 0.25rem !important;
+}
+
 /* Upewnijmy się, że linki w navbarze są jasne */
 .navbar-dark .navbar-brand,
 .navbar-dark .navbar-nav .nav-link {
