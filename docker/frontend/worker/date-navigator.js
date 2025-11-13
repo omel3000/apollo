@@ -3,11 +3,22 @@
   let currentDate = new Date();
   window.currentDate = currentDate; // Global variable for current date
 
+  function toApiDate(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+  }
+
+  function notifyDateChange() {
+    document.dispatchEvent(new CustomEvent('workdatechange', {
+      detail: { date: toApiDate(currentDate) }
+    }));
+  }
+
   function updateDateDisplay() {
     const dayName = dayNames[currentDate.getDay()];
     const dateStr = currentDate.toLocaleDateString('pl-PL');
     document.getElementById('dayName').textContent = dayName;
     document.getElementById('dateDisplay').textContent = dateStr;
+    notifyDateChange();
   }
 
   document.addEventListener('DOMContentLoaded', function() {
