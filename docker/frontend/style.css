@@ -1,0 +1,107 @@
+/* style.css */
+
+/* 1. STYL DLA CAŁEJ STRONY I TEKSTU */
+
+body {
+    background-color: #F2EEEB; /* Jasne beżowe tło */
+    color: #261C1E; /* Ciemny brąz - Domyślny kolor tekstu */
+}
+
+/* 2. ZMIANA KOLORÓW PRZEWODNICH BOOTSTRAPA */
+
+/* Główny kolor akcentu (dla przycisków, linków, tekstu akcentującego) */
+ .text-primary{
+    color:#261C1E !important;
+}
+
+
+.btn-primary {
+    /* Używamy !important tylko w skrajnych przypadkach, ale jest to czasem konieczne 
+       dla klas kolorów Bootstrapa. */
+    background-color: #BF6E50 !important; 
+    border-color: #BF6E50 !important;
+    color: #F2EEEB !important; /* Jasny tekst na ciemnym przycisku */
+}
+
+/* Stan :hover i :focus dla głównego przycisku */
+.btn-primary:hover {
+    background-color: #736A65 !important; /* Ciemniejszy akcent po najechaniu */
+    border-color: #736A65 !important;
+}
+
+/* 3. STYLIZACJA NAGŁÓWKA I NAVIGACJI */
+
+/* Nagłówek (Górna belka - nadpisuje .bg-primary w navbarze) */
+.navbar-dark.bg-primary {
+    background-color: #261C1E !important; /* Ciemny brąz */
+    color: #F2EEEB;
+}
+
+/* Nagłówek navbar bez klasy bg-primary (dla wszystkich navbar-dark) */
+.navbar-dark {
+    background-color: #261C1E !important; /* Ciemny brąz */
+    color: #F2EEEB !important;
+}
+
+/* Upewnijmy się, że linki w navbarze są jasne */
+.navbar-dark .navbar-brand,
+.navbar-dark .navbar-nav .nav-link {
+    color: #F2EEEB !important;
+}
+
+/* Pasek boczny (Sidebar - nadpisuje domyślny .bg-light) */
+.bg-light {
+    background-color: #736A65 !important; /* Szary brąz */
+    color: #F2EEEB !important;
+}
+/* Tekst i linki w pasku bocznym */
+.sidebar-sticky .nav-link {
+    color: #F2EEEB !important;
+}
+
+/* Aktywny link w pasku bocznym */
+.sidebar-sticky .nav-link.active {
+    background-color: #BF6E50 !important; /* Podkreśl aktywny element */
+    color: #F2EEEB !important; 
+}
+/* Tekst nagłówka w pasku bocznym (Nawigacja) */
+.sidebar-heading {
+    color: #F2EEEB !important;
+}
+
+/* 5. DODATKOWE ELEMENTY */
+
+/* Małe przyciski w navbarze */
+.btn-sm.btn-primary {
+    background-color: #BF6E50 !important;
+    border-color: #BF6E50 !important;
+    color: #F2EEEB !important;
+}
+
+.btn-sm.btn-primary:hover {
+    background-color: #736A65 !important;
+    border-color: #736A65 !important;
+}
+
+/* Komunikaty - lista */
+.list-group-item-light {
+    background-color: #BFB2AA !important;
+    color: #261C1E !important;
+}
+
+.list-group-item-action:hover {
+    background-color: #BF6E50 !important;
+    color: #F2EEEB !important;
+}
+
+/* 4. PRZYCISK WYLGOJU */
+
+/* Używamy .btn-outline-danger dla przycisku Wyloguj, ale zmieniamy mu kolory */
+.btn-outline-danger {
+    color: #F2EEEB !important; /* Jasny tekst */
+    border-color: #BFB2AA !important; /* Beżowa ramka */
+}
+.btn-outline-danger:hover {
+    background-color: #BF6E50 !important; /* Ciemne tło po najechaniu */
+    color: #F2EEEB !important;
+}
