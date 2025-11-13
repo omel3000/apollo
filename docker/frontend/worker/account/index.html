@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>Zarządzanie kontem</title>
+  <script src="/worker/auth-worker.js"></script>
+  <script src="/logout.js"></script>
+  <script src="/worker/account/account.js" defer></script>
+</head>
+<body>
+  <!-- Top bar -->
+  <header>
+    <h1 style="display:inline-block;">Zarządzanie kontem</h1>
+    <div style="float:right;">
+      <a href="/worker/account/">Konto</a>
+      <a href="/logout">Wyloguj</a>
+    </div>
+  </header>
+  <hr>
+
+  <!-- Navigation -->
+  <nav>
+    <ul>
+      <li><a href="/worker/">Strona główna</a></li>
+      <li><a href="/worker/reports/">Rejestracja czasu pracy</a></li>
+      <li><a href="/worker/summary/">Podsumowania</a></li>
+    </ul>
+  </nav>
+  <hr>
+
+  <!-- Main account section -->
+  <main>
+    <!-- Change Email Section -->
+    <section>
+      <h3>Zmiana adresu email</h3>
+      <div id="emailMessage"></div>
+      <form id="changeEmailForm">
+        <div>
+          <label for="newEmail">Nowy adres email:</label>
+          <input type="email" id="newEmail" name="newEmail" required>
+        </div>
+        <div>
+          <label for="emailCurrentPassword">Aktualne hasło:</label>
+          <input type="password" id="emailCurrentPassword" name="emailCurrentPassword" required>
+        </div>
+        <button type="submit">Zapisz zmiany</button>
+      </form>
+    </section>
+
+    <!-- Change Password Section -->
+    <section>
+      <h3>Zmiana hasła</h3>
+      <div id="passwordMessage"></div>
+      <form id="changePasswordForm">
+        <div>
+          <label for="currentPassword">Stare hasło:</label>
+          <input type="password" id="currentPassword" name="currentPassword" required>
+        </div>
+        <div>
+          <label for="newPassword">Nowe hasło:</label>
+          <input type="password" id="newPassword" name="newPassword" required>
+        </div>
+        <div>
+          <label for="confirmNewPassword">Powtórz nowe hasło:</label>
+          <input type="password" id="confirmNewPassword" name="confirmNewPassword" required>
+        </div>
+        <button type="submit">Zapisz zmiany</button>
+      </form>
+    </section>
+  </main>
+</body>
+</html>
