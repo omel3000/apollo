@@ -35,7 +35,15 @@
 <!-- Example calendar panel (placeholder) -->
   <aside>
     <h3>Kalendarz</h3>
-    <p>[Tu będzie kalendarz!]</p>
+    <div id="calendarContainer">
+      <div id="calControls" style="margin-bottom:8px;">
+        <button type="button" id="calPrevMonth" aria-label="Poprzedni miesiąc">&lt;</button>
+        <select id="calMonthSelect" aria-label="Miesiąc"></select>
+        <select id="calYearSelect" aria-label="Rok"></select>
+        <button type="button" id="calNextMonth" aria-label="Następny miesiąc">&gt;</button>
+      </div>
+      <div id="calGrid"></div>
+    </div>
   </aside>
 
   <!-- Main panel - date, total time, form -->

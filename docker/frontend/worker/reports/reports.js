@@ -5,6 +5,41 @@ let pendingWorkDate = null;
 let reportsContainer = null;
 let mainProjectSelect = null;
 
+// --- Calendar state ---
+let calYear = null;   // 4-digit year
+let calMonth = null;  // 0-11
+const monthNamesPl = [
+  'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
+  'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
+];
+
+// Listen for external date changes (e.g., prev/next/today buttons)
+document.addEventListener('workdatechange', (e) => {
+  try {
+    const iso = e && e.detail && e.detail.date ? e.detail.date : null;
+    if (!iso) return;
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return;
+    const date = new Date(y, m - 1, d);
+    if (calYear === null || calMonth === null) {
+      calYear = y; calMonth = m - 1;
+      renderCalendar();
+      return;
+    }
+    const monthChanged = (calYear !== y) || (calMonth !== (m - 1));
+    if (monthChanged) {
+      calYear = y; calMonth = m - 1;
+      syncMonthYearControls();
+      renderCalendar();
+    } else {
+      // Only re-highlight selected day
+      highlightSelectedDay(date);
+    }
+  } catch (err) {
+    console.error('calendar workdatechange listener error:', err);
+  }
+});
+
 window.handleWorkDateChange = function(newDate) {
   pendingWorkDate = newDate || window.getCurrentWorkDate() || null;
   refreshReportsIfReady();
@@ -45,6 +80,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   setupSaveHandler();
+
+  // Initialize calendar UI
+  try {
+    initCalendar();
+  } catch (err) {
+    console.error('Calendar init error:', err);
+  }
 });
 
 async function loadProjects() {
@@ -419,6 +461,213 @@ function refreshReportsIfReady() {
   
   console.log('refreshReportsIfReady: All conditions met, loading reports');
   loadReportsForDate(pendingWorkDate);
+}
+
+// =====================
+// Simple Calendar (PL)
+// =====================
+
+function initCalendar() {
+  const container = document.getElementById('calendarContainer');
+  if (!container) return; // nothing to do
+
+  const monthSelect = document.getElementById('calMonthSelect');
+  const yearSelect = document.getElementById('calYearSelect');
+  const prevBtn = document.getElementById('calPrevMonth');
+  const nextBtn = document.getElementById('calNextMonth');
+
+  // Populate month select
+  monthSelect.innerHTML = '';
+  monthNamesPl.forEach((name, idx) => {
+    const opt = document.createElement('option');
+    opt.value = String(idx);
+    opt.textContent = name;
+    monthSelect.appendChild(opt);
+  });
+
+  // Populate year select (currentYear-5 .. currentYear+5)
+  yearSelect.innerHTML = '';
+  const today = window.currentDate instanceof Date ? window.currentDate : new Date();
+  const baseYear = today.getFullYear();
+  for (let y = baseYear - 5; y <= baseYear + 5; y++) {
+    const opt = document.createElement('option');
+    opt.value = String(y);
+    opt.textContent = String(y);
+    yearSelect.appendChild(opt);
+  }
+
+  // Default calendar month/year from currentDate if present
+  const init = window.currentDate instanceof Date ? window.currentDate : new Date();
+  calYear = init.getFullYear();
+  calMonth = init.getMonth();
+  syncMonthYearControls();
+  renderCalendar();
+
+  // Handlers
+  monthSelect.addEventListener('change', () => {
+    calMonth = parseInt(monthSelect.value, 10);
+    renderCalendar();
+  });
+  yearSelect.addEventListener('change', () => {
+    calYear = parseInt(yearSelect.value, 10);
+    renderCalendar();
+  });
+  prevBtn.addEventListener('click', () => {
+    calMonth--;
+    if (calMonth < 0) { calMonth = 11; calYear--; }
+    syncMonthYearControls();
+    renderCalendar();
+  });
+  nextBtn.addEventListener('click', () => {
+    calMonth++;
+    if (calMonth > 11) { calMonth = 0; calYear++; }
+    syncMonthYearControls();
+    renderCalendar();
+  });
+}
+
+function syncMonthYearControls() {
+  const monthSelect = document.getElementById('calMonthSelect');
+  const yearSelect = document.getElementById('calYearSelect');
+  if (monthSelect) monthSelect.value = String(calMonth);
+  if (yearSelect) {
+    // Ensure selected year exists in options; if not, extend range
+    let yearOption = Array.from(yearSelect.options).some(o => Number(o.value) === calYear);
+    if (!yearOption) {
+      // Extend to include calYear
+      const opt = document.createElement('option');
+      opt.value = String(calYear);
+      opt.textContent = String(calYear);
+      // Insert in sorted order (keep simple: append and sort visually not required)
+      yearSelect.appendChild(opt);
+    }
+    yearSelect.value = String(calYear);
+  }
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('calGrid');
+  if (!grid) return;
+
+  // Build table
+  const table = document.createElement('table');
+  table.setAttribute('role', 'grid');
+  table.style.borderCollapse = 'collapse';
+  table.style.width = '100%';
+
+  const thead = document.createElement('thead');
+  const headRow = document.createElement('tr');
+  const weekDays = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+  weekDays.forEach(d => {
+    const th = document.createElement('th');
+    th.textContent = d;
+    th.style.borderBottom = '1px solid #ccc';
+    th.style.padding = '4px';
+    th.style.textAlign = 'center';
+    headRow.appendChild(th);
+  });
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = document.createElement('tbody');
+  const firstOfMonth = new Date(calYear, calMonth, 1);
+  const jsDow = firstOfMonth.getDay(); // 0=Sun..6=Sat
+  const startOffset = (jsDow + 6) % 7; // 0-based index for Monday start
+  const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+
+  let day = 1;
+  for (let r = 0; r < 6; r++) {
+    const tr = document.createElement('tr');
+    for (let c = 0; c < 7; c++) {
+      const td = document.createElement('td');
+      td.style.border = '1px solid #eee';
+      td.style.padding = '4px';
+      td.style.textAlign = 'center';
+      if (r === 0 && c < startOffset) {
+        td.textContent = '';
+      } else if (day > daysInMonth) {
+        td.textContent = '';
+      } else {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = String(day);
+        btn.style.minWidth = '2em';
+        btn.dataset.day = String(day);
+        btn.addEventListener('click', onCalendarDayClick);
+
+        // Highlight if matches currentDate
+        const cur = window.currentDate instanceof Date ? window.currentDate : null;
+        if (cur && cur.getFullYear() === calYear && cur.getMonth() === calMonth && cur.getDate() === day) {
+          btn.classList.add('selected');
+          btn.style.fontWeight = 'bold';
+          btn.style.outline = '2px solid #0078d4';
+        }
+
+        td.appendChild(btn);
+        day++;
+      }
+      tr.appendChild(td);
+    }
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+
+  grid.innerHTML = '';
+  grid.appendChild(table);
+}
+
+function highlightSelectedDay(dateObj) {
+  const grid = document.getElementById('calGrid');
+  if (!grid) return;
+  const buttons = grid.querySelectorAll('button[data-day]');
+  buttons.forEach(btn => {
+    btn.classList.remove('selected');
+    btn.style.fontWeight = 'normal';
+    btn.style.outline = 'none';
+  });
+  if (!dateObj) return;
+  if (dateObj.getFullYear() !== calYear || dateObj.getMonth() !== calMonth) return;
+  const sel = grid.querySelector(`button[data-day="${dateObj.getDate()}"]`);
+  if (sel) {
+    sel.classList.add('selected');
+    sel.style.fontWeight = 'bold';
+    sel.style.outline = '2px solid #0078d4';
+  }
+}
+
+function onCalendarDayClick(ev) {
+  const btn = ev.currentTarget;
+  const day = parseInt(btn.dataset.day, 10);
+  if (!Number.isFinite(day)) return;
+  const picked = new Date(calYear, calMonth, day);
+  // Update global currentDate
+  window.currentDate = picked;
+  // Update header (dayName, dateDisplay)
+  updateHeaderFromDate(picked);
+  // Notify the rest of the app (mimic date-navigator)
+  notifyWorkDateChange(picked);
+  // Highlight
+  highlightSelectedDay(picked);
+}
+
+function updateHeaderFromDate(dateObj) {
+  const dayNames = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+  const dayNameEl = document.getElementById('dayName');
+  const dateDisplayEl = document.getElementById('dateDisplay');
+  if (dayNameEl) dayNameEl.textContent = dayNames[dateObj.getDay()];
+  if (dateDisplayEl) dateDisplayEl.textContent = dateObj.toLocaleDateString('pl-PL');
+}
+
+function notifyWorkDateChange(dateObj) {
+  const isoDate = toApiDate(dateObj);
+  document.dispatchEvent(new CustomEvent('workdatechange', { detail: { date: isoDate } }));
+  if (typeof window.handleWorkDateChange === 'function') {
+    try {
+      window.handleWorkDateChange(isoDate);
+    } catch (e) {
+      console.error('handleWorkDateChange error:', e);
+    }
+  }
 }
 
 async function handleUpdateReport(reportId, formElement) {
