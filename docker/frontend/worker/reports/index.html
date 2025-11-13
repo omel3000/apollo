@@ -8,27 +8,42 @@
         /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
         html { visibility: hidden; }
         
-        /* Kolory kalendarza dla dni specjalnych */
-        #calGrid button.holiday {
+        /* Kolory kalendarza dla dni specjalnych - wyższa specyficzność */
+        #calGrid button[data-day].holiday {
             background-color: #ffcccc !important; /* Jasny czerwony - weekendy/święta */
+            color: #261C1E !important;
         }
         
-        #calGrid button.reported {
+        #calGrid button[data-day].reported {
             background-color: #ffe5b4 !important; /* Delikatny pomarańczowy - dni z raportami */
+            color: #261C1E !important;
         }
         
-        #calGrid button.holiday-reported {
+        #calGrid button[data-day].holiday-reported {
             background-color: #e6ccff !important; /* Delikatny fioletowy - weekend/święto z raportem */
+            color: #261C1E !important;
+        }
+        
+        /* Hover nadal działa */
+        #calGrid button[data-day].holiday:hover,
+        #calGrid button[data-day].reported:hover,
+        #calGrid button[data-day].holiday-reported:hover {
+            background-color: #BF6E50 !important;
+            color: #F2EEEB !important;
+            font-weight: 600 !important;
         }
         
         /* Zachowaj dominację dla selected i today */
-        #calGrid button.selected {
-            background-color: #0d6efd !important;
-            color: white !important;
+        #calGrid button[data-day].selected {
+            background-color: #736A65 !important;
+            color: #F2EEEB !important;
+            font-weight: bold !important;
+            box-shadow: 0 0 0 2px #BF6E50 inset !important;
         }
         
-        #calGrid button.today {
-            border: 2px solid #0d6efd !important;
+        #calGrid button[data-day].today {
+            border: 2px solid #BF6E50 !important;
+            font-weight: 600 !important;
         }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
