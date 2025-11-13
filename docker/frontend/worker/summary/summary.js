@@ -120,6 +120,21 @@ function setupNavigation() {
   const prevBtn = buttons[0];
   const currentBtn = buttons[1];
   const nextBtn = buttons[2];
+
+  const monthSelect = document.getElementById('sumMonthSelect');
+  const yearSelect = document.getElementById('sumYearSelect');
+  if (monthSelect && yearSelect) {
+    populateMonthYearSelects(monthSelect, yearSelect);
+    syncMonthYearSelects(monthSelect, yearSelect);
+    monthSelect.addEventListener('change', () => {
+      currentMonth = parseInt(monthSelect.value, 10);
+      loadMonthlySummary();
+    });
+    yearSelect.addEventListener('change', () => {
+      currentYear = parseInt(yearSelect.value, 10);
+      loadMonthlySummary();
+    });
+  }
   
   prevBtn.addEventListener('click', () => {
     currentMonth--;
@@ -127,6 +142,7 @@ function setupNavigation() {
       currentMonth = 11;
       currentYear--;
     }
+    if (monthSelect && yearSelect) syncMonthYearSelects(monthSelect, yearSelect);
     loadMonthlySummary();
   });
   
@@ -134,6 +150,7 @@ function setupNavigation() {
     const today = new Date();
     currentYear = today.getFullYear();
     currentMonth = today.getMonth();
+    if (monthSelect && yearSelect) syncMonthYearSelects(monthSelect, yearSelect);
     loadMonthlySummary();
   });
   
@@ -143,6 +160,7 @@ function setupNavigation() {
       currentMonth = 0;
       currentYear++;
     }
+    if (monthSelect && yearSelect) syncMonthYearSelects(monthSelect, yearSelect);
     loadMonthlySummary();
   });
 }
@@ -154,6 +172,13 @@ async function loadMonthlySummary() {
   const header = document.querySelector('main h2');
   if (header) {
     header.textContent = `${monthNamesPl[currentMonth]} ${currentYear}`;
+  }
+
+  // Utrzymaj spójność selektorów miesiąca/roku
+  const ms = document.getElementById('sumMonthSelect');
+  const ys = document.getElementById('sumYearSelect');
+  if (ms && ys) {
+    syncMonthYearSelects(ms, ys);
   }
   
   try {

@@ -88,7 +88,7 @@
         </div>
 
         <!-- Nawigacja miesiącami -->
-        <form class="d-flex align-items-center gap-2 mb-4" action="#" onsubmit="return false;">
+        <form class="d-flex flex-wrap align-items-center gap-2 mb-4" action="#" onsubmit="return false;">
           <button type="button" class="btn btn-outline-secondary">
             <i class="bi bi-chevron-left"></i> Poprzedni
           </button>
@@ -98,6 +98,16 @@
           <button type="button" class="btn btn-outline-secondary">
             Następny <i class="bi bi-chevron-right"></i>
           </button>
+
+          <div class="vr d-none d-md-block mx-2"></div>
+
+          <div class="d-flex align-items-center gap-2">
+            <label for="sumMonthSelect" class="form-label mb-0 d-none">Miesiąc</label>
+            <select id="sumMonthSelect" class="form-select form-select-sm w-auto" aria-label="Wybierz miesiąc"></select>
+
+            <label for="sumYearSelect" class="form-label mb-0 d-none">Rok</label>
+            <select id="sumYearSelect" class="form-select form-select-sm w-auto" aria-label="Wybierz rok"></select>
+          </div>
         </form>
 
         <div class="row">
