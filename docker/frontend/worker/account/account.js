@@ -1,6 +1,5 @@
 let authHeader = '';
-let emailFailedAttempts = 0;
-let passwordFailedAttempts = 0;
+let failedAttempts = 0;
 const MAX_FAILED_ATTEMPTS = 3;
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,15 +60,15 @@ function setupChangeEmailForm() {
         const errorData = await safeReadJson(response);
         const errorMessage = errorData.detail || 'Błędne hasło';
         
-        emailFailedAttempts++;
+        failedAttempts++;
         
-        if (emailFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+        if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
           showMessage(messageDiv, `Błędne hasło. Przekroczono limit prób (${MAX_FAILED_ATTEMPTS}). Wylogowywanie...`, 'error');
           setTimeout(() => handleUnauthorized(), 2000);
           return;
         }
         
-        const remainingAttempts = MAX_FAILED_ATTEMPTS - emailFailedAttempts;
+        const remainingAttempts = MAX_FAILED_ATTEMPTS - failedAttempts;
         showMessage(messageDiv, `${errorMessage}. Pozostało prób: ${remainingAttempts}`, 'error');
         return;
       }
@@ -85,7 +84,7 @@ function setupChangeEmailForm() {
       showMessage(messageDiv, 'Adres email został zmieniony pomyślnie!', 'success');
       
       // Reset failed attempts on success
-      emailFailedAttempts = 0;
+      failedAttempts = 0;
       
       // Clear form
       form.reset();
@@ -142,15 +141,15 @@ function setupChangePasswordForm() {
         const errorData = await safeReadJson(response);
         const errorMessage = errorData.detail || 'Błędne hasło';
         
-        passwordFailedAttempts++;
+        failedAttempts++;
         
-        if (passwordFailedAttempts >= MAX_FAILED_ATTEMPTS) {
+        if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
           showMessage(messageDiv, `Błędne hasło. Przekroczono limit prób (${MAX_FAILED_ATTEMPTS}). Wylogowywanie...`, 'error');
           setTimeout(() => handleUnauthorized(), 2000);
           return;
         }
         
-        const remainingAttempts = MAX_FAILED_ATTEMPTS - passwordFailedAttempts;
+        const remainingAttempts = MAX_FAILED_ATTEMPTS - failedAttempts;
         showMessage(messageDiv, `${errorMessage}. Pozostało prób: ${remainingAttempts}`, 'error');
         return;
       }
@@ -166,7 +165,7 @@ function setupChangePasswordForm() {
       showMessage(messageDiv, 'Hasło zostało zmienione pomyślnie!', 'success');
       
       // Reset failed attempts on success
-      passwordFailedAttempts = 0;
+      failedAttempts = 0;
       
       // Clear form
       form.reset();
