@@ -1,7 +1,7 @@
 # schemas.py
 from typing import Optional, Annotated, List, Dict
 from datetime import date, datetime, time
-from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator, field_serializer
 from enum import Enum
 
 class TimeTypeEnum(str, Enum):
@@ -90,7 +90,23 @@ class WorkReportBase(BaseModel):
     time_from: Optional[time] = None
     time_to: Optional[time] = None
 
-    # dodatkowa normalizacja/konwersje można tu dodać jeśli potrzeba
+    @field_validator("time_from", "time_to", mode="before")
+    @classmethod
+    def normalize_time(cls, v):
+        """Normalizuje czas do formatu HH:MM (bez sekund i mikrosekund)"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            # Parse string do obiektu time
+            from datetime import time as dt_time
+            parts = v.split(":")
+            hour = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            return dt_time(hour, minute, 0, 0)
+        if isinstance(v, time):
+            # Jeśli już jest time, ustaw sekundy i mikrosekundy na 0
+            return v.replace(second=0, microsecond=0)
+        return v
 
     @model_validator(mode="after")
     def validate_total_time(self):
@@ -101,6 +117,12 @@ class WorkReportBase(BaseModel):
             raise ValueError("Łączny czas nie może przekroczyć 24 godzin")
         if hours == 0 and minutes == 0:
             raise ValueError("Łączny czas pracy musi być większy niż 0 godzin i 0 minut")
+        
+        # Walidacja time_from i time_to
+        if self.time_from is not None and self.time_to is not None:
+            if self.time_from >= self.time_to:
+                raise ValueError("Czas rozpoczęcia (time_from) musi być wcześniejszy niż czas zakończenia (time_to)")
+        
         return self
 
 class WorkReportCreate(WorkReportBase):
@@ -111,6 +133,13 @@ class WorkReportRead(WorkReportBase):
     report_id: int
     user_id: int
     created_at: datetime
+
+    @field_serializer('time_from', 'time_to')
+    def serialize_time(self, value: Optional[time]) -> Optional[str]:
+        """Serializuje czas do formatu HH:MM"""
+        if value is None:
+            return None
+        return value.strftime("%H:%M")
 
     model_config = {"from_attributes": True}
 
