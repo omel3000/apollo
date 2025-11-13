@@ -29,10 +29,15 @@ const polishHolidays = {
     { month: 12, day: 26 }  // Drugi dzień Bożego Narodzenia
   ],
   // Ruchome święta (rok -> daty w formacie 'MM-DD')
+  // Wielkanoc, Poniedziałek Wielkanocny, Zielone Świątki (49 dni po Wielkanocy), Boże Ciało (60 dni po Wielkanocy)
   movable: {
-    2024: ['03-31', '04-01', '05-19', '05-30'], // Wielkanoc, Pn Wielkanocny, Zielone Świątki, Boże Ciało
-    2025: ['04-20', '04-21', '06-08', '06-19'],
-    2026: ['04-05', '04-06', '05-24', '06-04']
+    2024: ['03-31', '04-01', '05-19', '05-30'], // Wielkanoc: 31 marca
+    2025: ['04-20', '04-21', '06-08', '06-19'], // Wielkanoc: 20 kwietnia
+    2026: ['04-05', '04-06', '05-24', '06-04'], // Wielkanoc: 5 kwietnia
+    2027: ['03-28', '03-29', '05-16', '05-27'], // Wielkanoc: 28 marca
+    2028: ['04-16', '04-17', '06-04', '06-15'], // Wielkanoc: 16 kwietnia
+    2029: ['04-01', '04-02', '05-20', '05-31'], // Wielkanoc: 1 kwietnia
+    2030: ['04-21', '04-22', '06-09', '06-20']  // Wielkanoc: 21 kwietnia
   }
 };
 
