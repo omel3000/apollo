@@ -5,6 +5,7 @@
 body {
     background-color: #F2EEEB; /* Jasne beżowe tło */
     color: #261C1E; /* Ciemny brąz - Domyślny kolor tekstu */
+    padding-top: 56px !important;
 }
 
 /* 2. ZMIANA KOLORÓW PRZEWODNICH BOOTSTRAPA */
@@ -41,6 +42,16 @@ body {
 .navbar-dark {
     background-color: #261C1E !important; /* Ciemny brąz */
     color: #F2EEEB !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important; /* Wysoki z-index żeby był nad sidebar */
+}
+
+/* Dodaj padding do body żeby zawartość nie była pod navbarem */
+body {
+    padding-top: 56px !important;
 }
 
 /* Upewnijmy się, że linki w navbarze są jasne */
@@ -57,18 +68,18 @@ body {
 
 /* Sidebar - pełna wysokość i węższa szerokość */
 .sidebar {
-    min-height: calc(100vh - 56px) !important;
+    min-height: 100vh !important;
     max-width: 240px !important;
 }
 
 @media (min-width: 768px) {
     .sidebar {
         position: fixed !important;
-        top: 56px !important; /* Wysokość navbara */
+        top: 0 !important;
         bottom: 0 !important;
         left: 0 !important;
-        z-index: 100 !important;
-        padding-top: 0 !important;
+        z-index: 99 !important; /* Mniejsze niż navbar (100) żeby był pod nim */
+        padding-top: 56px !important; /* Wysokość navbara */
     }
 }
 /* Tekst i linki w pasku bocznym */
