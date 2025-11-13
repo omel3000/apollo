@@ -346,6 +346,9 @@ function refreshReportsIfReady() {
   if (!projectsReady) {
     return;
   }
+  if (!reportsContainer) {
+    return;
+  }
   loadReportsForDate(pendingWorkDate);
 }
 
