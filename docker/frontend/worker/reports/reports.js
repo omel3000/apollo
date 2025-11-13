@@ -80,6 +80,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   setupSaveHandler();
+  setupProjectSelectBehavior();
 
   // Initialize calendar UI
   try {
@@ -123,7 +124,8 @@ async function loadProjects() {
 
   projectsCache = data.map(project => ({
     project_id: Number(project.project_id),
-    project_name: project.project_name
+    project_name: project.project_name,
+    time_type: project.time_type || 'constant'
   }));
 
   console.log('loadProjects: Projects cached:', projectsCache);
@@ -149,6 +151,7 @@ async function loadProjects() {
         const option = document.createElement('option');
         option.value = project.project_id;
         option.textContent = project.project_name;
+        option.dataset.timeType = project.time_type || 'constant';
         mainProjectSelect.appendChild(option);
       });
     }
@@ -297,70 +300,111 @@ function buildReportForm(report) {
   descriptionGroup.appendChild(descriptionLabel);
   descriptionGroup.appendChild(descriptionArea);
 
-  // Czas pracy
+  // Czas pracy (dynamiczny)
   const timeGroup = document.createElement('div');
-  timeGroup.className = 'mb-3';
-  
+  timeGroup.className = 'mb-3 time-group';
   const timeLabel = document.createElement('label');
   timeLabel.className = 'form-label';
   timeLabel.textContent = 'Czas pracy:';
-  
   const timeRow = document.createElement('div');
   timeRow.className = 'row g-2';
-  
-  // Godziny
-  const hoursCol = document.createElement('div');
-  hoursCol.className = 'col-6';
-  
-  const hoursInputGroup = document.createElement('div');
-  hoursInputGroup.className = 'input-group';
-  
-  const hoursInput = document.createElement('input');
-  hoursInput.type = 'number';
-  hoursInput.name = 'hours';
-  hoursInput.min = '0';
-  hoursInput.max = '24';
-  hoursInput.value = Number(report.hours_spent) || 0;
-  hoursInput.className = 'form-control';
-  hoursInput.setAttribute('aria-label', 'Godziny');
-  
-  const hoursSpan = document.createElement('span');
-  hoursSpan.className = 'input-group-text';
-  hoursSpan.textContent = 'h';
-  
-  hoursInputGroup.appendChild(hoursInput);
-  hoursInputGroup.appendChild(hoursSpan);
-  hoursCol.appendChild(hoursInputGroup);
-  
-  // Minuty
-  const minutesCol = document.createElement('div');
-  minutesCol.className = 'col-6';
-  
-  const minutesInputGroup = document.createElement('div');
-  minutesInputGroup.className = 'input-group';
-  
-  const minutesInput = document.createElement('input');
-  minutesInput.type = 'number';
-  minutesInput.name = 'minutes';
-  minutesInput.min = '0';
-  minutesInput.max = '59';
-  minutesInput.value = Number(report.minutes_spent) || 0;
-  minutesInput.className = 'form-control';
-  minutesInput.setAttribute('aria-label', 'Minuty');
-  
-  const minutesSpan = document.createElement('span');
-  minutesSpan.className = 'input-group-text';
-  minutesSpan.textContent = 'min';
-  
-  minutesInputGroup.appendChild(minutesInput);
-  minutesInputGroup.appendChild(minutesSpan);
-  minutesCol.appendChild(minutesInputGroup);
-  
-  timeRow.appendChild(hoursCol);
-  timeRow.appendChild(minutesCol);
-  
-  timeGroup.appendChild(timeLabel);
-  timeGroup.appendChild(timeRow);
+
+  const projectType = (getProjectById(report.project_id)?.time_type) || 'constant';
+
+  if (projectType === 'from_to') {
+    const fromCol = document.createElement('div');
+    fromCol.className = 'col-6';
+    fromCol.innerHTML = `
+      <div class="input-group">
+        <span class="input-group-text">Od</span>
+        <input type="time" name="time_from" class="form-control" step="60" placeholder="HH:MM" value="${report.time_from || ''}">
+      </div>`;
+    const toCol = document.createElement('div');
+    toCol.className = 'col-6';
+    toCol.innerHTML = `
+      <div class="input-group">
+        <span class="input-group-text">Do</span>
+        <input type="time" name="time_to" class="form-control" step="60" placeholder="HH:MM" value="${report.time_to || ''}">
+      </div>`;
+    timeRow.appendChild(fromCol);
+    timeRow.appendChild(toCol);
+
+    const calcRow = document.createElement('div');
+    calcRow.className = 'mt-2';
+    const calcText = document.createElement('small');
+    calcText.className = 'text-muted';
+    calcRow.appendChild(calcText);
+
+    const updateCalc = () => {
+      const f = form.querySelector('input[name="time_from"]').value;
+      const t = form.querySelector('input[name="time_to"]').value;
+      if (!f || !t) { calcText.textContent = ''; return; }
+      const diff = diffHHMM(f, t);
+      if (!diff || diff.totalMinutes <= 0) {
+        calcText.textContent = 'przepracowany czas: -';
+      } else {
+        calcText.textContent = `przepracowany czas: ${diff.hours}h ${String(diff.minutes).padStart(2,'0')}min`;
+      }
+    };
+    // zainicjuj wyliczenie po złożeniu formularza
+    setTimeout(updateCalc);
+
+    timeGroup.appendChild(timeLabel);
+    timeGroup.appendChild(timeRow);
+    timeGroup.appendChild(calcRow);
+
+    // Listenery po dodaniu w DOM
+    setTimeout(() => {
+      const tf = form.querySelector('input[name="time_from"]');
+      const tt = form.querySelector('input[name="time_to"]');
+      if (tf) tf.addEventListener('input', updateCalc);
+      if (tt) tt.addEventListener('input', updateCalc);
+    });
+  } else {
+    // standardowe pola godzin/minut
+    const hoursCol = document.createElement('div');
+    hoursCol.className = 'col-6';
+    const hoursInputGroup = document.createElement('div');
+    hoursInputGroup.className = 'input-group';
+    const hoursInput = document.createElement('input');
+    hoursInput.type = 'number';
+    hoursInput.name = 'hours';
+    hoursInput.min = '0';
+    hoursInput.max = '24';
+    hoursInput.value = Number(report.hours_spent) || 0;
+    hoursInput.className = 'form-control';
+    hoursInput.setAttribute('aria-label', 'Godziny');
+    const hoursSpan = document.createElement('span');
+    hoursSpan.className = 'input-group-text';
+    hoursSpan.textContent = 'h';
+    hoursInputGroup.appendChild(hoursInput);
+    hoursInputGroup.appendChild(hoursSpan);
+    hoursCol.appendChild(hoursInputGroup);
+
+    const minutesCol = document.createElement('div');
+    minutesCol.className = 'col-6';
+    const minutesInputGroup = document.createElement('div');
+    minutesInputGroup.className = 'input-group';
+    const minutesInput = document.createElement('input');
+    minutesInput.type = 'number';
+    minutesInput.name = 'minutes';
+    minutesInput.min = '0';
+    minutesInput.max = '59';
+    minutesInput.value = Number(report.minutes_spent) || 0;
+    minutesInput.className = 'form-control';
+    minutesInput.setAttribute('aria-label', 'Minuty');
+    const minutesSpan = document.createElement('span');
+    minutesSpan.className = 'input-group-text';
+    minutesSpan.textContent = 'min';
+    minutesInputGroup.appendChild(minutesInput);
+    minutesInputGroup.appendChild(minutesSpan);
+    minutesCol.appendChild(minutesInputGroup);
+
+    timeRow.appendChild(hoursCol);
+    timeRow.appendChild(minutesCol);
+    timeGroup.appendChild(timeLabel);
+    timeGroup.appendChild(timeRow);
+  }
 
   // Przyciski
   const buttonGroup = document.createElement('div');
@@ -383,24 +427,45 @@ function buildReportForm(report) {
   const checkForChanges = () => {
     const currentProject = Number(projectSelect.value);
     const currentDescription = descriptionArea.value;
-    const currentHours = Number(hoursInput.value) || 0;
-    const currentMinutes = Number(minutesInput.value) || 0;
-    
+    const pType = getProjectById(currentProject)?.time_type || 'constant';
+    let currentHours = 0, currentMinutes = 0;
+    if (pType === 'from_to') {
+      const tf = form.querySelector('input[name="time_from"]')?.value || '';
+      const tt = form.querySelector('input[name="time_to"]')?.value || '';
+      const diff = tf && tt ? diffHHMM(tf, tt) : {hours:0, minutes:0, totalMinutes:0};
+      currentHours = diff.hours || 0;
+      currentMinutes = diff.minutes || 0;
+    } else {
+      const hEl = form.querySelector('input[name="hours"]');
+      const mEl = form.querySelector('input[name="minutes"]');
+      currentHours = hEl ? (Number(hEl.value) || 0) : 0;
+      currentMinutes = mEl ? (Number(mEl.value) || 0) : 0;
+    }
     const hasChanges = (
       currentProject !== originalValues.project_id ||
       currentDescription !== originalValues.description ||
       currentHours !== originalValues.hours ||
       currentMinutes !== originalValues.minutes
     );
-    
     saveButton.disabled = !hasChanges;
   };
   
   // Dodaj event listenery do wykrywania zmian
-  projectSelect.addEventListener('change', checkForChanges);
+  projectSelect.addEventListener('change', () => {
+    // Przy zmianie projektu przebuduj sekcję czasu zgodnie z time_type
+    const rebuilt = buildReportForm({ ...report, project_id: Number(projectSelect.value) });
+    const newTimeGroup = rebuilt.querySelector('.time-group');
+    if (newTimeGroup) {
+      form.replaceChild(newTimeGroup, timeGroup);
+    }
+    checkForChanges();
+  });
   descriptionArea.addEventListener('input', checkForChanges);
-  hoursInput.addEventListener('input', checkForChanges);
-  minutesInput.addEventListener('input', checkForChanges);
+  form.addEventListener('input', (e) => {
+    if (e.target && (e.target.name === 'hours' || e.target.name === 'minutes' || e.target.name === 'time_from' || e.target.name === 'time_to')) {
+      checkForChanges();
+    }
+  });
   
   buttonGroup.appendChild(saveButton);
   buttonGroup.appendChild(deleteButton);
@@ -454,8 +519,32 @@ function setupSaveHandler() {
     const projectSelectElement = document.getElementById('projektSelect');
     const projectId = parseInt(projectSelectElement.value, 10);
     const description = document.getElementById('opis').value;
-    const hours = parseInt(document.getElementById('czas_h').value, 10);
-    const minutes = parseInt(document.getElementById('czas_m').value, 10);
+
+    const selectedProject = getProjectById(projectId);
+    const timeType = selectedProject ? selectedProject.time_type : 'constant';
+
+    let hours, minutes, timeFrom = null, timeTo = null;
+    if (timeType === 'from_to') {
+      const fromEl = document.getElementById('czas_od');
+      const toEl = document.getElementById('czas_do');
+      const fromVal = fromEl ? fromEl.value : '';
+      const toVal = toEl ? toEl.value : '';
+      if (!fromVal || !toVal) {
+        alert('Podaj przedział czasu: Od i Do');
+        return;
+      }
+      timeFrom = fromVal;
+      timeTo = toVal;
+      const diff = diffHHMM(fromVal, toVal);
+      if (!diff || diff.totalMinutes <= 0) {
+        alert('Czas "Od" musi być wcześniejszy niż "Do"');
+        return;
+      }
+      hours = diff.hours; minutes = diff.minutes;
+    } else {
+      hours = parseInt(document.getElementById('czas_h').value, 10);
+      minutes = parseInt(document.getElementById('czas_m').value, 10);
+    }
 
     let workDate = window.getCurrentWorkDate ? window.getCurrentWorkDate() : null;
     if (!workDate) {
@@ -473,6 +562,18 @@ function setupSaveHandler() {
     }
 
     try {
+      const payload = {
+        project_id: projectId,
+        work_date: workDate,
+        hours_spent: hours,
+        minutes_spent: minutes,
+        description
+      };
+      if (timeType === 'from_to') {
+        payload.time_from = timeFrom;
+        payload.time_to = timeTo;
+      }
+
       const response = await fetch('/work_reports/', {
         method: 'POST',
         headers: {
@@ -480,13 +581,7 @@ function setupSaveHandler() {
           'Accept': 'application/json',
           'Authorization': authHeader
         },
-        body: JSON.stringify({
-          project_id: projectId,
-          work_date: workDate,
-          hours_spent: hours,
-          minutes_spent: minutes,
-          description
-        })
+        body: JSON.stringify(payload)
       });
 
       if (response.status === 401) {
@@ -502,10 +597,21 @@ function setupSaveHandler() {
       alert('Wpis dodany!');
       
       // Wyczyść formularz
-      projectSelectElement.value = '';
-      document.getElementById('opis').value = '';
-      document.getElementById('czas_h').value = '0';
-      document.getElementById('czas_m').value = '0';
+  projectSelectElement.value = '';
+  document.getElementById('opis').value = '';
+  const timeGroup = document.getElementById('czas_group');
+  if (timeGroup) timeGroup.classList.add('d-none');
+  // reset pól czasu
+  const hEl = document.getElementById('czas_h');
+  const mEl = document.getElementById('czas_m');
+  if (hEl) hEl.value = '0';
+  if (mEl) mEl.value = '0';
+  const fromEl2 = document.getElementById('czas_od');
+  const toEl2 = document.getElementById('czas_do');
+  if (fromEl2) fromEl2.value = '';
+  if (toEl2) toEl2.value = '';
+  const comp = document.getElementById('czas_wyliczony');
+  if (comp) comp.textContent = '';
 
       pendingWorkDate = workDate;
       refreshReportsIfReady();
@@ -519,6 +625,120 @@ function setReportsContainerMessage(message) {
   if (reportsContainer) {
     reportsContainer.innerHTML = `<p>${message}</p>`;
   }
+}
+
+function getProjectById(id) {
+  return projectsCache.find(p => Number(p.project_id) === Number(id)) || null;
+}
+
+function setupProjectSelectBehavior() {
+  const select = document.getElementById('projektSelect');
+  const timeGroup = ensureTimeGroupWrapper();
+  // Ukryj na starcie aż do wyboru projektu
+  if (timeGroup) timeGroup.classList.add('d-none');
+
+  if (!select) return;
+  select.addEventListener('change', () => {
+    const val = select.value;
+    if (!val) {
+      if (timeGroup) timeGroup.classList.add('d-none');
+      return;
+    }
+    const proj = getProjectById(val);
+    const timeType = proj ? proj.time_type : 'constant';
+    renderNewEntryTimeInputs(timeType);
+    if (timeGroup) timeGroup.classList.remove('d-none');
+  });
+}
+
+function ensureTimeGroupWrapper() {
+  // Oznacz istniejącą grupę czasu id dla sterowania i dynamicznego renderowania
+  const hoursEl = document.getElementById('czas_h');
+  if (!hoursEl) return null;
+  const timeGroup = hoursEl.closest('.mb-3');
+  if (!timeGroup) return null;
+  timeGroup.id = 'czas_group';
+  return timeGroup;
+}
+
+function renderNewEntryTimeInputs(timeType) {
+  const timeGroup = document.getElementById('czas_group');
+  if (!timeGroup) return;
+  const row = timeGroup.querySelector('.row');
+  if (!row) return;
+
+  // Usuń poprzednie pola Od/Do i licznik jeśli istnieją
+  const oldFrom = document.getElementById('czas_od');
+  const oldTo = document.getElementById('czas_do');
+  const oldCalc = document.getElementById('czas_calc_row');
+  if (oldFrom) oldFrom.closest('.col-6')?.remove();
+  if (oldTo) oldTo.closest('.col-6')?.remove();
+  if (oldCalc) oldCalc.remove();
+
+  const hoursCol = row.children[0];
+  const minsCol = row.children[1];
+  if (!hoursCol || !minsCol) return;
+
+  if (timeType === 'from_to') {
+    // Schowaj H/M i pokaż Od/Do
+    hoursCol.classList.add('d-none');
+    minsCol.classList.add('d-none');
+
+    const fromCol = document.createElement('div');
+    fromCol.className = 'col-6';
+    fromCol.innerHTML = `
+      <div class="input-group">
+        <span class="input-group-text">Od</span>
+        <input type="time" id="czas_od" class="form-control" step="60" placeholder="HH:MM">
+      </div>`;
+    const toCol = document.createElement('div');
+    toCol.className = 'col-6';
+    toCol.innerHTML = `
+      <div class="input-group">
+        <span class="input-group-text">Do</span>
+        <input type="time" id="czas_do" class="form-control" step="60" placeholder="HH:MM">
+      </div>`;
+    row.appendChild(fromCol);
+    row.appendChild(toCol);
+
+    const calcRow = document.createElement('div');
+    calcRow.id = 'czas_calc_row';
+    calcRow.className = 'mt-2';
+    calcRow.innerHTML = `<small id="czas_wyliczony" class="text-muted"></small>`;
+    timeGroup.appendChild(calcRow);
+
+    const updateCalc = () => {
+      const f = document.getElementById('czas_od')?.value || '';
+      const t = document.getElementById('czas_do')?.value || '';
+      const el = document.getElementById('czas_wyliczony');
+      if (!el) return;
+      if (!f || !t) { el.textContent = ''; return; }
+      const diff = diffHHMM(f, t);
+      if (!diff || diff.totalMinutes <= 0) {
+        el.textContent = 'przepracowany czas: -';
+      } else {
+        el.textContent = `przepracowany czas: ${diff.hours}h ${String(diff.minutes).padStart(2,'0')}min`;
+      }
+    };
+    document.getElementById('czas_od').addEventListener('input', updateCalc);
+    document.getElementById('czas_do').addEventListener('input', updateCalc);
+  } else {
+    hoursCol.classList.remove('d-none');
+    minsCol.classList.remove('d-none');
+    const calc = document.getElementById('czas_calc_row');
+    if (calc) calc.remove();
+  }
+}
+
+function diffHHMM(fromStr, toStr) {
+  const [fh, fm] = fromStr.split(':').map(n => parseInt(n, 10));
+  const [th, tm] = toStr.split(':').map(n => parseInt(n, 10));
+  if ([fh,fm,th,tm].some(n => Number.isNaN(n))) return null;
+  const fromMin = fh * 60 + fm;
+  const toMin = th * 60 + tm;
+  const total = toMin - fromMin;
+  if (total <= 0) return { totalMinutes: total, hours: 0, minutes: 0 };
+  return { totalMinutes: total, hours: Math.floor(total/60), minutes: total % 60 };
 }
 
 function handleUnauthorized() {
@@ -822,11 +1042,31 @@ async function handleUpdateReport(reportId, formElement) {
   const descriptionArea = formElement.querySelector('textarea[name="description"]');
   const hoursInput = formElement.querySelector('input[name="hours"]');
   const minutesInput = formElement.querySelector('input[name="minutes"]');
+  const tfInput = formElement.querySelector('input[name="time_from"]');
+  const ttInput = formElement.querySelector('input[name="time_to"]');
 
   const projectId = parseInt(projectSelect.value, 10);
   const description = descriptionArea.value;
-  const hours = parseInt(hoursInput.value, 10);
-  const minutes = parseInt(minutesInput.value, 10);
+  const projectType = (getProjectById(projectId)?.time_type) || 'constant';
+  let hours = 0, minutes = 0, timeFrom = null, timeTo = null;
+  if (projectType === 'from_to') {
+    const fromVal = tfInput ? tfInput.value : '';
+    const toVal = ttInput ? ttInput.value : '';
+    if (!fromVal || !toVal) {
+      alert('Podaj przedział czasu: Od i Do');
+      return;
+    }
+    const diff = diffHHMM(fromVal, toVal);
+    if (!diff || diff.totalMinutes <= 0) {
+      alert('Czas "Od" musi być wcześniejszy niż "Do"');
+      return;
+    }
+    hours = diff.hours; minutes = diff.minutes;
+    timeFrom = fromVal; timeTo = toVal;
+  } else {
+    hours = parseInt(hoursInput.value, 10);
+    minutes = parseInt(minutesInput.value, 10);
+  }
 
   if (!projectId) {
     alert('Wybierz projekt!');
@@ -848,13 +1088,13 @@ async function handleUpdateReport(reportId, formElement) {
         'Accept': 'application/json',
         'Authorization': authHeader
       },
-      body: JSON.stringify({
+      body: JSON.stringify(Object.assign({
         project_id: projectId,
         work_date: workDate,
         hours_spent: hours,
         minutes_spent: minutes,
         description
-      })
+      }, projectType === 'from_to' ? { time_from: timeFrom, time_to: timeTo } : {}))
     });
 
     if (response.status === 401) {
