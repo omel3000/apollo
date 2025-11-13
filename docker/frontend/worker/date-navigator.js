@@ -8,9 +8,17 @@
   }
 
   function notifyDateChange() {
+    const isoDate = toApiDate(currentDate);
     document.dispatchEvent(new CustomEvent('workdatechange', {
-      detail: { date: toApiDate(currentDate) }
+      detail: { date: isoDate }
     }));
+    if (typeof window.handleWorkDateChange === 'function') {
+      try {
+        window.handleWorkDateChange(isoDate);
+      } catch (error) {
+        console.error('handleWorkDateChange error:', error);
+      }
+    }
   }
 
   function updateDateDisplay() {

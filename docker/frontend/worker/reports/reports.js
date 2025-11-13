@@ -5,14 +5,10 @@ let pendingWorkDate = null;
 let reportsContainer = null;
 let mainProjectSelect = null;
 
-// Reakcja na zmianę dnia w nawigacji.
-document.addEventListener('workdatechange', (event) => {
-  const newDate = (event && event.detail && event.detail.date) || window.getCurrentWorkDate() || null;
-  pendingWorkDate = newDate;
-  if (projectsReady && authHeader && pendingWorkDate) {
-    loadReportsForDate(pendingWorkDate);
-  }
-});
+window.handleWorkDateChange = function(newDate) {
+  pendingWorkDate = newDate || window.getCurrentWorkDate() || null;
+  refreshReportsIfReady();
+};
 
 document.addEventListener('DOMContentLoaded', async () => {
   const rawToken = localStorage.getItem('token');
@@ -29,11 +25,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     await loadProjects();
     projectsReady = true;
-    const initialDate = pendingWorkDate || window.getCurrentWorkDate() || toApiDate(new Date());
-    pendingWorkDate = initialDate;
-    if (initialDate) {
-      await loadReportsForDate(initialDate);
+    if (!pendingWorkDate) {
+      pendingWorkDate = window.getCurrentWorkDate() || toApiDate(new Date());
     }
+    refreshReportsIfReady();
   } catch (error) {
     console.error(error);
     alert('Nie udało się pobrać listy projektów.');
@@ -72,6 +67,14 @@ async function loadProjects() {
 
   if (mainProjectSelect) {
     populateProjectSelect(mainProjectSelect);
+    if (projectsCache.length === 0) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Brak przypisanych projektów';
+      option.disabled = true;
+      option.selected = true;
+      mainProjectSelect.appendChild(option);
+    }
   }
 }
 
@@ -303,7 +306,7 @@ function setupSaveHandler() {
       }
 
       pendingWorkDate = workDate;
-      await loadReportsForDate(workDate);
+      refreshReportsIfReady();
     } catch (error) {
       alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
     }
@@ -331,6 +334,19 @@ async function safeReadText(response) {
 
 function toApiDate(date) {
   return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+}
+
+function refreshReportsIfReady() {
+  if (!pendingWorkDate) {
+    return;
+  }
+  if (!authHeader) {
+    return;
+  }
+  if (!projectsReady) {
+    return;
+  }
+  loadReportsForDate(pendingWorkDate);
 }
 
 // Funkcja do pobierania aktualnej daty z nawigacji
