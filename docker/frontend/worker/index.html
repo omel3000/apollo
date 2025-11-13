@@ -27,18 +27,22 @@
             backdrop.className = 'sidebar-backdrop';
             document.body.appendChild(backdrop);
             
-            // Toggle menu
-            navbarToggler.addEventListener('click', function() {
-                const isExpanded = navbarToggler.getAttribute('aria-expanded') === 'true';
-                
-                if (!isExpanded) {
-                    body.classList.add('menu-open');
-                    backdrop.classList.add('show');
-                } else {
-                    body.classList.remove('menu-open');
-                    backdrop.classList.remove('show');
-                }
+            // Obserwuj zmiany w sidebar (Bootstrap automatycznie dodaje/usuwa klasę 'show')
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.attributeName === 'class') {
+                        if (sidebar.classList.contains('show')) {
+                            body.classList.add('menu-open');
+                            backdrop.classList.add('show');
+                        } else {
+                            body.classList.remove('menu-open');
+                            backdrop.classList.remove('show');
+                        }
+                    }
+                });
             });
+            
+            observer.observe(sidebar, { attributes: true });
             
             // Zamknij menu po kliknięciu w backdrop
             backdrop.addEventListener('click', function() {
