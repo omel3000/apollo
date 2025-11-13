@@ -102,19 +102,22 @@ body {
 
 /* Komunikaty - lista */
 .list-group-item-light {
-    background-color: #BFB2AA !important;
+    background-color: #D9D1CA !important; /* Ciemniejszy beż */
     color: #261C1E !important;
-    border-bottom: 2px solid #736A65 !important;
-    margin-bottom: 0.5rem !important;
+    border: 2px solid #736A65 !important;
+    border-radius: 8px !important;
+    margin-bottom: 1rem !important;
+    padding: 1rem !important;
 }
 
 .list-group-item-light:last-child {
-    border-bottom: none !important;
+    margin-bottom: 0 !important;
 }
 
 .list-group-item-action:hover {
     background-color: #BF6E50 !important;
     color: #F2EEEB !important;
+    border-color: #BF6E50 !important;
 }
 
 /* Główna zawartość - margines dla sidebara */
