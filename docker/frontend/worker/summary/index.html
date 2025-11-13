@@ -2,57 +2,137 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
-  <title>Podsumowania miesięczne</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Podsumowania | Apollo</title>
   <style>
     /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
     html { visibility: hidden; }
   </style>
-  <script src="/worker/auth-worker.js"></script>
-  <script src="/logout.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+  <link href="/style.css" rel="stylesheet">
+
+  <script src="/worker/auth-worker.js" defer></script>
+  <script src="/logout.js" defer></script>
   <script src="/worker/summary/summary.js" defer></script>
+  <script>
+    // Obsługa mobilnego menu
+    document.addEventListener('DOMContentLoaded', function() {
+      const sidebar = document.getElementById('sidebarMenu');
+      const navbarToggler = document.querySelector('.navbar-toggler');
+      if (sidebar && navbarToggler) {
+        const sidebarLinks = sidebar.querySelectorAll('.nav-link');
+        sidebarLinks.forEach(link => {
+          link.addEventListener('click', function() {
+            sidebar.classList.remove('show');
+            navbarToggler.setAttribute('aria-expanded', 'false');
+            navbarToggler.classList.add('collapsed');
+          });
+        });
+      }
+    });
+  </script>
+  
 </head>
 <body>
-  <!-- Top bar -->
   <header>
-    <h1 style="display:inline-block;">Podsumowania miesięczne</h1>
-    <div style="float:right;">
-      <a href="/worker/account/">Konto</a>
-      <a href="/logout">Wyloguj</a>
-    </div>
+    <nav class="navbar navbar-expand-md navbar-dark bg-primary shadow-sm">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="/worker/">
+          <strong class="h4 mb-0">Apollo</strong> <span class="d-none d-md-inline">| Panel Pracownika</span>
+        </a>
+
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" 
+                aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="d-flex align-items-center ms-auto me-2 me-md-0">
+          <a href="/worker/account" class="btn btn-sm btn-primary me-2">Konto</a>
+          <a href="/logout" class="btn btn-sm btn-outline-danger">Wyloguj</a>
+        </div>
+      </div>
+    </nav>
   </header>
-  <hr>
 
-  <!-- Navigation -->
-  <nav>
-    <ul>
-      <li><a href="/worker/">Strona główna</a></li>
-      <li><a href="/worker/reports/">Rejestracja czasu pracy</a></li>
-      <li><a href="/worker/summary/">Podsumowania</a></li>
-    </ul>
-  </nav>
-  <hr>
+  <div class="container-fluid">
+    <div class="row">
+      <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-light sidebar collapse">
+        <div class="position-sticky pt-3 sidebar-sticky">
+          <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-uppercase">
+            <span>Nawigacja</span>
+          </h6>
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a class="nav-link" href="/worker/">
+                <i class="bi bi-house-door-fill me-2"></i>Strona główna
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="/worker/reports/">
+                <i class="bi bi-calendar-check me-2"></i>Rejestracja czasu pracy
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link active" aria-current="page" href="/worker/summary/">
+                <i class="bi bi-bar-chart-line-fill me-2"></i>Podsumowania
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
 
-  <!-- Main summary section -->
-  <main>
-    <h2>Ładowanie...</h2>
-    <form method="get" action="/worker/summary.html">
-      <button type="button">&lt;-</button>
-      <button type="button">Bieżący miesiąc</button>
-      <button type="button">-&gt;</button>
-    </form>
+      <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+          <h2 class="h2">Ładowanie...</h2>
+        </div>
 
-    <h3>Łącznie: <span style="font-weight:bold;">0h 0min</span></h3>
-    <!-- Wykres kołowy -->
-    <div style="text-align: center; margin: 20px 0;">
-      <canvas id="projectChart" width="400" height="400"></canvas>
+        <!-- Nawigacja miesiącami -->
+        <form class="d-flex align-items-center gap-2 mb-4" action="#" onsubmit="return false;">
+          <button type="button" class="btn btn-outline-secondary">
+            <i class="bi bi-chevron-left"></i> Poprzedni
+          </button>
+          <button type="button" class="btn btn-primary">
+            <i class="bi bi-calendar-event me-1"></i>Bieżący miesiąc
+          </button>
+          <button type="button" class="btn btn-outline-secondary">
+            Następny <i class="bi bi-chevron-right"></i>
+          </button>
+        </form>
+
+        <div class="row">
+          <div class="col-lg-6 col-md-12 mb-4">
+            <div class="card shadow-sm h-100">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-pie-chart me-2"></i>Udział czasu per projekt</h5>
+              </div>
+              <div class="card-body d-flex justify-content-center align-items-center">
+                <canvas id="projectChart" width="400" height="400"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6 col-md-12 mb-4">
+            <div class="card shadow-sm h-100">
+              <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Łączny czas w miesiącu</h5>
+              </div>
+              <div class="card-body">
+                <h3>Łącznie: <span class="fw-bold">0h 0min</span></h3>
+                <p class="text-muted mb-0">Podsumowanie czasu ze wszystkich wpisów w wybranym miesiącu.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <section class="mt-2">
+          <h3 class="h4">Szczegółowe rozpisanie</h3>
+          <p class="text-muted">Ładowanie danych...</p>
+        </section>
+      </main>
     </div>
+  </div>
 
-    <hr>
-
-    <section>
-      <h3>Szczegółowe rozpisanie</h3>
-      <p>Ładowanie danych...</p>
-    </section>
-  </main>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 </body>
 </html>
