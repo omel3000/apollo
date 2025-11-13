@@ -189,6 +189,13 @@ body {
     border-top: 1px solid #dee2e6 !important;
 }
 
+/* Kontener szczegółów podsumowania - ten sam odstęp co komunikaty */
+#summary-details {
+    margin-top: 1.5rem !important;
+    padding-top: 1.5rem !important;
+    border-top: 1px solid #dee2e6 !important;
+}
+
 /* Główna zawartość - margines dla sidebara */
 @media (max-width: 767px) {
     main.col-md-9 {

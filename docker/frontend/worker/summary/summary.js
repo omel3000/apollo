@@ -173,61 +173,90 @@ function renderSummary(data) {
   const section = document.querySelector('main section');
   if (!section) return;
   
-  // Clear existing content except the heading
+  // Zachowaj nagłówek i wyczyść resztę
   const heading = section.querySelector('h3');
   section.innerHTML = '';
   if (heading) {
     section.appendChild(heading);
   } else {
     const newHeading = document.createElement('h3');
+    newHeading.className = 'h4';
     newHeading.textContent = 'Szczegółowe rozpisanie';
     section.appendChild(newHeading);
   }
+
+  // Kontener listy w stylu komunikatów
+  const listContainer = document.createElement('div');
+  listContainer.id = 'summary-details';
+  listContainer.className = 'list-group';
+  section.appendChild(listContainer);
   
-  // Group by date from daily_hours
+  // Dane per dzień
   const dailyHours = data.daily_hours || [];
   
   if (dailyHours.length === 0) {
-    const emptyMsg = document.createElement('p');
+    const emptyMsg = document.createElement('div');
+    emptyMsg.className = 'list-group-item list-group-item-light';
     emptyMsg.textContent = 'Brak wpisów dla tego miesiąca.';
-    section.appendChild(emptyMsg);
+    listContainer.appendChild(emptyMsg);
     return;
   }
   
   dailyHours.forEach(dayData => {
-    const dateDiv = document.createElement('div');
-    dateDiv.style.marginBottom = '15px';
+    // Element dnia
+    const dayItem = document.createElement('div');
+    dayItem.className = 'list-group-item list-group-item-action list-group-item-light';
     
     // Parse date (format: YYYY-MM-DD)
     const [year, month, day] = dayData.date.split('-').map(Number);
     const dateObj = new Date(year, month - 1, day);
     const dayName = dayNamesPl[dateObj.getDay()];
     const dateStr = `${String(day).padStart(2, '0')}.${String(month).padStart(2, '0')}`;
+
+    // Nagłówek dnia + suma
+    const headerRow = document.createElement('div');
+    headerRow.className = 'd-flex justify-content-between align-items-center mb-2';
     
-    const dateHeader = document.createElement('strong');
-    dateHeader.textContent = `${dayName}, ${dateStr}`;
-    dateDiv.appendChild(dateHeader);
-    
-    const projectsDiv = document.createElement('div');
-    projectsDiv.style.marginLeft = '20px';
-    
-    // Iterate through projects for this day
+    const titleEl = document.createElement('strong');
+    titleEl.textContent = `${dayName}, ${dateStr}`;
+    headerRow.appendChild(titleEl);
+
+    // Oblicz sumę dla dnia
     const projectHours = dayData.project_hours || {};
+    let dayTotalMin = 0;
+    Object.values(projectHours).forEach(ph => {
+      const h = (ph.hours || 0);
+      const m = (ph.minutes || 0);
+      dayTotalMin += h * 60 + m;
+    });
+    const totalH = Math.floor(dayTotalMin / 60);
+    const totalM = dayTotalMin % 60;
+
+    const totalEl = document.createElement('span');
+    totalEl.className = 'badge bg-primary';
+    totalEl.textContent = `${totalH}h ${totalM}min`;
+    headerRow.appendChild(totalEl);
+
+    dayItem.appendChild(headerRow);
+
+    // Lista projektów dla dnia
+    const projectsList = document.createElement('ul');
+    projectsList.className = 'mb-0 ps-3';
+
     Object.keys(projectHours).forEach(projectIdStr => {
       const projectId = parseInt(projectIdStr, 10);
       const projectData = projectHours[projectIdStr];
-      const projectName = projectsMap[projectId] || `Projekt #${projectId}`;
-      
       const hours = projectData.hours || 0;
       const minutes = projectData.minutes || 0;
-      
-      const projDiv = document.createElement('div');
-      projDiv.textContent = `${projectName} — ${hours}h ${minutes}min`;
-      projectsDiv.appendChild(projDiv);
+      const projectName = projectsMap[projectId] || `Projekt #${projectId}`;
+
+      const li = document.createElement('li');
+      li.textContent = `${projectName} — ${hours}h ${minutes}min`;
+      projectsList.appendChild(li);
     });
-    
-    dateDiv.appendChild(projectsDiv);
-    section.appendChild(dateDiv);
+
+    dayItem.appendChild(projectsList);
+    listContainer.appendChild(dayItem);
   });
 }
 
