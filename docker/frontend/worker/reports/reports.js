@@ -129,14 +129,28 @@ async function loadProjects() {
   console.log('loadProjects: Projects cached:', projectsCache);
 
   if (mainProjectSelect) {
-    populateProjectSelect(mainProjectSelect);
+    // Najpierw dodaj domyślną opcję "Wybierz projekt"
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Wybierz projekt';
+    defaultOption.selected = true;
+    mainProjectSelect.innerHTML = '';
+    mainProjectSelect.appendChild(defaultOption);
+    
+    // Następnie dodaj projekty
     if (projectsCache.length === 0) {
-      const option = document.createElement('option');
-      option.value = '';
-      option.textContent = 'Brak przypisanych projektów';
-      option.disabled = true;
-      option.selected = true;
-      mainProjectSelect.appendChild(option);
+      const noProjectOption = document.createElement('option');
+      noProjectOption.value = '';
+      noProjectOption.textContent = 'Brak przypisanych projektów';
+      noProjectOption.disabled = true;
+      mainProjectSelect.appendChild(noProjectOption);
+    } else {
+      projectsCache.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project.project_id;
+        option.textContent = project.project_name;
+        mainProjectSelect.appendChild(option);
+      });
     }
   }
 }
