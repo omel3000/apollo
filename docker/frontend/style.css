@@ -227,3 +227,93 @@ html, body {
     background-color: #BF6E50 !important; /* Ciemne tło po najechaniu */
     color: #F2EEEB !important;
 }
+
+/* 5. KALENDARZ */
+
+/* Szersze pole wyboru miesiąca */
+#calMonthSelect {
+    min-width: 120px !important;
+}
+
+/* Tabela kalendarza */
+#calGrid table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+}
+
+/* Nagłówki dni tygodnia */
+#calGrid thead th {
+    background-color: #736A65 !important;
+    color: #F2EEEB !important;
+    border: 1px solid #BFB2AA !important;
+    padding: 8px 4px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+}
+
+/* Komórki kalendarza */
+#calGrid tbody td {
+    border: 1px solid #D9D1CA !important;
+    padding: 2px !important;
+    text-align: center !important;
+    background-color: #F2EEEB !important;
+}
+
+/* Przyciski dni w kalendarzu */
+#calGrid button[data-day] {
+    width: 100% !important;
+    padding: 8px 4px !important;
+    border: none !important;
+    background-color: transparent !important;
+    color: #261C1E !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Hover na dniach */
+#calGrid button[data-day]:hover {
+    background-color: #BF6E50 !important;
+    color: #F2EEEB !important;
+    font-weight: 600 !important;
+}
+
+/* Zaznaczony dzień */
+#calGrid button[data-day].selected {
+    background-color: #736A65 !important;
+    color: #F2EEEB !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 0 2px #BF6E50 inset !important;
+}
+
+/* Dzisiejsza data - subtelne podkreślenie */
+#calGrid button[data-day].today {
+    border: 2px solid #BF6E50 !important;
+    font-weight: 600 !important;
+}
+
+/* Puste komórki */
+#calGrid tbody td:empty {
+    background-color: #E5DED8 !important;
+}
+
+/* Przyciski nawigacji miesiąca */
+.btn-outline-secondary {
+    color: #261C1E !important;
+    border-color: #736A65 !important;
+}
+
+.btn-outline-secondary:hover {
+    background-color: #736A65 !important;
+    border-color: #736A65 !important;
+    color: #F2EEEB !important;
+}
+
+/* Card header kalendarza */
+.card-header.bg-primary {
+    background-color: #261C1E !important;
+    color: #F2EEEB !important;
+}

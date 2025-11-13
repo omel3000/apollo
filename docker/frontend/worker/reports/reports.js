@@ -580,11 +580,14 @@ function renderCalendar() {
 
   console.log('Rendering calendar for:', calYear, calMonth);
 
+  // Get today's date for highlighting
+  const today = new Date();
+  const isCurrentMonth = (today.getFullYear() === calYear && today.getMonth() === calMonth);
+  const todayDate = today.getDate();
+
   // Build table
   const table = document.createElement('table');
   table.setAttribute('role', 'grid');
-  table.style.borderCollapse = 'collapse';
-  table.style.width = '100%';
 
   const thead = document.createElement('thead');
   const headRow = document.createElement('tr');
@@ -592,9 +595,6 @@ function renderCalendar() {
   weekDays.forEach(d => {
     const th = document.createElement('th');
     th.textContent = d;
-    th.style.borderBottom = '1px solid #ccc';
-    th.style.padding = '4px';
-    th.style.textAlign = 'center';
     headRow.appendChild(th);
   });
   thead.appendChild(headRow);
@@ -615,10 +615,6 @@ function renderCalendar() {
     const tr = document.createElement('tr');
     for (let c = 0; c < 7; c++) {
       const td = document.createElement('td');
-      td.style.border = '1px solid #eee';
-      td.style.padding = '4px';
-      td.style.textAlign = 'center';
-      td.style.minHeight = '30px';
       
       if (r === 0 && c < startOffset) {
         td.textContent = '';
@@ -628,17 +624,18 @@ function renderCalendar() {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = String(day);
-        btn.style.minWidth = '2em';
-        btn.style.cursor = 'pointer';
         btn.dataset.day = String(day);
         btn.addEventListener('click', onCalendarDayClick);
+
+        // Highlight if today
+        if (isCurrentMonth && day === todayDate) {
+          btn.classList.add('today');
+        }
 
         // Highlight if matches currentDate
         const cur = window.currentDate instanceof Date ? window.currentDate : null;
         if (cur && cur.getFullYear() === calYear && cur.getMonth() === calMonth && cur.getDate() === day) {
           btn.classList.add('selected');
-          btn.style.fontWeight = 'bold';
-          btn.style.outline = '2px solid #0078d4';
         }
 
         td.appendChild(btn);
@@ -662,16 +659,12 @@ function highlightSelectedDay(dateObj) {
   const buttons = grid.querySelectorAll('button[data-day]');
   buttons.forEach(btn => {
     btn.classList.remove('selected');
-    btn.style.fontWeight = 'normal';
-    btn.style.outline = 'none';
   });
   if (!dateObj) return;
   if (dateObj.getFullYear() !== calYear || dateObj.getMonth() !== calMonth) return;
   const sel = grid.querySelector(`button[data-day="${dateObj.getDate()}"]`);
   if (sel) {
     sel.classList.add('selected');
-    sel.style.fontWeight = 'bold';
-    sel.style.outline = '2px solid #0078d4';
   }
 }
 
