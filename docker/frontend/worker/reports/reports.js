@@ -8,10 +8,47 @@ let mainProjectSelect = null;
 // --- Calendar state ---
 let calYear = null;   // 4-digit year
 let calMonth = null;  // 0-11
+let reportedDates = new Set(); // Set of 'YYYY-MM-DD' strings for days with reports
 const monthNamesPl = [
   'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
   'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
 ];
+
+// Polskie święta (stałe i ruchome - przykładowe lata)
+const polishHolidays = {
+  // Stałe święta (miesiąc 1-based, dzień)
+  fixed: [
+    { month: 1, day: 1 },   // Nowy Rok
+    { month: 1, day: 6 },   // Trzech Króli
+    { month: 5, day: 1 },   // Święto Pracy
+    { month: 5, day: 3 },   // Święto Konstytucji 3 Maja
+    { month: 8, day: 15 },  // Wniebowzięcie NMP
+    { month: 11, day: 1 },  // Wszystkich Świętych
+    { month: 11, day: 11 }, // Święto Niepodległości
+    { month: 12, day: 25 }, // Boże Narodzenie
+    { month: 12, day: 26 }  // Drugi dzień Bożego Narodzenia
+  ],
+  // Ruchome święta (rok -> daty w formacie 'MM-DD')
+  movable: {
+    2024: ['03-31', '04-01', '05-19', '05-30'], // Wielkanoc, Pn Wielkanocny, Zielone Świątki, Boże Ciało
+    2025: ['04-20', '04-21', '06-08', '06-19'],
+    2026: ['04-05', '04-06', '05-24', '06-04']
+  }
+};
+
+function isPolishHoliday(year, month, day) {
+  // Sprawdź święta stałe
+  const isFixed = polishHolidays.fixed.some(h => h.month === month + 1 && h.day === day);
+  if (isFixed) return true;
+  
+  // Sprawdź święta ruchome
+  const movableForYear = polishHolidays.movable[year];
+  if (movableForYear) {
+    const dateStr = `${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    return movableForYear.includes(dateStr);
+  }
+  return false;
+}
 
 // Listen for external date changes (e.g., prev/next/today buttons)
 document.addEventListener('workdatechange', (e) => {
@@ -643,6 +680,7 @@ function setupSaveHandler() {
   if (comp) comp.textContent = '';
 
       pendingWorkDate = workDate;
+      loadReportedDatesForMonth(); // Odśwież kalendarz
       refreshReportsIfReady();
     } catch (error) {
       alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
@@ -864,17 +902,20 @@ function initCalendar() {
   console.log('Calendar initialized to:', calYear, calMonth);
   
   syncMonthYearControls();
+  loadReportedDatesForMonth();
   renderCalendar();
 
   // Handlers
   monthSelect.addEventListener('change', () => {
     calMonth = parseInt(monthSelect.value, 10);
     console.log('Month changed to:', calMonth);
+    loadReportedDatesForMonth();
     renderCalendar();
   });
   yearSelect.addEventListener('change', () => {
     calYear = parseInt(yearSelect.value, 10);
     console.log('Year changed to:', calYear);
+    loadReportedDatesForMonth();
     renderCalendar();
   });
   prevBtn.addEventListener('click', () => {
@@ -882,6 +923,7 @@ function initCalendar() {
     if (calMonth < 0) { calMonth = 11; calYear--; }
     console.log('Previous month:', calYear, calMonth);
     syncMonthYearControls();
+    loadReportedDatesForMonth();
     renderCalendar();
   });
   nextBtn.addEventListener('click', () => {
@@ -889,6 +931,7 @@ function initCalendar() {
     if (calMonth > 11) { calMonth = 0; calYear++; }
     console.log('Next month:', calYear, calMonth);
     syncMonthYearControls();
+    loadReportedDatesForMonth();
     renderCalendar();
   });
 }
@@ -920,6 +963,55 @@ function syncMonthYearControls() {
       yearSelect.appendChild(opt);
     }
     yearSelect.value = String(calYear);
+  }
+}
+
+async function loadReportedDatesForMonth() {
+  if (!authHeader || calYear === null || calMonth === null) {
+    return;
+  }
+
+  try {
+    const response = await fetch('/work_reports/monthly_summary', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        month: calMonth + 1, // Backend expects 1-12
+        year: calYear
+      })
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      console.warn('Failed to load monthly summary for calendar');
+      return;
+    }
+
+    const data = await response.json();
+    
+    // Wyczyść poprzednie daty
+    reportedDates.clear();
+    
+    // Dodaj daty z raportami
+    if (data.daily_hours && Array.isArray(data.daily_hours)) {
+      data.daily_hours.forEach(dayData => {
+        if (dayData.date) {
+          reportedDates.add(dayData.date);
+        }
+      });
+    }
+    
+    console.log('Reported dates loaded:', reportedDates.size);
+  } catch (error) {
+    console.error('Error loading reported dates:', error);
   }
 }
 
@@ -978,6 +1070,26 @@ function renderCalendar() {
         btn.textContent = String(day);
         btn.dataset.day = String(day);
         btn.addEventListener('click', onCalendarDayClick);
+
+        // Sprawdź czy weekend (c: 5=So, 6=Nd)
+        const isWeekend = (c === 5 || c === 6);
+        // Sprawdź czy święto
+        const isHoliday = isPolishHoliday(calYear, calMonth, day);
+        // Sprawdź czy jest raport
+        const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        const hasReport = reportedDates.has(dateStr);
+
+        // Priorytet kolorowania:
+        // 1. Weekend/święto z raportem -> fioletowy
+        // 2. Weekend/święto bez raportu -> jasny czerwony
+        // 3. Dzień roboczy z raportem -> pomarańczowy
+        if ((isWeekend || isHoliday) && hasReport) {
+          btn.classList.add('holiday-reported');
+        } else if (isWeekend || isHoliday) {
+          btn.classList.add('holiday');
+        } else if (hasReport) {
+          btn.classList.add('reported');
+        }
 
         // Highlight if today
         if (isCurrentMonth && day === todayDate) {
@@ -1137,6 +1249,7 @@ async function handleUpdateReport(reportId, formElement) {
     }
 
     alert('Wpis zaktualizowany!');
+    loadReportedDatesForMonth(); // Odśwież kalendarz
     refreshReportsIfReady();
   } catch (error) {
     alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
@@ -1169,6 +1282,7 @@ async function handleDeleteReport(reportId) {
     }
 
     alert('Wpis usunięty!');
+    loadReportedDatesForMonth(); // Odśwież kalendarz
     refreshReportsIfReady();
   } catch (error) {
     alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));

@@ -7,6 +7,29 @@
     <style>
         /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
         html { visibility: hidden; }
+        
+        /* Kolory kalendarza dla dni specjalnych */
+        #calGrid button.holiday {
+            background-color: #ffcccc !important; /* Jasny czerwony - weekendy/święta */
+        }
+        
+        #calGrid button.reported {
+            background-color: #ffe5b4 !important; /* Delikatny pomarańczowy - dni z raportami */
+        }
+        
+        #calGrid button.holiday-reported {
+            background-color: #e6ccff !important; /* Delikatny fioletowy - weekend/święto z raportem */
+        }
+        
+        /* Zachowaj dominację dla selected i today */
+        #calGrid button.selected {
+            background-color: #0d6efd !important;
+            color: white !important;
+        }
+        
+        #calGrid button.today {
+            border: 2px solid #0d6efd !important;
+        }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
