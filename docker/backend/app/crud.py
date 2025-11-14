@@ -856,12 +856,25 @@ def delete_availability(db: Session, user_id: int, date_param: date):
 def create_absence(db: Session, user_id: int, absence_data: AbsenceCreate):
     """
     Tworzy nową nieobecność dla użytkownika.
-    Sprawdza czy użytkownik istnieje.
+    Sprawdza czy użytkownik istnieje oraz czy nowa nieobecność nie nakłada się z istniejącymi.
     """
     # Sprawdź czy użytkownik istnieje
     user = get_user_by_id(db, user_id)
     if not user:
         raise ValueError(f"Użytkownik o id {user_id} nie istnieje")
+    
+    # Sprawdź czy nie nakłada się z istniejącymi nieobecnościami użytkownika
+    overlapping = db.query(Absence).filter(
+        Absence.user_id == user_id,
+        Absence.date_from <= absence_data.date_to,
+        Absence.date_to >= absence_data.date_from
+    ).first()
+    
+    if overlapping:
+        raise ValueError(
+            f"Nieobecność nakłada się z istniejącą: {overlapping.absence_type.value} "
+            f"({overlapping.date_from} - {overlapping.date_to})"
+        )
     
     db_absence = Absence(
         user_id=user_id,
@@ -919,6 +932,7 @@ def get_absences(
 def update_absence(db: Session, absence_id: int, absence_update: AbsenceUpdate):
     """
     Aktualizuje nieobecność.
+    Sprawdza czy zaktualizowana nieobecność nie nakłada się z innymi.
     """
     db_absence = get_absence(db, absence_id)
     if not db_absence:
@@ -936,6 +950,20 @@ def update_absence(db: Session, absence_id: int, absence_update: AbsenceUpdate):
     if db_absence.date_from > db_absence.date_to:
         raise ValueError("Data rozpoczęcia musi być wcześniejsza lub równa dacie zakończenia")
     
+    # Sprawdź czy nie nakłada się z innymi nieobecnościami użytkownika (z wyłączeniem edytowanej)
+    overlapping = db.query(Absence).filter(
+        Absence.user_id == db_absence.user_id,
+        Absence.absence_id != absence_id,
+        Absence.date_from <= db_absence.date_to,
+        Absence.date_to >= db_absence.date_from
+    ).first()
+    
+    if overlapping:
+        raise ValueError(
+            f"Nieobecność nakłada się z istniejącą: {overlapping.absence_type.value} "
+            f"({overlapping.date_from} - {overlapping.date_to})"
+        )
+    
     db.commit()
     db.refresh(db_absence)
     return db_absence
@@ -945,6 +973,69 @@ def delete_absence(db: Session, absence_id: int):
     Usuwa nieobecność.
     """
     db_absence = get_absence(db, absence_id)
+    if not db_absence:
+        return False
+    
+    db.delete(db_absence)
+    db.commit()
+    return True
+
+def get_absence_by_date(db: Session, user_id: int, date_param: date):
+    """
+    Pobiera nieobecność użytkownika dla konkretnej daty.
+    Zwraca nieobecność, która obejmuje podaną datę (date_from <= date_param <= date_to).
+    """
+    return db.query(Absence).filter(
+        Absence.user_id == user_id,
+        Absence.date_from <= date_param,
+        Absence.date_to >= date_param
+    ).first()
+
+def update_absence_by_date(db: Session, user_id: int, date_param: date, absence_update: AbsenceUpdate):
+    """
+    Aktualizuje nieobecność użytkownika dla konkretnej daty.
+    Znajduje nieobecność która obejmuje podaną datę i ją aktualizuje.
+    """
+    db_absence = get_absence_by_date(db, user_id, date_param)
+    if not db_absence:
+        raise ValueError(f"Brak nieobecności dla użytkownika {user_id} obejmującej datę {date_param}")
+    
+    # Aktualizuj tylko przekazane pola
+    if absence_update.absence_type is not None:
+        db_absence.absence_type = absence_update.absence_type
+    if absence_update.date_from is not None:
+        db_absence.date_from = absence_update.date_from
+    if absence_update.date_to is not None:
+        db_absence.date_to = absence_update.date_to
+    
+    # Walidacja zakresu dat
+    if db_absence.date_from > db_absence.date_to:
+        raise ValueError("Data rozpoczęcia musi być wcześniejsza lub równa dacie zakończenia")
+    
+    # Sprawdź czy nie nakłada się z innymi nieobecnościami użytkownika
+    overlapping = db.query(Absence).filter(
+        Absence.user_id == user_id,
+        Absence.absence_id != db_absence.absence_id,
+        Absence.date_from <= db_absence.date_to,
+        Absence.date_to >= db_absence.date_from
+    ).first()
+    
+    if overlapping:
+        raise ValueError(
+            f"Nieobecność nakłada się z istniejącą: {overlapping.absence_type.value} "
+            f"({overlapping.date_from} - {overlapping.date_to})"
+        )
+    
+    db.commit()
+    db.refresh(db_absence)
+    return db_absence
+
+def delete_absence_by_date(db: Session, user_id: int, date_param: date):
+    """
+    Usuwa nieobecność użytkownika dla konkretnej daty.
+    Znajduje nieobecność która obejmuje podaną datę i ją usuwa.
+    """
+    db_absence = get_absence_by_date(db, user_id, date_param)
     if not db_absence:
         return False
     

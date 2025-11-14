@@ -47,82 +47,55 @@ def get_my_absences(
         date_to=date_to
     )
 
-@router.get("/my_absences/{absence_id}", response_model=AbsenceRead)
+@router.get("/my_absences/{date_param}", response_model=AbsenceRead)
 def get_my_absence(
-    absence_id: int,
+    date_param: date,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Worker może pobrać szczegóły swojej nieobecności.
+    Worker może pobrać szczegóły swojej nieobecności dla konkretnej daty.
+    Zwraca nieobecność która obejmuje podaną datę.
     """
-    absence = crud.get_absence(db, absence_id)
+    absence = crud.get_absence_by_date(db, current_user.user_id, date_param)
     if not absence:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Nieobecność o id {absence_id} nie istnieje"
-        )
-    # Sprawdź czy to jego nieobecność
-    if absence.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Brak uprawnień do tej nieobecności"
+            detail=f"Brak nieobecności obejmującej datę {date_param}"
         )
     return absence
 
-@router.put("/my_absences/{absence_id}", response_model=AbsenceRead)
+@router.put("/my_absences/{date_param}", response_model=AbsenceRead)
 def update_my_absence(
-    absence_id: int,
+    date_param: date,
     absence_update: AbsenceUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Worker może zaktualizować swoją nieobecność.
+    Worker może zaktualizować swoją nieobecność dla konkretnej daty.
+    Aktualizuje nieobecność która obejmuje podaną datę.
     """
-    absence = crud.get_absence(db, absence_id)
-    if not absence:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Nieobecność o id {absence_id} nie istnieje"
-        )
-    # Sprawdź czy to jego nieobecność
-    if absence.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Brak uprawnień do tej nieobecności"
-        )
     try:
-        return crud.update_absence(db, absence_id, absence_update)
+        return crud.update_absence_by_date(db, current_user.user_id, date_param, absence_update)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
-@router.delete("/my_absences/{absence_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/my_absences/{date_param}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_my_absence(
-    absence_id: int,
+    date_param: date,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Worker może usunąć swoją nieobecność.
+    Worker może usunąć swoją nieobecność dla konkretnej daty.
+    Usuwa nieobecność która obejmuje podaną datę.
     """
-    absence = crud.get_absence(db, absence_id)
-    if not absence:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Nieobecność o id {absence_id} nie istnieje"
-        )
-    # Sprawdź czy to jego nieobecność
-    if absence.user_id != current_user.user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Brak uprawnień do tej nieobecności"
-        )
-    deleted = crud.delete_absence(db, absence_id)
+    deleted = crud.delete_absence_by_date(db, current_user.user_id, date_param)
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Nieobecność o id {absence_id} nie istnieje"
+            detail=f"Brak nieobecności obejmującej datę {date_param}"
         )
     return None
 

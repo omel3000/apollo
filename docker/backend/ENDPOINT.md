@@ -54,9 +54,9 @@
 | **NIEOBECNOŚCI** |||||||
 | POST | `/absences/my_absences` | Dodanie własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
 | GET | `/absences/my_absences` | Odczyt własnych nieobecności (z filtrami) | ✅ | ✅ | ✅ | ❌ |
-| GET | `/absences/my_absences/{absence_id}` | Odczyt szczegółów własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
-| PUT | `/absences/my_absences/{absence_id}` | Aktualizacja własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
-| DELETE | `/absences/my_absences/{absence_id}` | Usunięcie własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
+| GET | `/absences/my_absences/{date}` | Odczyt szczegółów własnej nieobecności dla daty | ✅ | ✅ | ✅ | ❌ |
+| PUT | `/absences/my_absences/{date}` | Aktualizacja własnej nieobecności dla daty | ✅ | ✅ | ✅ | ❌ |
+| DELETE | `/absences/my_absences/{date}` | Usunięcie własnej nieobecności dla daty | ✅ | ✅ | ✅ | ❌ |
 | GET | `/absences/` | Odczyt nieobecności wszystkich użytkowników (z filtrami) | ❌ | ✅ | ✅ | ❌ |
 | GET | `/absences/{absence_id}` | Odczyt szczegółów nieobecności użytkownika | ❌ | ✅ | ✅ | ❌ |
 
@@ -84,5 +84,6 @@
   - Walidacje: jeśli niedostępny, nie można podawać przedziału czasu; jeśli dostępny z czasem, time_from < time_to.
 - Nieobecności:
   - Worker może dodawać, przeglądać, edytować i usuwać swoje nieobecności (urlop, L4, inne).
+  - Endpointy worker dla pojedynczych nieobecności używają daty zamiast ID (GET/PUT/DELETE `/my_absences/{date}`) - wyszukują nieobecność która obejmuje podaną datę.
   - HR/Admin mają dostęp do nieobecności wszystkich użytkowników z filtrowaniem (user_id, typ, zakres dat).
-  - Walidacje: date_from ≤ date_to.
+  - Walidacje: date_from ≤ date_to, nieobecności nie mogą się nakładać (ten sam użytkownik nie może mieć dwóch nieobecności w tym samym dniu).
