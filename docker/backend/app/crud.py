@@ -754,6 +754,7 @@ def create_availability(db: Session, user_id: int, availability_data: Availabili
     """
     Tworzy nowy wpis dostępności dla użytkownika.
     Jeśli wpis dla danej daty już istnieje, zgłasza błąd.
+    Nie pozwala na dodanie dostępności w dniu, w którym jest nieobecność.
     """
     # Sprawdź czy użytkownik istnieje
     user = get_user_by_id(db, user_id)
@@ -767,6 +768,24 @@ def create_availability(db: Session, user_id: int, availability_data: Availabili
     ).first()
     if existing:
         raise ValueError(f"Dostępność dla daty {availability_data.date} już istnieje")
+    
+    # Sprawdź czy w tym dniu nie ma nieobecności
+    absence_conflict = db.query(Absence).filter(
+        Absence.user_id == user_id,
+        Absence.date_from <= availability_data.date,
+        Absence.date_to >= availability_data.date
+    ).first()
+    if absence_conflict:
+        absence_type_pl = {
+            'urlop': 'Urlop',
+            'L4': 'L4',
+            'inne': 'Inna nieobecność'
+        }.get(absence_conflict.absence_type, absence_conflict.absence_type)
+        raise ValueError(
+            f"Nie można dodać dostępności dla daty {availability_data.date}. "
+            f"W tym dniu obowiązuje nieobecność: {absence_type_pl} "
+            f"({absence_conflict.date_from} - {absence_conflict.date_to})"
+        )
     
     db_availability = Availability(
         user_id=user_id,
@@ -812,10 +831,29 @@ def get_availabilities(
 def update_availability(db: Session, user_id: int, date_param: date, availability_update: AvailabilityUpdate):
     """
     Aktualizuje dostępność użytkownika dla konkretnej daty.
+    Nie pozwala na aktualizację jeśli w tym dniu jest nieobecność.
     """
     db_availability = get_availability(db, user_id, date_param)
     if not db_availability:
         raise ValueError(f"Dostępność dla użytkownika {user_id} i daty {date_param} nie istnieje")
+    
+    # Sprawdź czy w tym dniu nie ma nieobecności
+    absence_conflict = db.query(Absence).filter(
+        Absence.user_id == user_id,
+        Absence.date_from <= date_param,
+        Absence.date_to >= date_param
+    ).first()
+    if absence_conflict:
+        absence_type_pl = {
+            'urlop': 'Urlop',
+            'L4': 'L4',
+            'inne': 'Inna nieobecność'
+        }.get(absence_conflict.absence_type, absence_conflict.absence_type)
+        raise ValueError(
+            f"Nie można zaktualizować dostępności dla daty {date_param}. "
+            f"W tym dniu obowiązuje nieobecność: {absence_type_pl} "
+            f"({absence_conflict.date_from} - {absence_conflict.date_to})"
+        )
     
     # Aktualizuj tylko przekazane pola
     if availability_update.is_available is not None:
@@ -857,6 +895,7 @@ def create_absence(db: Session, user_id: int, absence_data: AbsenceCreate):
     """
     Tworzy nową nieobecność dla użytkownika.
     Sprawdza czy użytkownik istnieje oraz czy nowa nieobecność nie nakłada się z istniejącymi.
+    Nie pozwala na dodanie nieobecności w dniach, w których jest zdefiniowana dostępność.
     """
     # Sprawdź czy użytkownik istnieje
     user = get_user_by_id(db, user_id)
@@ -874,6 +913,20 @@ def create_absence(db: Session, user_id: int, absence_data: AbsenceCreate):
         raise ValueError(
             f"Nieobecność nakłada się z istniejącą: {overlapping.absence_type.value} "
             f"({overlapping.date_from} - {overlapping.date_to})"
+        )
+    
+    # Sprawdź czy nie ma dostępności w tym zakresie dat
+    availability_conflict = db.query(Availability).filter(
+        Availability.user_id == user_id,
+        Availability.date >= absence_data.date_from,
+        Availability.date <= absence_data.date_to
+    ).first()
+    
+    if availability_conflict:
+        raise ValueError(
+            f"Nie można dodać nieobecności. "
+            f"W dniu {availability_conflict.date} jest już zdefiniowana dostępność. "
+            f"Usuń najpierw dostępności z tego okresu."
         )
     
     db_absence = Absence(
@@ -933,6 +986,7 @@ def update_absence(db: Session, absence_id: int, absence_update: AbsenceUpdate):
     """
     Aktualizuje nieobecność.
     Sprawdza czy zaktualizowana nieobecność nie nakłada się z innymi.
+    Nie pozwala na aktualizację jeśli nowy zakres dat nakłada się z dostępnością.
     """
     db_absence = get_absence(db, absence_id)
     if not db_absence:
@@ -962,6 +1016,20 @@ def update_absence(db: Session, absence_id: int, absence_update: AbsenceUpdate):
         raise ValueError(
             f"Nieobecność nakłada się z istniejącą: {overlapping.absence_type.value} "
             f"({overlapping.date_from} - {overlapping.date_to})"
+        )
+    
+    # Sprawdź czy nie ma dostępności w nowym zakresie dat
+    availability_conflict = db.query(Availability).filter(
+        Availability.user_id == db_absence.user_id,
+        Availability.date >= db_absence.date_from,
+        Availability.date <= db_absence.date_to
+    ).first()
+    
+    if availability_conflict:
+        raise ValueError(
+            f"Nie można zaktualizować nieobecności. "
+            f"W dniu {availability_conflict.date} jest już zdefiniowana dostępność. "
+            f"Usuń najpierw dostępności z tego okresu."
         )
     
     db.commit()
@@ -995,6 +1063,7 @@ def update_absence_by_date(db: Session, user_id: int, date_param: date, absence_
     """
     Aktualizuje nieobecność użytkownika dla konkretnej daty.
     Znajduje nieobecność która obejmuje podaną datę i ją aktualizuje.
+    Nie pozwala na aktualizację jeśli nowy zakres dat nakłada się z dostępnością.
     """
     db_absence = get_absence_by_date(db, user_id, date_param)
     if not db_absence:
@@ -1024,6 +1093,20 @@ def update_absence_by_date(db: Session, user_id: int, date_param: date, absence_
         raise ValueError(
             f"Nieobecność nakłada się z istniejącą: {overlapping.absence_type.value} "
             f"({overlapping.date_from} - {overlapping.date_to})"
+        )
+    
+    # Sprawdź czy nie ma dostępności w nowym zakresie dat
+    availability_conflict = db.query(Availability).filter(
+        Availability.user_id == user_id,
+        Availability.date >= db_absence.date_from,
+        Availability.date <= db_absence.date_to
+    ).first()
+    
+    if availability_conflict:
+        raise ValueError(
+            f"Nie można zaktualizować nieobecności. "
+            f"W dniu {availability_conflict.date} jest już zdefiniowana dostępność. "
+            f"Usuń najpierw dostępności z tego okresu."
         )
     
     db.commit()

@@ -579,10 +579,27 @@ function onCalendarDayClick(ev) {
   
   const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
   
+  // Usuń klasę selected z wszystkich przycisków
+  const allBtns = document.querySelectorAll('#calGrid button[data-day]');
+  allBtns.forEach(b => b.classList.remove('selected'));
+  
+  // Dodaj klasę selected do klikniętego przycisku
+  btn.classList.add('selected');
+  
   // Ustaw datę w formularzu dostępności
   const dateInput = document.getElementById('availabilityDate');
   if (dateInput) {
     dateInput.value = dateStr;
+  }
+  
+  // Ustaw datę w formularzu nieobecności
+  const absenceDateFrom = document.getElementById('absenceDateFrom');
+  const absenceDateTo = document.getElementById('absenceDateTo');
+  if (absenceDateFrom) {
+    absenceDateFrom.value = dateStr;
+  }
+  if (absenceDateTo) {
+    absenceDateTo.value = dateStr;
   }
   
   // Sprawdź czy istnieje dostępność dla tego dnia
@@ -644,7 +661,7 @@ function renderAvailabilityList() {
             <strong>${formatDatePL(dateStr)}</strong>
             <span class="badge ${badgeClass} ms-2">${statusText}</span>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteAvailability('${dateStr}')">
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteAvailability('${dateStr}')">
             <i class="bi bi-trash"></i> Usuń
           </button>
         </div>
@@ -685,10 +702,10 @@ function renderAbsenceList() {
       <div class="card-body py-2">
         <div class="d-flex justify-content-between align-items-center">
           <div>
-            <span class="badge bg-purple text-white">${typeText}</span>
-            <strong class="ms-2">${formatDatePL(absence.date_from)} - ${formatDatePL(absence.date_to)}</strong>
+            <strong>${formatDatePL(absence.date_from)} - ${formatDatePL(absence.date_to)}</strong>
+            <span class="badge bg-purple text-white ms-2">${typeText}</span>
           </div>
-          <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteAbsence('${absence.date_from}')">
+          <button type="button" class="btn btn-sm btn-danger" onclick="deleteAbsence('${absence.date_from}')">
             <i class="bi bi-trash"></i> Usuń
           </button>
         </div>
