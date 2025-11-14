@@ -1,68 +1,623 @@
-/* schedule.css - stylizacja grafiku HR */
+/* schedule.css - Style dla strony grafiku pracowników */
 
-.schedule-controls {
-    background: #fff;
-    padding: 1em;
-    border-radius: 8px;
-    margin-bottom: 1em;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+/* ============================================================================
+   KALENDARZ
+   ============================================================================ */
+
+/* Szersze pole wyboru miesiąca */
+#calMonthSelect {
+    min-width: 120px !important;
 }
-.schedule-controls h1 {
-    margin-top: 0;
+
+/* Tabela kalendarza */
+#calGrid table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+    margin-top: 0.5rem !important;
 }
-.filters {
+
+/* Nagłówki dni tygodnia */
+#calGrid thead th {
+    background-color: #736A65 !important;
+    color: #F2EEEB !important;
+    border: 1px solid #BFB2AA !important;
+    padding: 8px 4px !important;
+    text-align: center !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+}
+
+/* Komórki kalendarza */
+#calGrid tbody td {
+    border: 1px solid #D9D1CA !important;
+    padding: 2px !important;
+    text-align: center !important;
+    background-color: #F2EEEB !important;
+}
+
+/* Przyciski dni w kalendarzu */
+#calGrid button[data-day] {
+    width: 100% !important;
+    padding: 8px 4px !important;
+    border: none !important;
+    background-color: transparent !important;
+    color: #261C1E !important;
+    cursor: pointer !important;
+    font-size: 0.9rem !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
+    position: relative !important;
+}
+
+/* Hover na dniach */
+#calGrid button[data-day]:hover {
+    background-color: #BF6E50 !important;
+    color: #F2EEEB !important;
+    font-weight: 600 !important;
+}
+
+/* Zaznaczony dzień */
+#calGrid button[data-day].selected {
+    background-color: #736A65 !important;
+    color: #F2EEEB !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 0 2px #BF6E50 inset !important;
+}
+
+/* Dzisiejsza data */
+#calGrid button[data-day].today {
+    border: 2px solid #BF6E50 !important;
+    font-weight: 600 !important;
+}
+
+/* Puste komórki */
+#calGrid tbody td:empty {
+    background-color: #E5DED8 !important;
+}
+
+/* Kolorowanie dni według grafiku */
+#calGrid button[data-day].schedule-full {
+    background-color: #c8e6c9 !important;
+    color: #1b5e20 !important;
+}
+
+#calGrid button[data-day].schedule-partial {
+    background-color: #fff9c4 !important;
+    color: #f57f17 !important;
+}
+
+#calGrid button[data-day].schedule-empty {
+    background-color: #E5DED8 !important;
+    color: #261C1E !important;
+}
+
+/* Badge z liczbą zmian */
+#calGrid button[data-day] .shift-count {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background-color: #BF6E50;
+    color: white;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    font-size: 0.65rem;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5em;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+/* ============================================================================
+   LISTA PRACOWNIKÓW
+   ============================================================================ */
+
+.workers-list {
+    max-height: 500px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+/* Scrollbar dla listy pracowników */
+.workers-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.workers-list::-webkit-scrollbar-track {
+    background: #F2EEEB;
+    border-radius: 4px;
+}
+
+.workers-list::-webkit-scrollbar-thumb {
+    background: #BF6E50;
+    border-radius: 4px;
+}
+
+.workers-list::-webkit-scrollbar-thumb:hover {
+    background: #736A65;
+}
+
+/* Karta pracownika */
+.worker-card {
+    border: 2px solid #D9D1CA;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    transition: all 0.3s ease;
+    background-color: white;
+    cursor: pointer;
+}
+
+.worker-card:hover {
+    border-color: #BF6E50;
+    box-shadow: 0 2px 8px rgba(191, 110, 80, 0.15);
+}
+
+.worker-card.expanded {
+    border-color: #BF6E50;
+    background-color: #FFFAF5;
+}
+
+/* Avatar pracownika (inicjały) */
+.worker-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: #736A65;
+    color: #F2EEEB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+
+/* Informacje o pracowniku */
+.worker-info {
+    flex-grow: 1;
+    margin-left: 12px;
+}
+
+.worker-name {
+    font-weight: 600;
+    color: #261C1E;
+    margin-bottom: 2px;
+}
+
+.worker-role {
+    font-size: 0.85rem;
+    color: #736A65;
+}
+
+/* Badge z sumą godzin */
+.worker-hours-badge {
+    background-color: #261C1E;
+    color: #F2EEEB;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+
+/* Szczegóły projektów (rozwijane) */
+.worker-projects {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #D9D1CA;
+    display: none;
+}
+
+.worker-card.expanded .worker-projects {
+    display: block;
+}
+
+.worker-projects h6 {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    color: #736A65;
+    margin-bottom: 8px;
+}
+
+.project-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 4px 0;
+    font-size: 0.9rem;
+}
+
+.project-name {
+    color: #261C1E;
+}
+
+.project-hours {
+    color: #BF6E50;
+    font-weight: 600;
+}
+
+/* Ikona dostępności */
+.availability-icon {
+    font-size: 1.2rem;
+    margin-left: 8px;
+}
+
+.availability-icon.available {
+    color: #2e7d32;
+}
+
+.availability-icon.partial {
+    color: #f57f17;
+}
+
+.availability-icon.unavailable {
+    color: #b71c1c;
+}
+
+.availability-icon.absence {
+    color: #4a148c;
+}
+
+/* ============================================================================
+   TIMELINE WIZUALNY
+   ============================================================================ */
+
+.timeline-container {
+    margin-bottom: 24px;
+    padding: 16px;
+    background-color: #F2EEEB;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+
+.timeline-header {
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #261C1E;
+    display: flex;
+    justify-content: space-between;
     align-items: center;
 }
-#schedule-calendar {
-    overflow-x: auto;
-    margin-bottom: 1em;
+
+.timeline-grid {
+    position: relative;
+    min-height: 60px;
 }
-.schedule-table {
-    width: 100%;
-    border-collapse: collapse;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+
+/* Oś czasu (0-24h) */
+.timeline-axis {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding: 0 4px;
+    font-size: 0.75rem;
+    color: #736A65;
 }
-.schedule-table th, .schedule-table td {
-    border: 1px solid #e0e0e0;
-    padding: 0.3em 0.5em;
+
+.timeline-hour {
     text-align: center;
-    min-width: 80px;
-}
-.schedule-table th {
-    background: #f7f7f7;
-    position: sticky;
-    top: 0;
-    z-index: 2;
-}
-.status-available { background: #e0ffe0; }
-.status-unavailable { background: #ffe0e0; }
-.status-vacation { background: #e0f0ff; }
-.status-sick { background: #fff0e0; }
-.status-free { background: #f0e0ff; }
-.status-assigned { border: 2px solid #2196f3; }
-
-@media (max-width: 900px) {
-    .filters { flex-direction: column; align-items: stretch; }
-    .schedule-table th, .schedule-table td { min-width: 60px; font-size: 0.9em; }
+    width: calc(100% / 25);
 }
 
-/* Modal */
-.modal { display: none; position: fixed; z-index: 10; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background: rgba(0,0,0,0.3); }
-.modal-content { background: #fff; margin: 10% auto; padding: 2em; border-radius: 8px; width: 90%; max-width: 400px; position: relative; }
-.close { position: absolute; right: 1em; top: 1em; font-size: 1.5em; cursor: pointer; }
-.modal label { display: block; margin: 0.5em 0 0.2em; }
-.modal input, .modal select { width: 100%; margin-bottom: 1em; }
+/* Siatka godzin */
+.timeline-hours-grid {
+    position: relative;
+    height: 100%;
+    display: flex;
+}
 
-.hidden { display: none !important; }
+.timeline-hour-column {
+    flex: 1;
+    border-left: 1px solid #D9D1CA;
+    min-height: 40px;
+}
 
-#schedule-summary {
-    background: #fff;
+.timeline-hour-column:last-child {
+    border-right: 1px solid #D9D1CA;
+}
+
+/* Kontener dla bloków zmian */
+.timeline-shifts {
+    position: relative;
+    margin-top: 8px;
+}
+
+/* Wiersz pracownika */
+.timeline-worker-row {
+    position: relative;
+    height: 40px;
+    margin-bottom: 8px;
+    background-color: white;
+    border-radius: 4px;
+    border: 1px solid #D9D1CA;
+}
+
+/* Blok zmiany */
+.timeline-shift-block {
+    position: absolute;
+    height: 32px;
+    top: 4px;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    color: white;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.timeline-shift-block:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+/* Kolory dla typów zmian */
+.timeline-shift-block.shift-normalna {
+    background-color: #2e7d32;
+}
+
+.timeline-shift-block.shift-urlop {
+    background-color: #8b5cf6;
+}
+
+.timeline-shift-block.shift-L4 {
+    background-color: #b71c1c;
+}
+
+.timeline-shift-block.shift-inne {
+    background-color: #f57f17;
+}
+
+/* Nazwa pracownika w bloku */
+.timeline-shift-worker {
+    font-weight: 600;
+    margin-right: 4px;
+}
+
+/* Projekt w bloku */
+.timeline-shift-project {
+    opacity: 0.9;
+    font-size: 0.7rem;
+}
+
+/* ============================================================================
+   LISTA ZMIAN
+   ============================================================================ */
+
+.shifts-list {
+    margin-top: 20px;
+}
+
+.shift-card {
+    border: 2px solid #D9D1CA;
     border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    padding: 1em;
+    padding: 12px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+    background-color: white;
+}
+
+.shift-card:hover {
+    border-color: #BF6E50;
+    box-shadow: 0 2px 8px rgba(191, 110, 80, 0.15);
+}
+
+/* Badge typu zmiany */
+.shift-type-badge {
+    font-size: 0.85rem;
+    padding: 4px 10px;
+}
+
+.shift-type-badge.type-normalna {
+    background-color: #c8e6c9;
+    color: #1b5e20;
+}
+
+.shift-type-badge.type-urlop {
+    background-color: #e1bee7;
+    color: #4a148c;
+}
+
+.shift-type-badge.type-L4 {
+    background-color: #ffcdd2;
+    color: #b71c1c;
+}
+
+.shift-type-badge.type-inne {
+    background-color: #fff9c4;
+    color: #f57f17;
+}
+
+/* Informacje o zmianie */
+.shift-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.shift-worker-name {
+    font-weight: 600;
+    color: #261C1E;
+}
+
+.shift-time {
+    color: #BF6E50;
+    font-weight: 600;
+}
+
+.shift-project-name {
+    color: #736A65;
+    font-style: italic;
+}
+
+/* ============================================================================
+   MODAL
+   ============================================================================ */
+
+.modal-content {
+    border: 2px solid #BF6E50;
+}
+
+.modal-header {
+    background-color: #261C1E;
+    color: #F2EEEB;
+    border-bottom: 2px solid #BF6E50;
+}
+
+.modal-header .btn-close {
+    filter: invert(1);
+}
+
+/* Informacja o dostępności pracownika */
+#workerAvailabilityInfo {
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+}
+
+#workerAvailabilityInfo.available {
+    background-color: #c8e6c9;
+    color: #1b5e20;
+}
+
+#workerAvailabilityInfo.partial {
+    background-color: #fff9c4;
+    color: #f57f17;
+}
+
+#workerAvailabilityInfo.unavailable {
+    background-color: #ffcdd2;
+    color: #b71c1c;
+}
+
+#workerAvailabilityInfo.absence {
+    background-color: #e1bee7;
+    color: #4a148c;
+}
+
+/* Ostrzeżenie o konflikcie */
+#conflictWarning {
+    margin-top: 12px;
+}
+
+/* ============================================================================
+   RESPONSYWNOŚĆ
+   ============================================================================ */
+
+/* Kalendarz sticky na większych ekranach */
+@media (min-width: 992px) {
+    .schedule-calendar-card {
+        position: sticky;
+        top: 72px;
+        z-index: 10;
+    }
+}
+
+/* Tablet */
+@media (max-width: 991px) {
+    .workers-list {
+        max-height: 400px;
+    }
+    
+    .timeline-container {
+        overflow-x: scroll;
+    }
+}
+
+/* Mobile */
+@media (max-width: 767px) {
+    .worker-card {
+        padding: 10px;
+    }
+    
+    .worker-avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 0.95rem;
+    }
+    
+    .worker-hours-badge {
+        font-size: 0.8rem;
+        padding: 4px 8px;
+    }
+    
+    .timeline-container {
+        padding: 12px;
+    }
+    
+    .timeline-shift-block {
+        font-size: 0.7rem;
+        padding: 2px 4px;
+    }
+    
+    .shift-card {
+        padding: 10px;
+    }
+    
+    .shift-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
+
+/* Bardzo małe ekrany */
+@media (max-width: 576px) {
+    #calGrid button[data-day] {
+        padding: 6px 2px;
+        font-size: 0.8rem;
+    }
+    
+    #calGrid thead th {
+        padding: 6px 2px;
+        font-size: 0.75rem;
+    }
+}
+
+/* ============================================================================
+   UTILITIES
+   ============================================================================ */
+
+/* Pusty stan */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #736A65;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    color: #BFB2AA;
+    margin-bottom: 16px;
+}
+
+/* Loading spinner */
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+/* Fade in animation */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
 }
