@@ -272,3 +272,133 @@ class UserProjectMonthlySummary(BaseModel):
     project_name: str
     total_hours: int
     total_minutes: int
+
+# ============================================================================
+# Availability schemas
+# ============================================================================
+
+class AvailabilityBase(BaseModel):
+    date: date
+    is_available: bool
+    time_from: Optional[time] = None
+    time_to: Optional[time] = None
+
+    @field_validator("time_from", "time_to", mode="before")
+    @classmethod
+    def normalize_time(cls, v):
+        """Normalizuje czas do formatu HH:MM (bez sekund i mikrosekund)"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            from datetime import time as dt_time
+            parts = v.split(":")
+            hour = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            return dt_time(hour, minute, 0, 0)
+        if isinstance(v, time):
+            return v.replace(second=0, microsecond=0)
+        return v
+
+    @model_validator(mode="after")
+    def validate_availability(self):
+        """Waliduje logikę dostępności"""
+        if self.is_available and self.time_from is not None and self.time_to is not None:
+            if self.time_from >= self.time_to:
+                raise ValueError("Czas rozpoczęcia (time_from) musi być wcześniejszy niż czas zakończenia (time_to)")
+        
+        # Jeśli is_available=False, nie powinno być czasu
+        if not self.is_available and (self.time_from is not None or self.time_to is not None):
+            raise ValueError("Dla niedostępności nie należy podawać zakresu czasu")
+        
+        # Jeśli is_available=True i brak czasu, to dostępny cały dzień (to jest OK)
+        
+        return self
+
+class AvailabilityCreate(AvailabilityBase):
+    pass
+
+class AvailabilityRead(AvailabilityBase):
+    user_id: int
+    created_at: datetime
+
+    @field_serializer('time_from', 'time_to')
+    def serialize_time(self, value: Optional[time]) -> Optional[str]:
+        """Serializuje czas do formatu HH:MM"""
+        if value is None:
+            return None
+        return value.strftime("%H:%M")
+
+    model_config = {"from_attributes": True}
+
+class AvailabilityUpdate(BaseModel):
+    is_available: Optional[bool] = None
+    time_from: Optional[time] = None
+    time_to: Optional[time] = None
+
+    @field_validator("time_from", "time_to", mode="before")
+    @classmethod
+    def normalize_time(cls, v):
+        """Normalizuje czas do formatu HH:MM"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            from datetime import time as dt_time
+            parts = v.split(":")
+            hour = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            return dt_time(hour, minute, 0, 0)
+        if isinstance(v, time):
+            return v.replace(second=0, microsecond=0)
+        return v
+
+# ============================================================================
+# Absence schemas
+# ============================================================================
+
+class AbsenceTypeEnum(str, Enum):
+    urlop = "urlop"
+    L4 = "L4"
+    inne = "inne"
+
+class AbsenceBase(BaseModel):
+    absence_type: AbsenceTypeEnum
+    date_from: date
+    date_to: date
+
+    @model_validator(mode="after")
+    def validate_dates(self):
+        """Waliduje zakres dat"""
+        if self.date_from > self.date_to:
+            raise ValueError("Data rozpoczęcia (date_from) musi być wcześniejsza lub równa dacie zakończenia (date_to)")
+        return self
+
+class AbsenceCreate(AbsenceBase):
+    pass
+
+class AbsenceRead(AbsenceBase):
+    absence_id: int
+    user_id: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+class AbsenceUpdate(BaseModel):
+    absence_type: Optional[AbsenceTypeEnum] = None
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+
+# ============================================================================
+# Query filters for availability and absences
+# ============================================================================
+
+class AvailabilityQueryParams(BaseModel):
+    user_id: Optional[int] = None
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+
+class AbsenceQueryParams(BaseModel):
+    user_id: Optional[int] = None
+    absence_type: Optional[AbsenceTypeEnum] = None
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+

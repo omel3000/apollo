@@ -1,12 +1,12 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import func, select  # dodano select
-from models import User, Project, Message, WorkReport, UserProject, TimeType
+from sqlalchemy import func, select, and_, or_  # dodano and_, or_
+from models import User, Project, Message, WorkReport, UserProject, TimeType, Availability, Absence
 from auth import hash_password
-from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate
+from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate, AvailabilityCreate, AvailabilityUpdate, AbsenceCreate, AbsenceUpdate
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime, date
+from datetime import datetime, date, time
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
@@ -745,3 +745,210 @@ def get_projects_for_user(db: Session, user_id: int):
         .all()
     )
     return rows
+
+# ============================================================================
+# AVAILABILITY CRUD functions
+# ============================================================================
+
+def create_availability(db: Session, user_id: int, availability_data: AvailabilityCreate):
+    """
+    Tworzy nowy wpis dostępności dla użytkownika.
+    Jeśli wpis dla danej daty już istnieje, zgłasza błąd.
+    """
+    # Sprawdź czy użytkownik istnieje
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError(f"Użytkownik o id {user_id} nie istnieje")
+    
+    # Sprawdź czy wpis już istnieje
+    existing = db.query(Availability).filter(
+        Availability.user_id == user_id,
+        Availability.date == availability_data.date
+    ).first()
+    if existing:
+        raise ValueError(f"Dostępność dla daty {availability_data.date} już istnieje")
+    
+    db_availability = Availability(
+        user_id=user_id,
+        date=availability_data.date,
+        is_available=availability_data.is_available,
+        time_from=availability_data.time_from,
+        time_to=availability_data.time_to
+    )
+    db.add(db_availability)
+    db.commit()
+    db.refresh(db_availability)
+    return db_availability
+
+def get_availability(db: Session, user_id: int, date_param: date):
+    """
+    Pobiera dostępność użytkownika dla konkretnej daty.
+    """
+    return db.query(Availability).filter(
+        Availability.user_id == user_id,
+        Availability.date == date_param
+    ).first()
+
+def get_availabilities(
+    db: Session,
+    user_id: Optional[int] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None
+):
+    """
+    Pobiera listę dostępności z opcjonalnymi filtrami.
+    """
+    query = db.query(Availability)
+    
+    if user_id is not None:
+        query = query.filter(Availability.user_id == user_id)
+    if date_from is not None:
+        query = query.filter(Availability.date >= date_from)
+    if date_to is not None:
+        query = query.filter(Availability.date <= date_to)
+    
+    return query.order_by(Availability.user_id, Availability.date).all()
+
+def update_availability(db: Session, user_id: int, date_param: date, availability_update: AvailabilityUpdate):
+    """
+    Aktualizuje dostępność użytkownika dla konkretnej daty.
+    """
+    db_availability = get_availability(db, user_id, date_param)
+    if not db_availability:
+        raise ValueError(f"Dostępność dla użytkownika {user_id} i daty {date_param} nie istnieje")
+    
+    # Aktualizuj tylko przekazane pola
+    if availability_update.is_available is not None:
+        db_availability.is_available = availability_update.is_available
+    if availability_update.time_from is not None:
+        db_availability.time_from = availability_update.time_from
+    if availability_update.time_to is not None:
+        db_availability.time_to = availability_update.time_to
+    
+    # Walidacja logiki (jeśli niedostępny, wyczyść czas)
+    if not db_availability.is_available:
+        db_availability.time_from = None
+        db_availability.time_to = None
+    elif db_availability.time_from is not None and db_availability.time_to is not None:
+        if db_availability.time_from >= db_availability.time_to:
+            raise ValueError("Czas rozpoczęcia musi być wcześniejszy niż czas zakończenia")
+    
+    db.commit()
+    db.refresh(db_availability)
+    return db_availability
+
+def delete_availability(db: Session, user_id: int, date_param: date):
+    """
+    Usuwa dostępność użytkownika dla konkretnej daty.
+    """
+    db_availability = get_availability(db, user_id, date_param)
+    if not db_availability:
+        return False
+    
+    db.delete(db_availability)
+    db.commit()
+    return True
+
+# ============================================================================
+# ABSENCE CRUD functions
+# ============================================================================
+
+def create_absence(db: Session, user_id: int, absence_data: AbsenceCreate):
+    """
+    Tworzy nową nieobecność dla użytkownika.
+    Sprawdza czy użytkownik istnieje.
+    """
+    # Sprawdź czy użytkownik istnieje
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise ValueError(f"Użytkownik o id {user_id} nie istnieje")
+    
+    db_absence = Absence(
+        user_id=user_id,
+        absence_type=absence_data.absence_type,
+        date_from=absence_data.date_from,
+        date_to=absence_data.date_to
+    )
+    db.add(db_absence)
+    db.commit()
+    db.refresh(db_absence)
+    return db_absence
+
+def get_absence(db: Session, absence_id: int):
+    """
+    Pobiera nieobecność po ID.
+    """
+    return db.query(Absence).filter(Absence.absence_id == absence_id).first()
+
+def get_absences(
+    db: Session,
+    user_id: Optional[int] = None,
+    absence_type: Optional[str] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None
+):
+    """
+    Pobiera listę nieobecności z opcjonalnymi filtrami.
+    Jeśli podano date_from lub date_to, zwraca nieobecności które pokrywają się z tym zakresem.
+    """
+    query = db.query(Absence)
+    
+    if user_id is not None:
+        query = query.filter(Absence.user_id == user_id)
+    if absence_type is not None:
+        query = query.filter(Absence.absence_type == absence_type)
+    
+    # Filtrowanie po zakresie dat - nieobecność pokrywa się z zakresem jeśli:
+    # absence.date_from <= date_to AND absence.date_to >= date_from
+    if date_from is not None and date_to is not None:
+        query = query.filter(
+            and_(
+                Absence.date_from <= date_to,
+                Absence.date_to >= date_from
+            )
+        )
+    elif date_from is not None:
+        # Jeśli tylko date_from, pokaż nieobecności które trwają od lub po tej dacie
+        query = query.filter(Absence.date_to >= date_from)
+    elif date_to is not None:
+        # Jeśli tylko date_to, pokaż nieobecności które rozpoczynają się przed lub w tej dacie
+        query = query.filter(Absence.date_from <= date_to)
+    
+    return query.order_by(Absence.user_id, Absence.date_from).all()
+
+def update_absence(db: Session, absence_id: int, absence_update: AbsenceUpdate):
+    """
+    Aktualizuje nieobecność.
+    """
+    db_absence = get_absence(db, absence_id)
+    if not db_absence:
+        raise ValueError(f"Nieobecność o id {absence_id} nie istnieje")
+    
+    # Aktualizuj tylko przekazane pola
+    if absence_update.absence_type is not None:
+        db_absence.absence_type = absence_update.absence_type
+    if absence_update.date_from is not None:
+        db_absence.date_from = absence_update.date_from
+    if absence_update.date_to is not None:
+        db_absence.date_to = absence_update.date_to
+    
+    # Walidacja zakresu dat
+    if db_absence.date_from > db_absence.date_to:
+        raise ValueError("Data rozpoczęcia musi być wcześniejsza lub równa dacie zakończenia")
+    
+    db.commit()
+    db.refresh(db_absence)
+    return db_absence
+
+def delete_absence(db: Session, absence_id: int):
+    """
+    Usuwa nieobecność.
+    """
+    db_absence = get_absence(db, absence_id)
+    if not db_absence:
+        return False
+    
+    db.delete(db_absence)
+    db.commit()
+    return True
+

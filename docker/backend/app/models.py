@@ -63,3 +63,28 @@ class UserProject(Base):
     user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False)
     project_id = Column(Integer, ForeignKey("projects.project_id"), nullable=False)
     assigned_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Availability(Base):
+    __tablename__ = "availability"
+
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), primary_key=True, nullable=False)
+    date = Column(Date, primary_key=True, nullable=False)
+    is_available = Column(Boolean, nullable=False)
+    time_from = Column(Time, nullable=True)
+    time_to = Column(Time, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class AbsenceType(str, enum.Enum):
+    urlop = "urlop"
+    L4 = "L4"
+    inne = "inne"
+
+class Absence(Base):
+    __tablename__ = "absences"
+
+    absence_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    absence_type = Column(Enum(AbsenceType), nullable=False)
+    date_from = Column(Date, nullable=False)
+    date_to = Column(Date, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

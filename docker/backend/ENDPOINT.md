@@ -43,6 +43,22 @@
 | POST | `/user_projects` | Przypisanie użytkownika do projektu | ❌ | ✅ | ✅ | ❌ |
 | GET | `/user_projects` | Odczyt przypisań użytkowników | ❌ | ✅ | ✅ | ❌ |
 | GET | `/user_projects/assigned_users/{project_id}` | Lista użytkowników przypisanych do projektu | ❌ | ✅ | ✅ | ❌ |
+| **DOSTĘPNOŚĆ** |||||||
+| POST | `/availability/my_availability` | Dodanie własnej dostępności | ✅ | ✅ | ✅ | ❌ |
+| GET | `/availability/my_availability` | Odczyt własnej dostępności (z filtrami) | ✅ | ✅ | ✅ | ❌ |
+| GET | `/availability/my_availability/{date}` | Odczyt własnej dostępności dla daty | ✅ | ✅ | ✅ | ❌ |
+| PUT | `/availability/my_availability/{date}` | Aktualizacja własnej dostępności | ✅ | ✅ | ✅ | ❌ |
+| DELETE | `/availability/my_availability/{date}` | Usunięcie własnej dostępności | ✅ | ✅ | ✅ | ❌ |
+| GET | `/availability/` | Odczyt dostępności wszystkich użytkowników (z filtrami) | ❌ | ✅ | ✅ | ❌ |
+| GET | `/availability/{user_id}/{date}` | Odczyt dostępności użytkownika dla daty | ❌ | ✅ | ✅ | ❌ |
+| **NIEOBECNOŚCI** |||||||
+| POST | `/absences/my_absences` | Dodanie własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
+| GET | `/absences/my_absences` | Odczyt własnych nieobecności (z filtrami) | ✅ | ✅ | ✅ | ❌ |
+| GET | `/absences/my_absences/{absence_id}` | Odczyt szczegółów własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
+| PUT | `/absences/my_absences/{absence_id}` | Aktualizacja własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
+| DELETE | `/absences/my_absences/{absence_id}` | Usunięcie własnej nieobecności | ✅ | ✅ | ✅ | ❌ |
+| GET | `/absences/` | Odczyt nieobecności wszystkich użytkowników (z filtrami) | ❌ | ✅ | ✅ | ❌ |
+| GET | `/absences/{absence_id}` | Odczyt szczegółów nieobecności użytkownika | ❌ | ✅ | ✅ | ❌ |
 
 ---
 
@@ -62,3 +78,11 @@
   - Nadawanie roli "admin" przy rejestracji/edycji może wykonać tylko użytkownik z rolą "admin".
   - Edycję danych użytkownika z rolą "admin" może wykonać tylko "admin".
   - Usuwanie użytkownika z rolą "admin" może wykonać tylko "admin".
+- Dostępność:
+  - Worker może dodawać, przeglądać, edytować i usuwać swoją dostępność (dostępny/niedostępny, przedziały czasowe).
+  - HR/Admin mają dostęp do dostępności wszystkich użytkowników z filtrowaniem (user_id, zakres dat).
+  - Walidacje: jeśli niedostępny, nie można podawać przedziału czasu; jeśli dostępny z czasem, time_from < time_to.
+- Nieobecności:
+  - Worker może dodawać, przeglądać, edytować i usuwać swoje nieobecności (urlop, L4, inne).
+  - HR/Admin mają dostęp do nieobecności wszystkich użytkowników z filtrowaniem (user_id, typ, zakres dat).
+  - Walidacje: date_from ≤ date_to.
