@@ -83,6 +83,48 @@ function setupEventListeners() {
     workerSearch.addEventListener('input', renderWorkersList);
   }
 
+  // === GŁÓWNY FORMULARZ (scheduleFormMain) ===
+  
+  // Formularz główny - submit
+  const scheduleFormMain = document.getElementById('scheduleFormMain');
+  if (scheduleFormMain) {
+    scheduleFormMain.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await handleSaveShiftMain();
+    });
+    
+    scheduleFormMain.addEventListener('reset', () => {
+      resetMainForm();
+    });
+  }
+  
+  // Wybór pracownika w głównym formularzu
+  const shiftWorkerMain = document.getElementById('shiftWorkerMain');
+  if (shiftWorkerMain) {
+    shiftWorkerMain.addEventListener('change', async () => {
+      await checkWorkerAvailabilityMain();
+      await loadWorkerProjectsMain();
+    });
+  }
+  
+  // Zmiana godzin w głównym formularzu
+  const shiftTimeFromMain = document.getElementById('shiftTimeFromMain');
+  const shiftTimeToMain = document.getElementById('shiftTimeToMain');
+  if (shiftTimeFromMain) {
+    shiftTimeFromMain.addEventListener('change', checkTimeConflictsMain);
+  }
+  if (shiftTimeToMain) {
+    shiftTimeToMain.addEventListener('change', checkTimeConflictsMain);
+  }
+  
+  // Przycisk usuń
+  const btnDeleteShiftMain = document.getElementById('btnDeleteShiftMain');
+  if (btnDeleteShiftMain) {
+    btnDeleteShiftMain.addEventListener('click', handleDeleteShiftMain);
+  }
+
+  // === MODAL (zachowany dla kompatybilności) ===
+  
   // Przycisk dodaj zmianę
   const btnAddShift = document.getElementById('btnAddShift');
   if (btnAddShift) {
@@ -171,6 +213,10 @@ async function initCalendar() {
   
   syncMonthYearControls();
   renderCalendar();
+  
+  // Załaduj dane dla bieżącego miesiąca
+  await loadMonthData();
+  renderCalendar(); // Przerenderuj z danymi
 
   // Handlers
   monthSelect.addEventListener('change', async () => {
@@ -278,13 +324,11 @@ function renderCalendar() {
         const dateStr = toApiDate(new Date(calYear, calMonth, day));
         const daySchedules = scheduleData.get(dateStr) || [];
         
-        // Kolorowanie według zapełnienia grafiku
-        if (daySchedules.length === 0) {
-          btn.classList.add('schedule-empty');
-        } else if (daySchedules.length >= allWorkers.filter(w => w.account_status === 'aktywny').length) {
-          btn.classList.add('schedule-full');
+        // Kolorowanie według zapełnienia grafiku - tylko 2 kolory
+        if (daySchedules.length > 0) {
+          btn.classList.add('schedule-full'); // zielony - jest grafik
         } else {
-          btn.classList.add('schedule-partial');
+          btn.classList.add('schedule-empty'); // szary - brak grafiku
         }
 
         // Badge z liczbą zmian
@@ -335,6 +379,15 @@ function onCalendarDayClick(ev) {
   // Pokaż szczegóły dnia
   renderDayDetails();
   
+  // Odśwież listę pracowników (aktualizuje kolory dostępności)
+  renderWorkersList();
+  
+  // Ustaw datę w głównym formularzu
+  const shiftDateMain = document.getElementById('shiftDateMain');
+  if (shiftDateMain) {
+    shiftDateMain.value = selectedDate;
+  }
+  
   // Aktywuj przycisk dodawania zmiany
   const btnAddShift = document.getElementById('btnAddShift');
   if (btnAddShift) {
@@ -378,6 +431,9 @@ async function loadWorkers() {
     
     // Populate select w modalu
     populateWorkerSelect();
+    
+    // Populate select w głównym formularzu
+    populateWorkerSelectMain();
   } catch (error) {
     console.error('Error loading workers:', error);
   }
@@ -658,10 +714,10 @@ function createWorkerCard(worker) {
   const minutes = monthlyData.totalMinutes % 60;
   
   // Dostępność dla wybranego dnia
-  let availabilityIcon = '';
+  let availabilityBadge = '';
   if (selectedDate) {
     const availability = getWorkerAvailabilityForDate(worker.user_id, selectedDate);
-    availabilityIcon = getAvailabilityIcon(availability);
+    availabilityBadge = getAvailabilityBadge(availability);
   }
 
   card.innerHTML = `
@@ -671,7 +727,7 @@ function createWorkerCard(worker) {
         <div class="worker-name">${worker.first_name} ${worker.last_name}</div>
         <div class="worker-role">${getRoleNamePL(worker.role)}</div>
       </div>
-      ${availabilityIcon}
+      ${availabilityBadge}
       <div class="worker-hours-badge ms-auto">
         ${hours}h ${minutes}min
       </div>
@@ -749,6 +805,36 @@ function getAvailabilityIcon(availability) {
   };
   
   return icons[availability.type] || '';
+}
+
+function getAvailabilityBadge(availability) {
+  if (!availability) return '';
+  
+  let badgeClass = '';
+  let badgeText = '';
+  
+  switch (availability.type) {
+    case 'available':
+      badgeClass = 'available';
+      badgeText = '\u2713'; // checkmark
+      break;
+    case 'partial':
+      badgeClass = 'partial';
+      // Pokaż godziny dostępności
+      if (availability.data && availability.data.time_from && availability.data.time_to) {
+        badgeText = `${availability.data.time_from.substring(0, 5)}-${availability.data.time_to.substring(0, 5)}`;
+      } else {
+        badgeText = '~';
+      }
+      break;
+    case 'unavailable':
+    case 'absence':
+      badgeClass = 'unavailable';
+      badgeText = '\u2715'; // x mark
+      break;
+  }
+  
+  return `<div class="availability-badge ${badgeClass}">${badgeText}</div>`;
 }
 
 // ============================================================================
@@ -1309,8 +1395,56 @@ function resetScheduleForm() {
 // ============================================================================
 
 window.editSchedule = async function(scheduleId) {
-  await openScheduleModal(scheduleId);
+  await editScheduleMain(scheduleId);
 };
+
+async function editScheduleMain(scheduleId) {
+  // Znajdź zmianę w danych
+  let scheduleToEdit = null;
+  for (const [date, schedules] of scheduleData.entries()) {
+    const found = schedules.find(s => s.schedule_id === scheduleId);
+    if (found) {
+      scheduleToEdit = found;
+      break;
+    }
+  }
+  
+  if (!scheduleToEdit) {
+    alert('Nie znaleziono zmiany do edycji');
+    return;
+  }
+  
+  // Przejdź do trybu edycji
+  isEditMode = true;
+  editingScheduleId = scheduleId;
+  
+  // Wypełnij formularz
+  document.getElementById('formTitle').textContent = 'Edytuj zmianę';
+  document.getElementById('shiftDateMain').value = scheduleToEdit.work_date;
+  document.getElementById('shiftWorkerMain').value = scheduleToEdit.user_id;
+  
+  // Załaduj projekty dla wybranego pracownika
+  await loadWorkerProjectsMain();
+  
+  // Ustaw projekt
+  document.getElementById('shiftProjectMain').value = scheduleToEdit.project_id;
+  
+  // Ustaw godziny (usuń sekundy)
+  const timeFrom = scheduleToEdit.time_from.substring(0, 5);
+  const timeTo = scheduleToEdit.time_to.substring(0, 5);
+  document.getElementById('shiftTimeFromMain').value = timeFrom;
+  document.getElementById('shiftTimeToMain').value = timeTo;
+  
+  // Pokaż przycisk usuń
+  document.getElementById('btnDeleteShiftMain').style.display = 'inline-block';
+  
+  // Sprawdź dostępność
+  await checkWorkerAvailabilityMain();
+  await checkTimeConflictsMain();
+  
+  // Przewiń do formularza
+  document.getElementById('scheduleFormMain').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 window.deleteSchedule = async function(scheduleId) {
   if (!confirm('Czy na pewno chcesz usunąć tę zmianę z grafiku?')) {
@@ -1385,4 +1519,364 @@ function calculateMinutesBetween(timeFrom, timeTo) {
 function capitalize(str) {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// ============================================================================
+// OBSŁUGA GŁÓWNEGO FORMULARZA (scheduleFormMain)
+// ============================================================================
+
+async function checkWorkerAvailabilityMain() {
+  const workerSelect = document.getElementById('shiftWorkerMain');
+  const dateInput = document.getElementById('shiftDateMain');
+  const infoDiv = document.getElementById('workerAvailabilityInfoMain');
+  
+  if (!workerSelect || !dateInput || !infoDiv) return;
+  
+  const userId = parseInt(workerSelect.value);
+  const date = dateInput.value;
+  
+  if (!userId || !date) {
+    infoDiv.innerHTML = '';
+    infoDiv.className = 'form-text mt-2';
+    return;
+  }
+  
+  const availability = getWorkerAvailabilityForDate(userId, date);
+  
+  infoDiv.className = 'form-text mt-2';
+  
+  if (!availability) {
+    infoDiv.innerHTML = '<i class="bi bi-info-circle me-1"></i>Brak deklaracji dostępności dla tego dnia';
+    return;
+  }
+  
+  if (availability.type === 'available') {
+    infoDiv.classList.add('available');
+    infoDiv.innerHTML = '<i class="bi bi-check-circle me-1"></i>Pracownik dostępny cały dzień';
+  } else if (availability.type === 'partial') {
+    infoDiv.classList.add('partial');
+    infoDiv.innerHTML = `<i class="bi bi-clock me-1"></i>Pracownik dostępny w godzinach: ${availability.data.time_from} - ${availability.data.time_to}`;
+  } else if (availability.type === 'unavailable') {
+    infoDiv.classList.add('unavailable');
+    infoDiv.innerHTML = '<i class="bi bi-x-circle me-1"></i>Uwaga: Pracownik oznaczony jako niedostępny';
+  } else if (availability.type === 'absence') {
+    infoDiv.classList.add('absence');
+    infoDiv.innerHTML = `<i class="bi bi-calendar-x me-1"></i>Uwaga: Pracownik ma nieobecność (${availability.data.absence_type})`;
+  }
+}
+
+async function loadWorkerProjectsMain() {
+  const workerSelect = document.getElementById('shiftWorkerMain');
+  const projectSelect = document.getElementById('shiftProjectMain');
+  
+  if (!workerSelect || !projectSelect) return;
+  
+  const userId = parseInt(workerSelect.value);
+  
+  if (!userId) {
+    projectSelect.innerHTML = '<option value="">Najpierw wybierz pracownika...</option>';
+    projectSelect.disabled = true;
+    return;
+  }
+  
+  try {
+    // Załaduj przypisania projektów dla tego użytkownika
+    const userProjectsResponse = await fetch(`/user_projects?user_id=${userId}`, {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!userProjectsResponse.ok) {
+      throw new Error('Błąd ładowania projektów użytkownika');
+    }
+
+    const userProjects = await userProjectsResponse.json();
+    
+    // Załaduj wszystkie projekty
+    const projectsResponse = await fetch('/projects/', {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!projectsResponse.ok) {
+      throw new Error('Błąd ładowania projektów');
+    }
+
+    const allProjects = await projectsResponse.json();
+    
+    // Filtruj projekty przypisane do użytkownika
+    const assignedProjectIds = new Set(userProjects.map(up => up.project_id));
+    const assignedProjects = allProjects.filter(p => assignedProjectIds.has(p.project_id));
+    
+    // Wypełnij select
+    projectSelect.innerHTML = '';
+    
+    if (assignedProjects.length === 0) {
+      projectSelect.innerHTML = '<option value="">Brak przypisanych projektów</option>';
+      projectSelect.disabled = true;
+      return;
+    }
+    
+    projectSelect.innerHTML = '<option value="">Wybierz projekt...</option>';
+    assignedProjects.forEach(project => {
+      const opt = document.createElement('option');
+      opt.value = project.project_id;
+      opt.textContent = project.project_name;
+      projectSelect.appendChild(opt);
+    });
+    
+    projectSelect.disabled = false;
+  } catch (error) {
+    console.error('Error loading worker projects:', error);
+    projectSelect.innerHTML = '<option value="">Błąd ładowania projektów</option>';
+    projectSelect.disabled = true;
+  }
+}
+
+async function checkTimeConflictsMain() {
+  const workerSelect = document.getElementById('shiftWorkerMain');
+  const dateInput = document.getElementById('shiftDateMain');
+  const timeFrom = document.getElementById('shiftTimeFromMain');
+  const timeTo = document.getElementById('shiftTimeToMain');
+  const conflictWarning = document.getElementById('conflictWarningMain');
+  const conflictMessage = document.getElementById('conflictMessageMain');
+  
+  if (!workerSelect || !dateInput || !timeFrom || !timeTo || !conflictWarning || !conflictMessage) return;
+  
+  const userId = parseInt(workerSelect.value);
+  const date = dateInput.value;
+  const from = timeFrom.value;
+  const to = timeTo.value;
+  
+  if (!userId || !date || !from || !to) {
+    conflictWarning.style.display = 'none';
+    return;
+  }
+  
+  // Sprawdź czy godziny są poprawne
+  if (from >= to) {
+    conflictWarning.style.display = 'block';
+    conflictMessage.textContent = 'Godzina rozpoczęcia musi być wcześniejsza niż godzina zakończenia';
+    return;
+  }
+  
+  // Pobierz zmiany dla tego dnia
+  const daySchedules = scheduleData.get(date) || [];
+  
+  // Sprawdź konflikty dla tego samego pracownika
+  const workerSchedules = daySchedules.filter(s => s.user_id === userId && s.schedule_id !== editingScheduleId);
+  
+  const hasConflict = workerSchedules.some(schedule => {
+    return timeRangesOverlap(from, to, schedule.time_from, schedule.time_to);
+  });
+  
+  if (hasConflict) {
+    conflictWarning.style.display = 'block';
+    conflictMessage.textContent = 'Uwaga: Ten pracownik ma już zmianę w tym czasie!';
+  } else {
+    conflictWarning.style.display = 'none';
+  }
+}
+
+async function handleSaveShiftMain() {
+  const form = document.getElementById('scheduleFormMain');
+  if (!form.checkValidity()) {
+    form.reportValidity();
+    return;
+  }
+
+  // Pobierz dane z formularza
+  const userId = parseInt(document.getElementById('shiftWorkerMain').value);
+  const date = document.getElementById('shiftDateMain').value;
+  const timeFrom = document.getElementById('shiftTimeFromMain').value;
+  const timeTo = document.getElementById('shiftTimeToMain').value;
+  
+  // Typ zmiany - zawsze normalna
+  const shiftType = 'normalna';
+  
+  // Projekt - zawsze wymagany
+  const projectId = parseInt(document.getElementById('shiftProjectMain').value);
+  if (!projectId) {
+    alert('Wybierz projekt');
+    return;
+  }
+
+  // Walidacja czasu
+  if (timeFrom >= timeTo) {
+    alert('Godzina rozpoczęcia musi być wcześniejsza niż zakończenia');
+    return;
+  }
+
+  // Sprawdź konflikty
+  const daySchedules = scheduleData.get(date) || [];
+  const workerSchedules = daySchedules.filter(s => s.user_id === userId && s.schedule_id !== editingScheduleId);
+  const hasConflict = workerSchedules.some(schedule => {
+    return timeRangesOverlap(timeFrom, timeTo, schedule.time_from, schedule.time_to);
+  });
+
+  if (hasConflict) {
+    if (!confirm('Ten pracownik ma już zmianę w tym czasie. Czy na pewno chcesz dodać kolejną?')) {
+      return;
+    }
+  }
+
+  // Przygotuj payload
+  const payload = {
+    user_id: userId,
+    work_date: date,
+    time_from: timeFrom + ':00',
+    time_to: timeTo + ':00',
+    shift_type: shiftType,
+    project_id: projectId
+  };
+
+  try {
+    let response;
+    
+    if (isEditMode) {
+      // PUT - edycja
+      response = await fetch(`/schedule/${editingScheduleId}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      // POST - nowa zmiana
+      response = await fetch('/schedule/', {
+        method: 'POST',
+        headers: {
+          'Authorization': authHeader,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    }
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      const errorText = await safeReadText(response);
+      throw new Error(errorText || 'Błąd zapisywania zmiany');
+    }
+
+    // Sukces
+    alert(isEditMode ? 'Zmiana zaktualizowana!' : 'Zmiana dodana do grafiku!');
+    resetMainForm();
+    
+    // Odśwież dane
+    await loadMonthData();
+    renderCalendar();
+    renderWorkersList();
+    if (selectedDate) {
+      renderDayDetails();
+    }
+  } catch (error) {
+    console.error('Error saving shift:', error);
+    alert('Błąd: ' + (error.message || 'Nieznany błąd'));
+  }
+}
+
+async function handleDeleteShiftMain() {
+  if (!editingScheduleId) return;
+  
+  if (!confirm('Czy na pewno chcesz usunąć tę zmianę z grafiku?')) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/schedule/${editingScheduleId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': authHeader
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      const errorText = await safeReadText(response);
+      throw new Error(errorText || 'Błąd usuwania zmiany');
+    }
+
+    alert('Zmiana usunięta z grafiku!');
+    resetMainForm();
+    
+    // Odśwież dane
+    await loadMonthData();
+    renderCalendar();
+    renderWorkersList();
+    if (selectedDate) {
+      renderDayDetails();
+    }
+  } catch (error) {
+    console.error('Error deleting shift:', error);
+    alert('Błąd: ' + (error.message || 'Nieznany błąd'));
+  }
+}
+
+function resetMainForm() {
+  const form = document.getElementById('scheduleFormMain');
+  if (form) {
+    form.reset();
+  }
+  
+  isEditMode = false;
+  editingScheduleId = null;
+  
+  // Reset tytułu
+  document.getElementById('formTitle').textContent = 'Dodaj zmianę do grafiku';
+  
+  // Ukryj przycisk usuń
+  document.getElementById('btnDeleteShiftMain').style.display = 'none';
+  
+  // Reset listy projektów
+  const projectSelect = document.getElementById('shiftProjectMain');
+  if (projectSelect) {
+    projectSelect.innerHTML = '<option value="">Najpierw wybierz pracownika...</option>';
+    projectSelect.disabled = true;
+  }
+  
+  // Wyczyść ostrzeżenia
+  document.getElementById('conflictWarningMain').style.display = 'none';
+  document.getElementById('workerAvailabilityInfoMain').innerHTML = '';
+  document.getElementById('workerAvailabilityInfoMain').className = 'form-text mt-2';
+  
+  // Załaduj wszystkich pracowników do selecta
+  populateWorkerSelectMain();
+}
+
+function populateWorkerSelectMain() {
+  const select = document.getElementById('shiftWorkerMain');
+  if (!select) return;
+  
+  select.innerHTML = '<option value="">Wybierz pracownika...</option>';
+  
+  allWorkers
+    .filter(w => w.account_status === 'aktywny')
+    .sort((a, b) => {
+      const nameA = `${a.first_name} ${a.last_name}`;
+      const nameB = `${b.first_name} ${b.last_name}`;
+      return nameA.localeCompare(nameB);
+    })
+    .forEach(worker => {
+      const opt = document.createElement('option');
+      opt.value = worker.user_id;
+      opt.textContent = `${worker.first_name} ${worker.last_name}`;
+      select.appendChild(opt);
+    });
 }

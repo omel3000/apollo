@@ -103,10 +103,83 @@
                     <h2 class="h2">Grafik pracowników</h2>
                 </div>
 
-                <!-- Główny kontener z kalendarzem i listą pracowników -->
+                <!-- Główny kontener - formularz i kalendarz -->
                 <div class="row">
-                    <!-- Kalendarz - lewy panel -->
-                    <div class="col-lg-4 col-md-12 mb-4 order-lg-1 order-2">
+                    <!-- Formularz dodawania zmiany - lewy górny -->
+                    <div class="col-lg-6 col-md-12 mb-4 order-lg-1 order-1">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="bi bi-plus-circle me-2"></i>
+                                    <span id="formTitle">Dodaj zmianę do grafiku</span>
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="scheduleFormMain">
+                                    <!-- Data -->
+                                    <div class="mb-3">
+                                        <label for="shiftDateMain" class="form-label">Data:</label>
+                                        <input type="date" id="shiftDateMain" class="form-control" required>
+                                    </div>
+
+                                    <!-- Pracownik -->
+                                    <div class="mb-3">
+                                        <label for="shiftWorkerMain" class="form-label">Pracownik:</label>
+                                        <select id="shiftWorkerMain" class="form-select" required>
+                                            <option value="">Wybierz pracownika...</option>
+                                        </select>
+                                        <div id="workerAvailabilityInfoMain" class="form-text mt-2"></div>
+                                    </div>
+
+                                    <!-- Projekt (przypisane do pracownika) -->
+                                    <div class="mb-3" id="projectGroupMain">
+                                        <label for="shiftProjectMain" class="form-label">Projekt (przypisany do pracownika):</label>
+                                        <select id="shiftProjectMain" class="form-select" required>
+                                            <option value="">Najpierw wybierz pracownika...</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Godziny -->
+                                    <div class="mb-3">
+                                        <label class="form-label">Godziny pracy:</label>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">Od</span>
+                                                    <input type="time" id="shiftTimeFromMain" class="form-control" required step="60">
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">Do</span>
+                                                    <input type="time" id="shiftTimeToMain" class="form-control" required step="60">
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="conflictWarningMain" class="alert alert-warning mt-2" style="display: none;">
+                                            <i class="bi bi-exclamation-triangle me-2"></i>
+                                            <span id="conflictMessageMain"></span>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" id="btnSaveShiftMain" class="btn btn-primary">
+                                            <i class="bi bi-save me-1"></i>Zapisz zmianę
+                                        </button>
+                                        <button type="button" id="btnDeleteShiftMain" class="btn btn-danger" style="display: none;">
+                                            <i class="bi bi-trash me-1"></i>Usuń
+                                        </button>
+                                        <button type="reset" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-circle me-1"></i>Wyczyść
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kalendarz - prawy górny -->
+                    <div class="col-lg-6 col-md-12 mb-4 order-lg-2 order-2">
                         <div class="card shadow-sm schedule-calendar-card">
                             <div class="card-header bg-primary text-white">
                                 <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Kalendarz</h5>
@@ -132,21 +205,22 @@
                                 <div class="mt-3 pt-3 border-top">
                                     <h6 class="small text-uppercase mb-2">Legenda:</h6>
                                     <div class="small">
-                                        <div class="mb-1"><span class="badge" style="background-color: #c8e6c9; color: #1b5e20;">■</span> Grafik pełny</div>
-                                        <div class="mb-1"><span class="badge" style="background-color: #fff9c4; color: #f57f17;">■</span> Grafik częściowy</div>
+                                        <div class="mb-1"><span class="badge" style="background-color: #c8e6c9; color: #1b5e20;">■</span> Dodany grafik</div>
                                         <div class="mb-1"><span class="badge" style="background-color: #E5DED8; color: #261C1E;">■</span> Brak grafiku</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
 
-                    <!-- Lista pracowników - prawy górny panel -->
-                    <div class="col-lg-8 col-md-12 mb-4 order-lg-2 order-1">
+                <!-- Lista pracowników - pełna szerokość pod kalendarzem -->
+                <div class="row">
+                    <div class="col-12 mb-4">
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
                                 <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Pracownicy</h5>
+                                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Pracownicy - podsumowanie miesiąca</h5>
                                     <div class="d-flex gap-2 mt-2 mt-md-0">
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="checkbox" id="filterActiveOnly" checked>
@@ -180,15 +254,10 @@
                     <div class="col-12">
                         <div class="card shadow-sm mb-4">
                             <div class="card-header bg-primary text-white">
-                                <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                    <h5 class="mb-0">
-                                        <i class="bi bi-calendar-day me-2"></i>
-                                        <span id="selectedDayTitle">Wybierz dzień z kalendarza</span>
-                                    </h5>
-                                    <button type="button" id="btnAddShift" class="btn btn-sm btn-light" disabled>
-                                        <i class="bi bi-plus-circle me-1"></i>Dodaj zmianę
-                                    </button>
-                                </div>
+                                <h5 class="mb-0">
+                                    <i class="bi bi-calendar-day me-2"></i>
+                                    <span id="selectedDayTitle">Wybierz dzień z kalendarza</span>
+                                </h5>
                             </div>
                             <div class="card-body">
                                 <div id="dayDetailsContainer">

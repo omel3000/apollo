@@ -81,11 +81,6 @@
     color: #1b5e20 !important;
 }
 
-#calGrid button[data-day].schedule-partial {
-    background-color: #fff9c4 !important;
-    color: #f57f17 !important;
-}
-
 #calGrid button[data-day].schedule-empty {
     background-color: #E5DED8 !important;
     color: #261C1E !important;
@@ -256,6 +251,45 @@
 
 .availability-icon.absence {
     color: #4a148c;
+}
+
+/* Badge dostępności (kolorowe kółko) */
+.availability-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-left: 12px;
+    font-weight: 600;
+    font-size: 0.75rem;
+    padding: 4px;
+    text-align: center;
+    line-height: 1.2;
+}
+
+.availability-badge.available {
+    background-color: #2e7d32;
+    color: white;
+    font-size: 1.2rem;
+}
+
+.availability-badge.partial {
+    background-color: #f57f17;
+    color: white;
+    font-size: 0.65rem;
+    min-width: 55px;
+    width: auto;
+    border-radius: 20px;
+    padding: 6px 8px;
+    white-space: nowrap;
+}
+
+.availability-badge.unavailable {
+    background-color: #9c27b0;
+    color: white;
+    font-size: 1.2rem;
 }
 
 /* ============================================================================
