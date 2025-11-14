@@ -233,40 +233,11 @@
                             <div id="workerAvailabilityInfo" class="form-text mt-2"></div>
                         </div>
 
-                        <!-- Typ zmiany -->
-                        <div class="mb-3">
-                            <label class="form-label">Typ zmiany:</label>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="shiftType" id="shiftNormal" value="normalna" checked>
-                                <label class="form-check-label" for="shiftNormal">
-                                    Normalna (praca w projekcie)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="shiftType" id="shiftUrlop" value="urlop">
-                                <label class="form-check-label" for="shiftUrlop">
-                                    Urlop
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="shiftType" id="shiftL4" value="L4">
-                                <label class="form-check-label" for="shiftL4">
-                                    L4 (zwolnienie lekarskie)
-                                </label>
-                            </div>
-                            <div class="form-check">
-                                <input class="form-check-input" type="radio" name="shiftType" id="shiftInne" value="inne">
-                                <label class="form-check-label" for="shiftInne">
-                                    Inne
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- Projekt (tylko dla normalnej zmiany) -->
+                        <!-- Projekt (przypisane do pracownika) -->
                         <div class="mb-3" id="projectGroup">
-                            <label for="shiftProject" class="form-label">Projekt:</label>
+                            <label for="shiftProject" class="form-label">Projekt (przypisany do pracownika):</label>
                             <select id="shiftProject" class="form-select" required>
-                                <option value="">Wybierz projekt...</option>
+                                <option value="">Najpierw wybierz pracownika...</option>
                             </select>
                         </div>
 

@@ -95,16 +95,13 @@ function setupEventListeners() {
     btnSaveShift.addEventListener('click', handleSaveShift);
   }
 
-  // Radio buttons - typ zmiany
-  const shiftTypeRadios = document.querySelectorAll('input[name="shiftType"]');
-  shiftTypeRadios.forEach(radio => {
-    radio.addEventListener('change', handleShiftTypeChange);
-  });
-
-  // Wybór pracownika - sprawdzanie dostępności
+  // Wybór pracownika - sprawdzanie dostępności i ładowanie jego projektów
   const shiftWorker = document.getElementById('shiftWorker');
   if (shiftWorker) {
-    shiftWorker.addEventListener('change', checkWorkerAvailability);
+    shiftWorker.addEventListener('change', async () => {
+      await checkWorkerAvailability();
+      await loadWorkerProjects();
+    });
   }
 
   // Zmiana godzin - sprawdzanie konfliktów
@@ -961,9 +958,6 @@ async function openScheduleModal(scheduleId = null) {
     dateInput.value = selectedDate || toApiDate(new Date());
   }
 
-  // Załaduj projekty
-  await loadProjects();
-
   if (isEditMode) {
     // Tryb edycji - załaduj dane zmiany
     await loadScheduleForEdit(scheduleId);
@@ -976,34 +970,83 @@ async function openScheduleModal(scheduleId = null) {
   scheduleModal.show();
 }
 
-async function loadProjects() {
+async function loadWorkerProjects() {
+  const workerSelect = document.getElementById('shiftWorker');
+  const projectSelect = document.getElementById('shiftProject');
+  
+  if (!workerSelect || !projectSelect) return;
+  
+  const userId = parseInt(workerSelect.value);
+  
+  if (!userId) {
+    projectSelect.innerHTML = '<option value="">Najpierw wybierz pracownika...</option>';
+    projectSelect.disabled = true;
+    return;
+  }
+  
   try {
-    const response = await fetch('/projects', {
+    // Pobierz wszystkie projekty
+    const projectsResponse = await fetch('/projects', {
       headers: {
         'Authorization': authHeader,
         'Accept': 'application/json'
       }
     });
-
-    if (!response.ok) {
+    
+    if (!projectsResponse.ok) {
       console.warn('Failed to load projects');
+      projectSelect.innerHTML = '<option value="">Błąd ładowania projektów</option>';
       return;
     }
-
-    const projects = await response.json();
     
-    const select = document.getElementById('shiftProject');
-    if (select) {
-      select.innerHTML = '<option value="">Wybierz projekt...</option>';
-      projects.forEach(project => {
+    const allProjects = await projectsResponse.json();
+    
+    // Pobierz przypisania dla wybranego użytkownika
+    const assignmentsResponse = await fetch(`/user_projects?user_id=${userId}`, {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+    
+    if (!assignmentsResponse.ok) {
+      console.warn('Failed to load user assignments');
+      projectSelect.innerHTML = '<option value="">Błąd ładowania przypisanych projektów</option>';
+      return;
+    }
+    
+    const assignments = await assignmentsResponse.json();
+    
+    // Pobierz ID projektów przypisanych do użytkownika
+    const userProjectIds = assignments.map(a => a.project_id);
+    
+    // Filtruj projekty przypisane do wybranego użytkownika
+    const userProjects = allProjects.filter(p => userProjectIds.includes(p.project_id));
+    
+    projectSelect.innerHTML = '<option value="">Wybierz projekt...</option>';
+    
+    if (userProjects.length === 0) {
+      const option = document.createElement('option');
+      option.value = '';
+      option.textContent = 'Brak przypisanych projektów dla tego pracownika';
+      option.disabled = true;
+      projectSelect.appendChild(option);
+      projectSelect.disabled = true;
+    } else {
+      // Sortuj projekty alfabetycznie
+      userProjects.sort((a, b) => a.project_name.localeCompare(b.project_name));
+      
+      userProjects.forEach(project => {
         const option = document.createElement('option');
         option.value = project.project_id;
         option.textContent = project.project_name;
-        select.appendChild(option);
+        projectSelect.appendChild(option);
       });
+      projectSelect.disabled = false;
     }
   } catch (error) {
-    console.error('Error loading projects:', error);
+    console.error('Error loading worker projects:', error);
+    projectSelect.innerHTML = '<option value="">Błąd ładowania projektów</option>';
   }
 }
 
@@ -1028,12 +1071,8 @@ async function loadScheduleForEdit(scheduleId) {
     document.getElementById('shiftTimeFrom').value = schedule.time_from;
     document.getElementById('shiftTimeTo').value = schedule.time_to;
     
-    // Ustaw typ zmiany
-    const typeRadio = document.getElementById(`shift${capitalize(schedule.shift_type)}`);
-    if (typeRadio) {
-      typeRadio.checked = true;
-      handleShiftTypeChange();
-    }
+    // Załaduj projekty pracownika
+    await loadWorkerProjects();
     
     // Ustaw projekt jeśli jest
     if (schedule.project_id) {
@@ -1046,21 +1085,6 @@ async function loadScheduleForEdit(scheduleId) {
     console.error('Error loading schedule for edit:', error);
     alert('Błąd ładowania danych zmiany');
     scheduleModal.hide();
-  }
-}
-
-function handleShiftTypeChange() {
-  const projectGroup = document.getElementById('projectGroup');
-  const shiftProject = document.getElementById('shiftProject');
-  const normalRadio = document.getElementById('shiftNormal');
-  
-  if (normalRadio && normalRadio.checked) {
-    projectGroup.style.display = 'block';
-    shiftProject.required = true;
-  } else {
-    projectGroup.style.display = 'none';
-    shiftProject.required = false;
-    shiftProject.value = '';
   }
 }
 
@@ -1166,24 +1190,14 @@ async function handleSaveShift() {
   const timeFrom = document.getElementById('shiftTimeFrom').value;
   const timeTo = document.getElementById('shiftTimeTo').value;
   
-  // Typ zmiany
-  let shiftType = 'normalna';
-  const typeRadios = document.querySelectorAll('input[name="shiftType"]');
-  for (const radio of typeRadios) {
-    if (radio.checked) {
-      shiftType = radio.value;
-      break;
-    }
-  }
+  // Typ zmiany - zawsze normalna
+  const shiftType = 'normalna';
   
-  // Projekt (tylko dla normalnej)
-  let projectId = null;
-  if (shiftType === 'normalna') {
-    projectId = parseInt(document.getElementById('shiftProject').value);
-    if (!projectId) {
-      alert('Wybierz projekt dla normalnej zmiany');
-      return;
-    }
+  // Projekt - zawsze wymagany
+  const projectId = parseInt(document.getElementById('shiftProject').value);
+  if (!projectId) {
+    alert('Wybierz projekt');
+    return;
   }
 
   // Walidacja czasu
@@ -1277,9 +1291,12 @@ function resetScheduleForm() {
   isEditMode = false;
   editingScheduleId = null;
   
-  // Pokaż grupę projektu (domyślnie normalna zmiana)
-  document.getElementById('projectGroup').style.display = 'block';
-  document.getElementById('shiftProject').required = true;
+  // Reset listy projektów
+  const projectSelect = document.getElementById('shiftProject');
+  if (projectSelect) {
+    projectSelect.innerHTML = '<option value="">Najpierw wybierz pracownika...</option>';
+    projectSelect.disabled = true;
+  }
   
   // Wyczyść ostrzeżenia
   document.getElementById('conflictWarning').style.display = 'none';
