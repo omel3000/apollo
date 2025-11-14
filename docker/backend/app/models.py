@@ -21,6 +21,8 @@ class User(Base):
     registration_date = Column(DateTime(timezone=True), server_default=func.now())
     account_status = Column(String(50), nullable=False, default="aktywny")
     password_reset_token = Column(String(255), nullable=True)
+    birth_date = Column(Date, nullable=True)
+    address = Column(String(500), nullable=True)
 
 class Project(Base):
     __tablename__ = "projects"

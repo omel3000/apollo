@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize or reset failed attempts based on token
   initializeFailedAttempts(token);
   
+  // Load user account details
+  loadAccountDetails();
+  
   // Setup form handlers
   setupChangeEmailForm();
   setupChangePasswordForm();
@@ -65,6 +68,41 @@ function simpleHash(str) {
     hash = hash & hash; // Convert to 32bit integer
   }
   return hash.toString();
+}
+
+async function loadAccountDetails() {
+  try {
+    const response = await fetch('/users/me', {
+      method: 'GET',
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      console.error('Failed to load account details:', response.status);
+      return;
+    }
+
+    const userData = await response.json();
+    
+    // Wypełnij pola formularza
+    document.getElementById('accountEmail').value = userData.email || '';
+    document.getElementById('accountPhone').value = userData.phone_number || '';
+    document.getElementById('accountFirstName').value = userData.first_name || '';
+    document.getElementById('accountLastName').value = userData.last_name || '';
+    document.getElementById('accountBirthDate').value = userData.birth_date || '';
+    document.getElementById('accountAddress').value = userData.address || '';
+    
+  } catch (error) {
+    console.error('Error loading account details:', error);
+  }
 }
 
 function setupChangeEmailForm() {
@@ -133,6 +171,9 @@ function setupChangeEmailForm() {
       
       // Clear form
       form.reset();
+      
+      // Reload account details to show new email
+      loadAccountDetails();
       
     } catch (error) {
       console.error('Error changing email:', error);

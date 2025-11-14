@@ -461,6 +461,10 @@ def update_user(db: Session, user_id: int, user_update: UserUpdate):
         user.role = user_update.role
     if user_update.account_status is not None:
         user.account_status = user_update.account_status
+    if user_update.birth_date is not None:
+        user.birth_date = user_update.birth_date
+    if user_update.address is not None:
+        user.address = user_update.address
 
     db.commit()
     db.refresh(user)

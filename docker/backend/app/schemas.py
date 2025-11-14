@@ -14,6 +14,8 @@ class UserBase(BaseModel):
     email: EmailStr
     phone_number: Optional[str]
     role: str
+    birth_date: Optional[date] = None
+    address: Optional[str] = None
 
     @field_validator("email", mode="before")
     def normalize_email(cls, v):
@@ -164,6 +166,8 @@ class UserUpdate(BaseModel):
     phone_number: Optional[str] = None
     role: Optional[str] = None
     account_status: Optional[str] = None
+    birth_date: Optional[date] = None
+    address: Optional[str] = None
 
     @field_validator("email", mode="before")
     def normalize_email(cls, v):
