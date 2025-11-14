@@ -137,8 +137,10 @@ function setupAvailabilityForm() {
 
   form.addEventListener('reset', () => {
     const dateInput = document.getElementById('availabilityDate');
+    const currentDate = dateInput ? dateInput.value : toApiDate(new Date());
+    
     if (dateInput) {
-      dateInput.value = toApiDate(new Date());
+      dateInput.value = currentDate; // Zachowaj aktualną datę
     }
     document.getElementById('timeRangeGroup').style.display = 'none';
     
@@ -146,6 +148,7 @@ function setupAvailabilityForm() {
     const cardHeader = document.getElementById('availabilityCardHeader');
     const cardTitle = document.getElementById('availabilityCardTitle');
     const submitBtn = document.getElementById('availabilitySubmitBtn');
+    const deleteBtn = document.getElementById('availabilityDeleteBtn');
     
     if (cardHeader) {
       cardHeader.style.backgroundColor = '#c8e6c9';
@@ -157,6 +160,9 @@ function setupAvailabilityForm() {
       submitBtn.style.backgroundColor = '#2e7d32';
       submitBtn.style.color = 'white';
       submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz dostępność';
+    }
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
     }
     
     // Wyłącz tryb edycji
@@ -251,17 +257,24 @@ async function handleAvailabilitySubmit() {
 
     alert(isEditingAvailability ? 'Dostępność zaktualizowana!' : 'Dostępność zapisana!');
     
-    // Wyczyść formularz
+    // Zachowaj wybraną datę
+    const currentDate = date;
+    
+    // Wyczyść formularz ale zachowaj datę
     document.getElementById('availabilityForm').reset();
-    document.getElementById('availabilityDate').value = toApiDate(new Date());
+    document.getElementById('availabilityDate').value = currentDate;
     document.getElementById('timeRangeGroup').style.display = 'none';
     
     // Przywróć tryb dodawania
     isEditingAvailability = false;
     editingAvailabilityDate = null;
     const submitBtn = document.getElementById('availabilitySubmitBtn');
+    const deleteBtn = document.getElementById('availabilityDeleteBtn');
     if (submitBtn) {
       submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz dostępność';
+    }
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
     }
 
     // Odśwież dane
@@ -297,15 +310,22 @@ function setupAbsenceForm() {
   form.addEventListener('reset', () => {
     const dateFromInput = document.getElementById('absenceDateFrom');
     const dateToInput = document.getElementById('absenceDateTo');
-    if (dateFromInput) dateFromInput.value = toApiDate(new Date());
-    if (dateToInput) dateToInput.value = toApiDate(new Date());
+    const currentDateFrom = dateFromInput ? dateFromInput.value : toApiDate(new Date());
+    const currentDateTo = dateToInput ? dateToInput.value : toApiDate(new Date());
+    
+    if (dateFromInput) dateFromInput.value = currentDateFrom; // Zachowaj aktualną datę
+    if (dateToInput) dateToInput.value = currentDateTo; // Zachowaj aktualną datę
     
     // Przywróć tryb dodawania
     isEditingAbsence = false;
     editingAbsenceDateFrom = null;
     const submitBtn = document.getElementById('absenceSubmitBtn');
+    const deleteBtn = document.getElementById('absenceDeleteBtn');
     if (submitBtn) {
       submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz nieobecność';
+    }
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
     }
   });
 }
@@ -373,17 +393,33 @@ async function handleAbsenceSubmit() {
 
     alert(isEditingAbsence ? 'Nieobecność zaktualizowana!' : 'Nieobecność zapisana!');
     
+    // Zachowaj wybrane daty
+    const dateFromInput = document.getElementById('absenceDateFrom');
+    const dateToInput = document.getElementById('absenceDateTo');
+    const currentDateFrom = dateFromInput ? dateFromInput.value : toApiDate(new Date());
+    const currentDateTo = dateToInput ? dateToInput.value : toApiDate(new Date());
+    
     // Wyczyść formularz
     document.getElementById('absenceForm').reset();
-    document.getElementById('absenceDateFrom').value = toApiDate(new Date());
-    document.getElementById('absenceDateTo').value = toApiDate(new Date());
+    
+    // Przywróć zachowane daty
+    if (dateFromInput) {
+      dateFromInput.value = currentDateFrom;
+    }
+    if (dateToInput) {
+      dateToInput.value = currentDateTo;
+    }
     
     // Przywróć tryb dodawania
     isEditingAbsence = false;
     editingAbsenceDateFrom = null;
     const submitBtn = document.getElementById('absenceSubmitBtn');
+    const deleteBtn = document.getElementById('absenceDeleteBtn');
     if (submitBtn) {
       submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz nieobecność';
+    }
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
     }
 
     // Odśwież dane
@@ -778,6 +814,12 @@ function onCalendarDayClick(ev) {
         submitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany dostępności';
       }
     }
+    
+    // Pokaż przycisk usuń dla dostępności
+    const availDeleteBtn = document.getElementById('availabilityDeleteBtn');
+    if (availDeleteBtn) {
+      availDeleteBtn.style.display = 'inline-block';
+    }
   } else {
     // Brak dostępności - tryb dodawania, ustaw domyślnie na "Dostępny cały dzień" (zielony)
     isEditingAvailability = false;
@@ -794,6 +836,12 @@ function onCalendarDayClick(ev) {
       submitBtn.style.backgroundColor = '#2e7d32';
       submitBtn.style.color = 'white';
       submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz dostępność';
+    }
+    
+    // Ukryj przycisk usuń dla dostępności
+    const availDeleteBtn = document.getElementById('availabilityDeleteBtn');
+    if (availDeleteBtn) {
+      availDeleteBtn.style.display = 'none';
     }
   }
   
@@ -815,6 +863,12 @@ function onCalendarDayClick(ev) {
     if (absenceSubmitBtn) {
       absenceSubmitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany nieobecności';
     }
+    
+    // Pokaż przycisk usuń dla nieobecności
+    const absDeleteBtn = document.getElementById('absenceDeleteBtn');
+    if (absDeleteBtn) {
+      absDeleteBtn.style.display = 'inline-block';
+    }
   } else {
     // Tryb dodawania nieobecności
     isEditingAbsence = false;
@@ -822,6 +876,12 @@ function onCalendarDayClick(ev) {
     
     if (absenceSubmitBtn) {
       absenceSubmitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz nieobecność';
+    }
+    
+    // Ukryj przycisk usuń dla nieobecności
+    const absDeleteBtn = document.getElementById('absenceDeleteBtn');
+    if (absDeleteBtn) {
+      absDeleteBtn.style.display = 'none';
     }
   }
 }
@@ -868,9 +928,14 @@ function renderAvailabilityList() {
             <strong>${formatDatePL(dateStr)}</strong>
             <span class="badge ${badgeClass} ms-2">${statusText}</span>
           </div>
-          <button type="button" class="btn btn-sm btn-danger" onclick="deleteAvailability('${dateStr}')">
-            <i class="bi bi-trash"></i> Usuń
-          </button>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-primary" onclick="editAvailability('${dateStr}')">
+              <i class="bi bi-pencil"></i> Modyfikuj
+            </button>
+            <button type="button" class="btn btn-danger" onclick="deleteAvailability('${dateStr}')">
+              <i class="bi bi-trash"></i> Usuń
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -912,9 +977,14 @@ function renderAbsenceList() {
             <strong>${formatDatePL(absence.date_from)} - ${formatDatePL(absence.date_to)}</strong>
             <span class="badge bg-purple text-white ms-2">${typeText}</span>
           </div>
-          <button type="button" class="btn btn-sm btn-danger" onclick="deleteAbsence('${absence.date_from}')">
-            <i class="bi bi-trash"></i> Usuń
-          </button>
+          <div class="btn-group btn-group-sm">
+            <button type="button" class="btn btn-outline-primary" onclick="editAbsence('${absence.date_from}')">
+              <i class="bi bi-pencil"></i> Modyfikuj
+            </button>
+            <button type="button" class="btn btn-danger" onclick="deleteAbsence('${absence.date_from}')">
+              <i class="bi bi-trash"></i> Usuń
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -926,6 +996,256 @@ function renderAbsenceList() {
 // ============================================================================
 // Usuwanie wpisów
 // ============================================================================
+
+window.deleteCurrentAvailability = async function() {
+  if (!isEditingAvailability || !editingAvailabilityDate) {
+    alert('Nie ma wybranego wpisu do usunięcia.');
+    return;
+  }
+
+  if (!confirm(`Czy na pewno chcesz usunąć dostępność z dnia ${editingAvailabilityDate}?`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/availability/my_availability/${editingAvailabilityDate}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': authHeader
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      const message = await safeReadText(response);
+      throw new Error(message || 'Błąd usuwania dostępności');
+    }
+
+    alert('Dostępność usunięta!');
+    
+    // Zachowaj bieżącą datę
+    const currentDate = editingAvailabilityDate;
+    
+    // Wyczyść formularz
+    const form = document.getElementById('availabilityForm');
+    form.reset();
+    
+    // Przywróć tryb dodawania
+    isEditingAvailability = false;
+    editingAvailabilityDate = null;
+    
+    // Ustaw zachowaną datę z powrotem
+    const dateInput = document.getElementById('availabilityDate');
+    if (dateInput) {
+      dateInput.value = currentDate;
+    }
+    
+    // Zmień przycisk na domyślny
+    const submitBtn = document.getElementById('availabilitySubmitBtn');
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz dostępność';
+      submitBtn.style.backgroundColor = '';
+      submitBtn.style.color = '';
+    }
+    
+    // Ukryj przycisk usuń
+    const deleteBtn = document.getElementById('availabilityDeleteBtn');
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
+    }
+    
+    // Odśwież dane
+    await loadDataForMonth();
+  } catch (error) {
+    alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
+  }
+};
+
+window.deleteCurrentAbsence = async function() {
+  if (!isEditingAbsence || !editingAbsenceDateFrom) {
+    alert('Nie ma wybranego wpisu do usunięcia.');
+    return;
+  }
+
+  if (!confirm(`Czy na pewno chcesz usunąć nieobecność rozpoczynającą się ${editingAbsenceDateFrom}?`)) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/absences/my_absences/${editingAbsenceDateFrom}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': authHeader
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      const message = await safeReadText(response);
+      throw new Error(message || 'Błąd usuwania nieobecności');
+    }
+
+    alert('Nieobecność usunięta!');
+    
+    // Zachowaj bieżące daty
+    const dateFromInput = document.getElementById('absenceDateFrom');
+    const dateToInput = document.getElementById('absenceDateTo');
+    const currentDateFrom = dateFromInput ? dateFromInput.value : toApiDate(new Date());
+    const currentDateTo = dateToInput ? dateToInput.value : toApiDate(new Date());
+    
+    // Wyczyść formularz
+    const form = document.getElementById('absenceForm');
+    form.reset();
+    
+    // Przywróć tryb dodawania
+    isEditingAbsence = false;
+    editingAbsenceDateFrom = null;
+    
+    // Ustaw zachowane daty z powrotem
+    if (dateFromInput) {
+      dateFromInput.value = currentDateFrom;
+    }
+    if (dateToInput) {
+      dateToInput.value = currentDateTo;
+    }
+    
+    // Zmień przycisk na domyślny
+    const submitBtn = document.getElementById('absenceSubmitBtn');
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz nieobecność';
+    }
+    
+    // Ukryj przycisk usuń
+    const deleteBtn = document.getElementById('absenceDeleteBtn');
+    if (deleteBtn) {
+      deleteBtn.style.display = 'none';
+    }
+    
+    // Odśwież dane
+    await loadDataForMonth();
+  } catch (error) {
+    alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
+  }
+};
+
+window.editAvailability = function(dateStr) {
+  // Załaduj dane dostępności do formularza
+  const availability = availabilityData.get(dateStr);
+  if (!availability) return;
+  
+  const dateInput = document.getElementById('availabilityDate');
+  const cardHeader = document.getElementById('availabilityCardHeader');
+  const cardTitle = document.getElementById('availabilityCardTitle');
+  const submitBtn = document.getElementById('availabilitySubmitBtn');
+  const timeRangeGroup = document.getElementById('timeRangeGroup');
+  
+  // Ustaw tryb edycji
+  isEditingAvailability = true;
+  editingAvailabilityDate = dateStr;
+  
+  // Ustaw datę
+  if (dateInput) {
+    dateInput.value = dateStr;
+  }
+  
+  // Załaduj dane i ustaw kolory
+  if (!availability.is_available) {
+    document.getElementById('unavailable').checked = true;
+    if (timeRangeGroup) timeRangeGroup.style.display = 'none';
+    document.getElementById('timeFrom').value = '';
+    document.getElementById('timeTo').value = '';
+    // Czerwony kolor
+    if (cardHeader) cardHeader.style.backgroundColor = '#ffcdd2';
+    if (cardTitle) cardTitle.style.color = '#b71c1c';
+    if (submitBtn) {
+      submitBtn.style.backgroundColor = '#b71c1c';
+      submitBtn.style.color = 'white';
+      submitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany dostępności';
+    }
+  } else if (availability.time_from && availability.time_to) {
+    document.getElementById('availablePartial').checked = true;
+    document.getElementById('timeFrom').value = availability.time_from.substring(0, 5);
+    document.getElementById('timeTo').value = availability.time_to.substring(0, 5);
+    if (timeRangeGroup) timeRangeGroup.style.display = 'block';
+    // Żółty kolor
+    if (cardHeader) cardHeader.style.backgroundColor = '#fff9c4';
+    if (cardTitle) cardTitle.style.color = '#f57f17';
+    if (submitBtn) {
+      submitBtn.style.backgroundColor = '#f57f17';
+      submitBtn.style.color = 'white';
+      submitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany dostępności';
+    }
+  } else {
+    document.getElementById('availableFull').checked = true;
+    if (timeRangeGroup) timeRangeGroup.style.display = 'none';
+    document.getElementById('timeFrom').value = '';
+    document.getElementById('timeTo').value = '';
+    // Zielony kolor
+    if (cardHeader) cardHeader.style.backgroundColor = '#c8e6c9';
+    if (cardTitle) cardTitle.style.color = '#1b5e20';
+    if (submitBtn) {
+      submitBtn.style.backgroundColor = '#2e7d32';
+      submitBtn.style.color = 'white';
+      submitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany dostępności';
+    }
+  }
+  
+  // Pokaż przycisk usuń
+  const deleteBtn = document.getElementById('availabilityDeleteBtn');
+  if (deleteBtn) {
+    deleteBtn.style.display = 'inline-block';
+  }
+  
+  // Przewiń do formularza dostępności
+  const availabilityForm = document.getElementById('availabilityForm');
+  if (availabilityForm) {
+    availabilityForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
+
+window.editAbsence = function(dateFrom) {
+  // Znajdź nieobecność po dacie początkowej
+  const absence = absenceData.find(a => a.date_from === dateFrom);
+  if (!absence) return;
+  
+  const absenceDateFromInput = document.getElementById('absenceDateFrom');
+  const absenceDateToInput = document.getElementById('absenceDateTo');
+  const absenceTypeSelect = document.getElementById('absenceType');
+  const absenceSubmitBtn = document.getElementById('absenceSubmitBtn');
+  
+  // Ustaw tryb edycji
+  isEditingAbsence = true;
+  editingAbsenceDateFrom = dateFrom;
+  
+  // Załaduj dane
+  if (absenceDateFromInput) absenceDateFromInput.value = absence.date_from;
+  if (absenceDateToInput) absenceDateToInput.value = absence.date_to;
+  if (absenceTypeSelect) absenceTypeSelect.value = absence.absence_type;
+  
+  if (absenceSubmitBtn) {
+    absenceSubmitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany nieobecności';
+  }
+  
+  // Pokaż przycisk usuń
+  const deleteBtn = document.getElementById('absenceDeleteBtn');
+  if (deleteBtn) {
+    deleteBtn.style.display = 'inline-block';
+  }
+  
+  // Przewiń do formularza nieobecności
+  const absenceForm = document.getElementById('absenceForm');
+  if (absenceForm) {
+    absenceForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+};
 
 window.deleteAvailability = async function(dateStr) {
   if (!confirm(`Czy na pewno chcesz usunąć dostępność z dnia ${formatDatePL(dateStr)}?`)) {
