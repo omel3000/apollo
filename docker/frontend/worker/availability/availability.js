@@ -928,11 +928,11 @@ function renderAvailabilityList() {
             <strong>${formatDatePL(dateStr)}</strong>
             <span class="badge ${badgeClass} ms-2">${statusText}</span>
           </div>
-          <div class="btn-group btn-group-sm">
-            <button type="button" class="btn btn-outline-primary" onclick="editAvailability('${dateStr}')">
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm" style="background-color: #BF6E50; color: white; border-color: #BF6E50;" onclick="editAvailability('${dateStr}')">
               <i class="bi bi-pencil"></i> Modyfikuj
             </button>
-            <button type="button" class="btn btn-danger" onclick="deleteAvailability('${dateStr}')">
+            <button type="button" class="btn btn-sm btn-danger" onclick="deleteAvailability('${dateStr}')">
               <i class="bi bi-trash"></i> Usuń
             </button>
           </div>
@@ -977,11 +977,11 @@ function renderAbsenceList() {
             <strong>${formatDatePL(absence.date_from)} - ${formatDatePL(absence.date_to)}</strong>
             <span class="badge bg-purple text-white ms-2">${typeText}</span>
           </div>
-          <div class="btn-group btn-group-sm">
-            <button type="button" class="btn btn-outline-primary" onclick="editAbsence('${absence.date_from}')">
+          <div class="d-flex gap-2">
+            <button type="button" class="btn btn-sm" style="background-color: #BF6E50; color: white; border-color: #BF6E50;" onclick="editAbsence('${absence.date_from}')">
               <i class="bi bi-pencil"></i> Modyfikuj
             </button>
-            <button type="button" class="btn btn-danger" onclick="deleteAbsence('${absence.date_from}')">
+            <button type="button" class="btn btn-sm btn-danger" onclick="deleteAbsence('${absence.date_from}')">
               <i class="bi bi-trash"></i> Usuń
             </button>
           </div>
@@ -1204,10 +1204,12 @@ window.editAvailability = function(dateStr) {
     deleteBtn.style.display = 'inline-block';
   }
   
-  // Przewiń do formularza dostępności
-  const availabilityForm = document.getElementById('availabilityForm');
-  if (availabilityForm) {
-    availabilityForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Przewiń do nagłówka karty dostępności
+  const availabilityCard = document.getElementById('availabilityCardHeader');
+  if (availabilityCard) {
+    const yOffset = -100; // Offset by 100px above for better visibility
+    const y = availabilityCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({ top: y, behavior: 'smooth' });
   }
 };
 
@@ -1240,10 +1242,12 @@ window.editAbsence = function(dateFrom) {
     deleteBtn.style.display = 'inline-block';
   }
   
-  // Przewiń do formularza nieobecności
-  const absenceForm = document.getElementById('absenceForm');
-  if (absenceForm) {
-    absenceForm.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Przewiń do nagłówka karty nieobecności
+  const absenceCard = document.querySelector('.card:has(#absenceForm) .card-header');
+  if (absenceCard) {
+    const yOffset = -100; // Offset by 100px above for better visibility
+    const y = absenceCard.getBoundingClientRect().top + window.pageYOffset + yOffset;
+    window.scrollTo({ top: y, behavior: 'smooth' });
   }
 };
 
