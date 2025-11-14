@@ -28,7 +28,7 @@ class UserCreate(UserBase):
     
     @field_validator("birth_date", mode="before")
     def validate_birth_date(cls, v):
-        """Waliduje datę urodzenia - nie może być z przyszłości ani więcej niż rok wstecz"""
+        """Waliduje datę urodzenia - nie może być z przyszłości"""
         if v is None or v == "":
             return None
         
@@ -40,17 +40,12 @@ class UserCreate(UserBase):
             except ValueError:
                 raise ValueError("Nieprawidłowy format daty urodzenia (wymagany: YYYY-MM-DD)")
         
-        from datetime import datetime, timedelta
+        from datetime import datetime
         today = datetime.now().date()
-        one_year_ago = today - timedelta(days=365)
         
         # Sprawdź czy data nie jest z przyszłości
         if v > today:
             raise ValueError("Data urodzenia nie może być z przyszłości")
-        
-        # Jeśli data jest sprzed więcej niż roku, zwróć NULL
-        if v < one_year_ago:
-            return None
         
         return v
     
@@ -216,7 +211,7 @@ class UserUpdate(BaseModel):
     
     @field_validator("birth_date", mode="before")
     def validate_birth_date(cls, v):
-        """Waliduje datę urodzenia - nie może być z przyszłości ani więcej niż rok wstecz"""
+        """Waliduje datę urodzenia - nie może być z przyszłości"""
         if v is None or v == "":
             return None
         
@@ -228,17 +223,12 @@ class UserUpdate(BaseModel):
             except ValueError:
                 raise ValueError("Nieprawidłowy format daty urodzenia (wymagany: YYYY-MM-DD)")
         
-        from datetime import datetime, timedelta
+        from datetime import datetime
         today = datetime.now().date()
-        one_year_ago = today - timedelta(days=365)
         
         # Sprawdź czy data nie jest z przyszłości
         if v > today:
             raise ValueError("Data urodzenia nie może być z przyszłości")
-        
-        # Jeśli data jest sprzed więcej niż roku, zwróć NULL
-        if v < one_year_ago:
-            return None
         
         return v
     
