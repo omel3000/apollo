@@ -59,6 +59,15 @@
 | DELETE | `/absences/my_absences/{date}` | Usunięcie własnej nieobecności dla daty | ✅ | ✅ | ✅ | ❌ |
 | GET | `/absences/` | Odczyt nieobecności wszystkich użytkowników (z filtrami) | ❌ | ✅ | ✅ | ❌ |
 | GET | `/absences/{absence_id}` | Odczyt szczegółów nieobecności użytkownika | ❌ | ✅ | ✅ | ❌ |
+| **GRAFIK** |||||||
+| GET | `/schedule/day/{date}` | Grafik dla konkretnego dnia (wszyscy użytkownicy) | ✅ | ✅ | ✅ | ❌ |
+| POST | `/schedule/month` | Grafik dla miesiąca (wszyscy użytkownicy) | ✅ | ✅ | ✅ | ❌ |
+| GET | `/schedule/user/{user_id}` | Grafik użytkownika (z filtrami dat) | ✅ | ✅ | ✅ | ❌ |
+| GET | `/schedule/` | Wszystkie wpisy grafiku (z filtrami) | ✅ | ✅ | ✅ | ❌ |
+| POST | `/schedule/` | Dodanie wpisu do grafiku | ❌ | ✅ | ✅ | ❌ |
+| GET | `/schedule/{schedule_id}` | Szczegóły wpisu grafiku | ❌ | ✅ | ✅ | ❌ |
+| PUT | `/schedule/{schedule_id}` | Aktualizacja wpisu grafiku | ❌ | ✅ | ✅ | ❌ |
+| DELETE | `/schedule/{schedule_id}` | Usunięcie wpisu grafiku | ❌ | ✅ | ✅ | ❌ |
 
 ---
 
@@ -87,3 +96,21 @@
   - Endpointy worker dla pojedynczych nieobecności używają daty zamiast ID (GET/PUT/DELETE `/my_absences/{date}`) - wyszukują nieobecność która obejmuje podaną datę.
   - HR/Admin mają dostęp do nieobecności wszystkich użytkowników z filtrowaniem (user_id, typ, zakres dat).
   - Walidacje: date_from ≤ date_to, nieobecności nie mogą się nakładać (ten sam użytkownik nie może mieć dwóch nieobecności w tym samym dniu).
+- Grafik:
+  - **Odczyt grafiku** - dostępny dla wszystkich zalogowanych użytkowników (Worker, HR, Admin):
+    - GET `/schedule/day/{date}` - widok dnia z wszystkimi zmianami wszystkich użytkowników
+    - POST `/schedule/month` - widok miesiąca (parametry: month, year) - zwraca listę dni z przypisanymi zmianami
+    - GET `/schedule/user/{user_id}` - grafik konkretnego użytkownika (można filtrować po datach)
+    - GET `/schedule/` - wszystkie wpisy z filtrami (user_id, date_from, date_to, shift_type)
+  - **Zarządzanie grafikiem** - dostępne tylko dla HR i Admin:
+    - POST `/schedule/` - dodanie nowego wpisu grafiku
+    - PUT/DELETE `/schedule/{schedule_id}` - edycja/usunięcie wpisu
+  - **Typy zmian**: `normalna` (wymaga project_id), `urlop`, `L4`, `inne` (bez project_id)
+  - **Walidacje**:
+    - time_from < time_to
+    - Zmiana 'normalna' wymaga project_id, pozostałe typy nie mogą mieć project_id
+    - Zmiany tego samego użytkownika w tym samym dniu nie mogą się nakładać czasowo
+  - **Format odpowiedzi**:
+    - Wpisy zawierają informacje o użytkowniku (imię, nazwisko) i projekcie (nazwa)
+    - Odpowiedzi miesięczne są pogrupowane po dniach
+    - Czas w formacie HH:MM

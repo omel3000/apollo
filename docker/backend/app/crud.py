@@ -1,11 +1,11 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, select, and_, or_  # dodano and_, or_
-from models import User, Project, Message, WorkReport, UserProject, TimeType, Availability, Absence
+from models import User, Project, Message, WorkReport, UserProject, TimeType, Availability, Absence, Schedule
 from auth import hash_password
-from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate, AvailabilityCreate, AvailabilityUpdate, AbsenceCreate, AbsenceUpdate
+from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate, AvailabilityCreate, AvailabilityUpdate, AbsenceCreate, AbsenceUpdate, ScheduleCreate, ScheduleUpdate
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, date, time
 
 def get_user_by_email(db: Session, email: str):
@@ -1040,6 +1040,254 @@ def delete_absence_by_date(db: Session, user_id: int, date_param: date):
         return False
     
     db.delete(db_absence)
+    db.commit()
+    return True
+
+# ============================================================================
+# SCHEDULE CRUD functions
+# ============================================================================
+
+def create_schedule(db: Session, schedule_data: ScheduleCreate, created_by_user_id: int):
+    """
+    Tworzy nowy wpis w grafiku.
+    Sprawdza czy użytkownik istnieje, projekt (jeśli podano), i czy zmiana nie nakłada się.
+    """
+    # Sprawdź czy użytkownik istnieje
+    user = get_user_by_id(db, schedule_data.user_id)
+    if not user:
+        raise ValueError(f"Użytkownik o id {schedule_data.user_id} nie istnieje")
+    
+    # Sprawdź czy projekt istnieje (jeśli podano)
+    if schedule_data.project_id is not None:
+        project = db.query(Project).filter(Project.project_id == schedule_data.project_id).first()
+        if not project:
+            raise ValueError(f"Projekt o id {schedule_data.project_id} nie istnieje")
+    
+    # Sprawdź czy nie nakłada się z innymi zmianami użytkownika w tym dniu
+    overlapping = db.query(Schedule).filter(
+        Schedule.user_id == schedule_data.user_id,
+        Schedule.work_date == schedule_data.work_date,
+        Schedule.time_from < schedule_data.time_to,
+        Schedule.time_to > schedule_data.time_from
+    ).first()
+    
+    if overlapping:
+        raise ValueError(
+            f"Zmiana nakłada się z istniejącą w grafiku: {overlapping.shift_type.value} "
+            f"({overlapping.time_from.strftime('%H:%M')} - {overlapping.time_to.strftime('%H:%M')})"
+        )
+    
+    db_schedule = Schedule(
+        user_id=schedule_data.user_id,
+        project_id=schedule_data.project_id,
+        work_date=schedule_data.work_date,
+        time_from=schedule_data.time_from,
+        time_to=schedule_data.time_to,
+        shift_type=schedule_data.shift_type,
+        created_by_user_id=created_by_user_id
+    )
+    db.add(db_schedule)
+    db.commit()
+    db.refresh(db_schedule)
+    return db_schedule
+
+def get_schedule(db: Session, schedule_id: int):
+    """
+    Pobiera wpis grafiku po ID.
+    """
+    return db.query(Schedule).filter(Schedule.schedule_id == schedule_id).first()
+
+def get_schedules(
+    db: Session,
+    user_id: Optional[int] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    shift_type: Optional[str] = None
+):
+    """
+    Pobiera listę wpisów grafiku z opcjonalnymi filtrami.
+    """
+    query = db.query(Schedule)
+    
+    if user_id is not None:
+        query = query.filter(Schedule.user_id == user_id)
+    if date_from is not None:
+        query = query.filter(Schedule.work_date >= date_from)
+    if date_to is not None:
+        query = query.filter(Schedule.work_date <= date_to)
+    if shift_type is not None:
+        query = query.filter(Schedule.shift_type == shift_type)
+    
+    return query.order_by(Schedule.work_date, Schedule.time_from).all()
+
+def get_schedule_for_day(db: Session, work_date: date):
+    """
+    Pobiera wszystkie wpisy grafiku dla konkretnego dnia z informacjami o użytkownikach i projektach.
+    """
+    schedules = db.query(
+        Schedule.schedule_id,
+        Schedule.user_id,
+        User.first_name,
+        User.last_name,
+        Schedule.project_id,
+        Project.project_name,
+        Schedule.work_date,
+        Schedule.time_from,
+        Schedule.time_to,
+        Schedule.shift_type,
+        Schedule.created_at
+    ).join(
+        User, Schedule.user_id == User.user_id
+    ).outerjoin(
+        Project, Schedule.project_id == Project.project_id
+    ).filter(
+        Schedule.work_date == work_date
+    ).order_by(
+        User.last_name, User.first_name, Schedule.time_from
+    ).all()
+    
+    return [
+        {
+            "schedule_id": s.schedule_id,
+            "user_id": s.user_id,
+            "first_name": s.first_name,
+            "last_name": s.last_name,
+            "project_id": s.project_id,
+            "project_name": s.project_name,
+            "work_date": s.work_date,
+            "time_from": s.time_from.strftime("%H:%M"),
+            "time_to": s.time_to.strftime("%H:%M"),
+            "shift_type": s.shift_type,
+            "created_at": s.created_at
+        }
+        for s in schedules
+    ]
+
+def get_schedule_for_month(db: Session, month: int, year: int):
+    """
+    Pobiera wszystkie wpisy grafiku dla danego miesiąca z informacjami o użytkownikach i projektach.
+    Zwraca listę zgrupowaną po dniach.
+    """
+    from calendar import monthrange
+    start_date = date(year, month, 1)
+    _, last_day = monthrange(year, month)
+    end_date = date(year, month, last_day)
+    
+    schedules = db.query(
+        Schedule.schedule_id,
+        Schedule.user_id,
+        User.first_name,
+        User.last_name,
+        Schedule.project_id,
+        Project.project_name,
+        Schedule.work_date,
+        Schedule.time_from,
+        Schedule.time_to,
+        Schedule.shift_type,
+        Schedule.created_at
+    ).join(
+        User, Schedule.user_id == User.user_id
+    ).outerjoin(
+        Project, Schedule.project_id == Project.project_id
+    ).filter(
+        Schedule.work_date >= start_date,
+        Schedule.work_date <= end_date
+    ).order_by(
+        Schedule.work_date, User.last_name, User.first_name, Schedule.time_from
+    ).all()
+    
+    # Grupuj po dniach
+    days_dict = {}
+    for s in schedules:
+        if s.work_date not in days_dict:
+            days_dict[s.work_date] = []
+        
+        days_dict[s.work_date].append({
+            "schedule_id": s.schedule_id,
+            "user_id": s.user_id,
+            "first_name": s.first_name,
+            "last_name": s.last_name,
+            "project_id": s.project_id,
+            "project_name": s.project_name,
+            "work_date": s.work_date,
+            "time_from": s.time_from.strftime("%H:%M"),
+            "time_to": s.time_to.strftime("%H:%M"),
+            "shift_type": s.shift_type,
+            "created_at": s.created_at
+        })
+    
+    return [
+        {
+            "work_date": work_date,
+            "schedules": schedules_list
+        }
+        for work_date, schedules_list in sorted(days_dict.items())
+    ]
+
+def update_schedule(db: Session, schedule_id: int, schedule_update: ScheduleUpdate):
+    """
+    Aktualizuje wpis grafiku.
+    Sprawdza czy po aktualizacji nie nakłada się z innymi zmianami.
+    """
+    db_schedule = get_schedule(db, schedule_id)
+    if not db_schedule:
+        raise ValueError(f"Wpis grafiku o id {schedule_id} nie istnieje")
+    
+    # Aktualizuj tylko przekazane pola
+    if schedule_update.project_id is not None:
+        # Sprawdź czy projekt istnieje
+        project = db.query(Project).filter(Project.project_id == schedule_update.project_id).first()
+        if not project:
+            raise ValueError(f"Projekt o id {schedule_update.project_id} nie istnieje")
+        db_schedule.project_id = schedule_update.project_id
+    
+    if schedule_update.work_date is not None:
+        db_schedule.work_date = schedule_update.work_date
+    if schedule_update.time_from is not None:
+        db_schedule.time_from = schedule_update.time_from
+    if schedule_update.time_to is not None:
+        db_schedule.time_to = schedule_update.time_to
+    if schedule_update.shift_type is not None:
+        db_schedule.shift_type = schedule_update.shift_type
+    
+    # Walidacja czasu
+    if db_schedule.time_from >= db_schedule.time_to:
+        raise ValueError("Czas rozpoczęcia musi być wcześniejszy niż czas zakończenia")
+    
+    # Walidacja logiki shift_type vs project_id
+    if db_schedule.shift_type.value == "normalna" and db_schedule.project_id is None:
+        raise ValueError("Dla zmiany 'normalna' należy podać projekt")
+    if db_schedule.shift_type.value != "normalna" and db_schedule.project_id is not None:
+        raise ValueError(f"Dla zmiany '{db_schedule.shift_type.value}' nie należy podawać projektu")
+    
+    # Sprawdź czy nie nakłada się z innymi zmianami użytkownika (z wyłączeniem edytowanej)
+    overlapping = db.query(Schedule).filter(
+        Schedule.user_id == db_schedule.user_id,
+        Schedule.work_date == db_schedule.work_date,
+        Schedule.schedule_id != schedule_id,
+        Schedule.time_from < db_schedule.time_to,
+        Schedule.time_to > db_schedule.time_from
+    ).first()
+    
+    if overlapping:
+        raise ValueError(
+            f"Zmiana nakłada się z istniejącą w grafiku: {overlapping.shift_type.value} "
+            f"({overlapping.time_from.strftime('%H:%M')} - {overlapping.time_to.strftime('%H:%M')})"
+        )
+    
+    db.commit()
+    db.refresh(db_schedule)
+    return db_schedule
+
+def delete_schedule(db: Session, schedule_id: int):
+    """
+    Usuwa wpis grafiku.
+    """
+    db_schedule = get_schedule(db, schedule_id)
+    if not db_schedule:
+        return False
+    
+    db.delete(db_schedule)
     db.commit()
     return True
 

@@ -88,3 +88,22 @@ class Absence(Base):
     date_from = Column(Date, nullable=False)
     date_to = Column(Date, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class ShiftType(str, enum.Enum):
+    normalna = "normalna"
+    urlop = "urlop"
+    L4 = "L4"
+    inne = "inne"
+
+class Schedule(Base):
+    __tablename__ = "schedule"
+
+    schedule_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.project_id", ondelete="SET NULL"), nullable=True)
+    work_date = Column(Date, nullable=False, index=True)
+    time_from = Column(Time, nullable=False)
+    time_to = Column(Time, nullable=False)
+    shift_type = Column(Enum(ShiftType), nullable=False)
+    created_by_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -402,3 +402,125 @@ class AbsenceQueryParams(BaseModel):
     date_from: Optional[date] = None
     date_to: Optional[date] = None
 
+# ============================================================================
+# Schedule schemas
+# ============================================================================
+
+class ShiftTypeEnum(str, Enum):
+    normalna = "normalna"
+    urlop = "urlop"
+    L4 = "L4"
+    inne = "inne"
+
+class ScheduleBase(BaseModel):
+    user_id: int
+    project_id: Optional[int] = None
+    work_date: date
+    time_from: time
+    time_to: time
+    shift_type: ShiftTypeEnum
+
+    @field_validator("time_from", "time_to", mode="before")
+    @classmethod
+    def normalize_time(cls, v):
+        """Normalizuje czas do formatu HH:MM (bez sekund i mikrosekund)"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            from datetime import time as dt_time
+            parts = v.split(":")
+            hour = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            return dt_time(hour, minute, 0, 0)
+        if isinstance(v, time):
+            return v.replace(second=0, microsecond=0)
+        return v
+
+    @model_validator(mode="after")
+    def validate_schedule(self):
+        """Waliduje logikę grafiku"""
+        if self.time_from >= self.time_to:
+            raise ValueError("Czas rozpoczęcia (time_from) musi być wcześniejszy niż czas zakończenia (time_to)")
+        
+        # Dla zmian nieobecności (urlop, L4, inne) projekt nie jest wymagany
+        if self.shift_type == ShiftTypeEnum.normalna and self.project_id is None:
+            raise ValueError("Dla zmiany 'normalna' należy podać projekt (project_id)")
+        
+        # Dla urlop/L4/inne projekt powinien być NULL
+        if self.shift_type != ShiftTypeEnum.normalna and self.project_id is not None:
+            raise ValueError(f"Dla zmiany '{self.shift_type.value}' nie należy podawać projektu")
+        
+        return self
+
+class ScheduleCreate(ScheduleBase):
+    pass
+
+class ScheduleRead(ScheduleBase):
+    schedule_id: int
+    created_by_user_id: Optional[int]
+    created_at: datetime
+
+    @field_serializer('time_from', 'time_to')
+    def serialize_time(self, value: Optional[time]) -> Optional[str]:
+        """Serializuje czas do formatu HH:MM"""
+        if value is None:
+            return None
+        return value.strftime("%H:%M")
+
+    model_config = {"from_attributes": True}
+
+class ScheduleUpdate(BaseModel):
+    project_id: Optional[int] = None
+    work_date: Optional[date] = None
+    time_from: Optional[time] = None
+    time_to: Optional[time] = None
+    shift_type: Optional[ShiftTypeEnum] = None
+
+    @field_validator("time_from", "time_to", mode="before")
+    @classmethod
+    def normalize_time(cls, v):
+        """Normalizuje czas do formatu HH:MM"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            from datetime import time as dt_time
+            parts = v.split(":")
+            hour = int(parts[0])
+            minute = int(parts[1]) if len(parts) > 1 else 0
+            return dt_time(hour, minute, 0, 0)
+        if isinstance(v, time):
+            return v.replace(second=0, microsecond=0)
+        return v
+
+# ============================================================================
+# Schedule query and response schemas
+# ============================================================================
+
+class ScheduleWithUserInfo(BaseModel):
+    """Schedule z rozszerzonymi informacjami o użytkowniku i projekcie"""
+    schedule_id: int
+    user_id: int
+    first_name: str
+    last_name: str
+    project_id: Optional[int]
+    project_name: Optional[str]
+    work_date: date
+    time_from: str  # Format HH:MM
+    time_to: str    # Format HH:MM
+    shift_type: ShiftTypeEnum
+    created_at: datetime
+
+class DaySchedule(BaseModel):
+    """Wszystkie wpisy grafiku dla jednego dnia"""
+    work_date: date
+    schedules: List[ScheduleWithUserInfo]
+
+class MonthScheduleRequest(BaseModel):
+    month: int  # 1-12
+    year: int
+
+class UserScheduleRequest(BaseModel):
+    user_id: int
+    date_from: Optional[date] = None
+    date_to: Optional[date] = None
+
