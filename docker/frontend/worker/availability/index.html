@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dostępność Pracownika | Apollo</title>
+    
+    <script src="/worker/auth-worker.js" defer></script>
+    <script src="/logout.js" defer></script>
+    <script src="/worker/availability/availability.js" defer></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const navbarToggler = document.getElementById('navbarToggle');
+            
+            if (sidebar && navbarToggler) {
+                navbarToggler.addEventListener('click', function() {
+                    // W czystym HTML bez styli to nie zadziała jak menu, ale zachowuje logikę przełączania
+                    const isExpanded = navbarToggler.getAttribute('aria-expanded') === 'true';
+                    navbarToggler.setAttribute('aria-expanded', String(!isExpanded));
+                    sidebar.style.display = isExpanded ? 'none' : 'block';
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    
+    <header>
+        <nav>
+            <div>
+                <a href="/worker/">
+                    <strong>Apollo</strong> | Panel Pracownika
+                </a>
+
+                <button id="navbarToggle" type="button" aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+                    Menu
+                </button>
+
+                <div>
+                    <a href="/worker/account">Konto</a>
+                    <a href="/logout">Wyloguj</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div>
+        <div>
+            <nav id="sidebarMenu">
+                <div>
+                    <h6>Nawigacja</h6>
+                    <ul>
+                        <li>
+                            <a href="/worker/">Strona główna</a>
+                        </li>
+                        <li>
+                            <a href="/worker/reports/">Rejestracja czasu pracy</a>
+                        </li>
+                        <li>
+                            <a href="/worker/summary/">Podsumowania</a>
+                        </li>
+                        <li>
+                            <a href="/worker/availability/">Dostępność pracownika</a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main>
+                
+                <div>
+                    <h2>Dostępność pracownika</h2>
+                </div>
+
+                <div>
+                    <h3>Kalendarz Dostępności</h3>
+                    
+                    <div id="currentDateInfo">
+                        Dzień tygodnia, bieżący dzień, miesiąc, rok
+                    </div>
+                    
+                    <div id="calendarDisplay">
+                        <table>
+                            <caption>Widok Miesiąca</caption>
+                            <thead>
+                                <tr>
+                                    <th>Pon</th>
+                                    <th>Wto</th>
+                                    <th>Śro</th>
+                                    <th>Czw</th>
+                                    <th>Pią</th>
+                                    <th>Sob</th>
+                                    <th>Nie</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td></td>
+                                    <td>1</td>
+                                    <td>2</td>
+                                    <td>3</td>
+                                    <td>4</td>
+                                    <td>5</td>
+                                    <td>6</td>
+                                </tr>
+                                <tr>
+                                    <td>7</td>
+                                    <td>8</td>
+                                    <td>9</td>
+                                    <td>10</td>
+                                    <td>11</td>
+                                    <td>12</td>
+                                    <td>13</td>
+                                </tr>
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                        <button type="button">Zgłoś zmianę dostępności</button>
+                    </div>
+
+                </div>
+                
+            </main>
+        </div>
+    </div>
+
+    <script src="path/to/main/script.js" defer></script>
+</body>
+</html>
