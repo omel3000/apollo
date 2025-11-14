@@ -54,18 +54,60 @@ function setupAvailabilityRadioHandlers() {
   const timeRangeGroup = document.getElementById('timeRangeGroup');
   const timeFrom = document.getElementById('timeFrom');
   const timeTo = document.getElementById('timeTo');
+  const cardHeader = document.getElementById('availabilityCardHeader');
+  const cardTitle = document.getElementById('availabilityCardTitle');
+  const submitBtn = document.getElementById('availabilitySubmitBtn');
 
   const toggleTimeRange = () => {
     if (partialRadio.checked) {
       timeRangeGroup.style.display = 'block';
       timeFrom.required = true;
       timeTo.required = true;
+      // Żółty kolor dla częściowej dostępności
+      if (cardHeader) {
+        cardHeader.style.backgroundColor = '#fff9c4';
+      }
+      if (cardTitle) {
+        cardTitle.style.color = '#f57f17';
+      }
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = '#f57f17';
+        submitBtn.style.color = 'white';
+      }
+    } else if (unavailableRadio.checked) {
+      timeRangeGroup.style.display = 'none';
+      timeFrom.required = false;
+      timeTo.required = false;
+      timeFrom.value = '';
+      timeTo.value = '';
+      // Czerwony kolor dla niedostępności
+      if (cardHeader) {
+        cardHeader.style.backgroundColor = '#ffcdd2';
+      }
+      if (cardTitle) {
+        cardTitle.style.color = '#b71c1c';
+      }
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = '#b71c1c';
+        submitBtn.style.color = 'white';
+      }
     } else {
       timeRangeGroup.style.display = 'none';
       timeFrom.required = false;
       timeTo.required = false;
       timeFrom.value = '';
       timeTo.value = '';
+      // Zielony kolor dla pełnej dostępności
+      if (cardHeader) {
+        cardHeader.style.backgroundColor = '#c8e6c9';
+      }
+      if (cardTitle) {
+        cardTitle.style.color = '#1b5e20';
+      }
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = '#2e7d32';
+        submitBtn.style.color = 'white';
+      }
     }
   };
 
@@ -95,6 +137,22 @@ function setupAvailabilityForm() {
       dateInput.value = toApiDate(new Date());
     }
     document.getElementById('timeRangeGroup').style.display = 'none';
+    
+    // Przywróć domyślne zielone kolory (dla "Dostępny cały dzień")
+    const cardHeader = document.getElementById('availabilityCardHeader');
+    const cardTitle = document.getElementById('availabilityCardTitle');
+    const submitBtn = document.getElementById('availabilitySubmitBtn');
+    
+    if (cardHeader) {
+      cardHeader.style.backgroundColor = '#c8e6c9';
+    }
+    if (cardTitle) {
+      cardTitle.style.color = '#1b5e20';
+    }
+    if (submitBtn) {
+      submitBtn.style.backgroundColor = '#2e7d32';
+      submitBtn.style.color = 'white';
+    }
   });
 }
 
@@ -604,17 +662,51 @@ function onCalendarDayClick(ev) {
   
   // Sprawdź czy istnieje dostępność dla tego dnia
   const availability = availabilityData.get(dateStr);
+  const cardHeader = document.getElementById('availabilityCardHeader');
+  const cardTitle = document.getElementById('availabilityCardTitle');
+  const submitBtn = document.getElementById('availabilitySubmitBtn');
+  
   if (availability) {
     // Załaduj dane do formularza
     if (!availability.is_available) {
       document.getElementById('unavailable').checked = true;
+      // Czerwony kolor
+      if (cardHeader) cardHeader.style.backgroundColor = '#ffcdd2';
+      if (cardTitle) cardTitle.style.color = '#b71c1c';
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = '#b71c1c';
+        submitBtn.style.color = 'white';
+      }
     } else if (availability.time_from && availability.time_to) {
       document.getElementById('availablePartial').checked = true;
       document.getElementById('timeFrom').value = availability.time_from.substring(0, 5);
       document.getElementById('timeTo').value = availability.time_to.substring(0, 5);
       document.getElementById('timeRangeGroup').style.display = 'block';
+      // Żółty kolor
+      if (cardHeader) cardHeader.style.backgroundColor = '#fff9c4';
+      if (cardTitle) cardTitle.style.color = '#f57f17';
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = '#f57f17';
+        submitBtn.style.color = 'white';
+      }
     } else {
       document.getElementById('availableFull').checked = true;
+      // Zielony kolor
+      if (cardHeader) cardHeader.style.backgroundColor = '#c8e6c9';
+      if (cardTitle) cardTitle.style.color = '#1b5e20';
+      if (submitBtn) {
+        submitBtn.style.backgroundColor = '#2e7d32';
+        submitBtn.style.color = 'white';
+      }
+    }
+  } else {
+    // Brak dostępności - ustaw domyślnie na "Dostępny cały dzień" (zielony)
+    document.getElementById('availableFull').checked = true;
+    if (cardHeader) cardHeader.style.backgroundColor = '#c8e6c9';
+    if (cardTitle) cardTitle.style.color = '#1b5e20';
+    if (submitBtn) {
+      submitBtn.style.backgroundColor = '#2e7d32';
+      submitBtn.style.color = 'white';
     }
   }
 }
