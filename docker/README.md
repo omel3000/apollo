@@ -42,3 +42,7 @@ System autoryzacji w `auth.js` obsługuje:
 - Sprawdzanie roli użytkownika
 - Automatyczne przekierowania w zależności od uprawnień
 - Różne komunikaty dla niezalogowanych i użytkowników bez wystarczających uprawnień
+
+## Eksport struktury bazy danych
+
+- `docker exec -t postgres-db pg_dump -U apollo -s apollo_test_db > struktura.sql`
