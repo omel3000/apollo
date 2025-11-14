@@ -93,9 +93,13 @@ async function loadAccountDetails() {
     const userData = await response.json();
     
     // Debug: wyświetl pełne dane użytkownika w konsoli
-    console.log('User data received from /users/me:', userData);
-    console.log('birth_date:', userData.birth_date);
-    console.log('address:', userData.address);
+    console.log('=== USER DATA DEBUG ===');
+    console.log('Full userData object:', JSON.stringify(userData, null, 2));
+    console.log('birth_date value:', userData.birth_date);
+    console.log('birth_date type:', typeof userData.birth_date);
+    console.log('address value:', userData.address);
+    console.log('address type:', typeof userData.address);
+    console.log('======================');
     
     // Wypełnij pola formularza
     document.getElementById('accountEmail').value = userData.email || '';
