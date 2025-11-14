@@ -22,6 +22,9 @@ class UserBase(BaseModel):
         if isinstance(v, str):
             return v.strip().lower()
         return v
+
+class UserCreate(UserBase):
+    password: str
     
     @field_validator("birth_date", mode="before")
     def validate_birth_date(cls, v):
@@ -61,9 +64,6 @@ class UserBase(BaseModel):
             if v == "" or v.lower() == "string":
                 return None
         return v
-
-class UserCreate(UserBase):
-    password: str
 
 class UserRead(UserBase):
     user_id: int
@@ -212,6 +212,45 @@ class UserUpdate(BaseModel):
     def normalize_email(cls, v):
         if isinstance(v, str):
             return v.strip().lower()
+        return v
+    
+    @field_validator("birth_date", mode="before")
+    def validate_birth_date(cls, v):
+        """Waliduje datę urodzenia - nie może być z przyszłości ani więcej niż rok wstecz"""
+        if v is None or v == "":
+            return None
+        
+        # Konwersja stringa na date jeśli potrzebne
+        if isinstance(v, str):
+            from datetime import datetime as dt
+            try:
+                v = dt.strptime(v, "%Y-%m-%d").date()
+            except ValueError:
+                raise ValueError("Nieprawidłowy format daty urodzenia (wymagany: YYYY-MM-DD)")
+        
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        one_year_ago = today - timedelta(days=365)
+        
+        # Sprawdź czy data nie jest z przyszłości
+        if v > today:
+            raise ValueError("Data urodzenia nie może być z przyszłości")
+        
+        # Jeśli data jest sprzed więcej niż roku, zwróć NULL
+        if v < one_year_ago:
+            return None
+        
+        return v
+    
+    @field_validator("address", mode="before")
+    def validate_address(cls, v):
+        """Waliduje adres - jeśli jest pusty string, zwraca None"""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v = v.strip()
+            if v == "" or v.lower() == "string":
+                return None
         return v
 
 class DailySummary(BaseModel):
