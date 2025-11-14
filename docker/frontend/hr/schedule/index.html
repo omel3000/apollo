@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grafik pracowników</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="stylesheet" href="schedule.css">
+</head>
+<body>
+    <header id="main-header"></header>
+    <nav id="main-menu"></nav>
+    <main>
+        <section class="schedule-controls">
+            <h1>Grafik pracowników</h1>
+            <div class="filters">
+                <input type="text" id="search-user" placeholder="Szukaj pracownika...">
+                <select id="filter-project">
+                    <option value="">Wszystkie projekty</option>
+                </select>
+                <select id="filter-status">
+                    <option value="">Wszystkie statusy</option>
+                    <option value="available">Dostępny</option>
+                    <option value="unavailable">Niedostępny</option>
+                    <option value="vacation">Urlop</option>
+                    <option value="sick">L4</option>
+                    <option value="free">Wolne</option>
+                </select>
+                <button id="prev-month">&lt;</button>
+                <span id="current-month"></span>
+                <button id="next-month">&gt;</button>
+                <button id="export-csv">Eksport CSV</button>
+                <button id="export-pdf">Eksport PDF</button>
+                <button id="copy-schedule">Kopiuj grafik</button>
+                <select id="view-mode">
+                    <option value="month">Miesiąc</option>
+                    <option value="week">Tydzień</option>
+                </select>
+            </div>
+        </section>
+        <section id="schedule-calendar"></section>
+        <section id="schedule-summary"></section>
+    </main>
+    <div id="schedule-modal" class="modal hidden">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Przypisz do grafiku</h2>
+            <form id="schedule-form">
+                <label>Pracownik: <span id="modal-user-name"></span></label><br>
+                <label>Dzień: <span id="modal-date"></span></label><br>
+                <label>Projekt:
+                    <select id="modal-project"></select>
+                </label><br>
+                <label>Godziny:
+                    <input type="time" id="modal-from"> - <input type="time" id="modal-to">
+                </label><br>
+                <label>Notatka:
+                    <input type="text" id="modal-note">
+                </label><br>
+                <button type="submit">Zapisz</button>
+            </form>
+        </div>
+    </div>
+    <script src="../date-navigator.js"></script>
+    <script src="schedule.js"></script>
+</body>
+</html>
