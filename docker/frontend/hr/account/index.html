@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zarządzanie kontem | Apollo</title>
+    <style>
+        /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
+        html { visibility: hidden; } 
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="/style.css" rel="stylesheet">
+    
+    <script src="/hr/auth-hr.js" defer></script>
+    <script src="/logout.js" defer></script>
+    <script src="/hr/account/account.js" defer></script>
+    <script>
+        // Obsługa mobilnego menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            
+            // Zamknij menu po kliknięciu w link
+            if (sidebar && navbarToggler) {
+                const sidebarLinks = sidebar.querySelectorAll('.nav-link');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('show');
+                        navbarToggler.setAttribute('aria-expanded', 'false');
+                        navbarToggler.classList.add('collapsed');
+                    });
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                
+                <a class="navbar-brand" href="/hr/">
+                    <strong class="h4 mb-0">Apollo</strong> <span class="d-none d-md-inline">| Panel HR</span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" 
+                        aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="d-flex align-items-center ms-auto me-2 me-md-0">
+                    <a href="/hr/account" class="btn btn-sm btn-primary me-2">Konto</a>
+                    <a href="/logout" class="btn btn-sm btn-outline-danger">Wyloguj</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3 sidebar-sticky">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-uppercase">
+                        <span>Nawigacja</span>
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/">
+                                <i class="bi bi-house-door-fill me-2"></i>Strona główna
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/reports/">
+                                <i class="bi bi-calendar-check me-2"></i>Rejestracja czasu pracy
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/summary/">
+                                <i class="bi bi-bar-chart-line-fill me-2"></i>Moje podsumowania
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/availability/">
+                                <i class="bi bi-calendar2-check me-2"></i>Moje deklaracje dostępności
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h2 class="h2">Zarządzanie kontem</h2>
+                </div>
+
+                <div class="row">
+                    <!-- Szczegóły konta -->
+                    <div class="col-12 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-person-circle me-2"></i>Szczegóły konta</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="accountEmail" class="form-label">Adres e-mail:</label>
+                                        <input type="email" id="accountEmail" class="form-control" disabled>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="accountPhone" class="form-label">Numer telefonu:</label>
+                                        <input type="text" id="accountPhone" class="form-control" disabled>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="accountFirstName" class="form-label">Imię:</label>
+                                        <input type="text" id="accountFirstName" class="form-control" disabled>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="accountLastName" class="form-label">Nazwisko:</label>
+                                        <input type="text" id="accountLastName" class="form-control" disabled>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="accountBirthDate" class="form-label">Data urodzenia:</label>
+                                        <input type="date" id="accountBirthDate" class="form-control" disabled>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="accountAddress" class="form-label">Adres zamieszkania:</label>
+                                        <input type="text" id="accountAddress" class="form-control" disabled>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zmiana adresu email -->
+                    <div class="col-lg-6 col-md-12 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-envelope me-2"></i>Zmiana adresu email</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="emailMessage" class="mb-3"></div>
+                                <form id="changeEmailForm">
+                                    <div class="mb-3">
+                                        <label for="newEmail" class="form-label">Nowy adres email:</label>
+                                        <input type="email" id="newEmail" name="newEmail" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="emailCurrentPassword" class="form-label">Aktualne hasło:</label>
+                                        <input type="password" id="emailCurrentPassword" name="emailCurrentPassword" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save me-1"></i>Zapisz zmiany
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Zmiana hasła -->
+                    <div class="col-lg-6 col-md-12 mb-4">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-key me-2"></i>Zmiana hasła</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="passwordMessage" class="mb-3"></div>
+                                <form id="changePasswordForm">
+                                    <div class="mb-3">
+                                        <label for="currentPassword" class="form-label">Stare hasło:</label>
+                                        <input type="password" id="currentPassword" name="currentPassword" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="newPassword" class="form-label">Nowe hasło:</label>
+                                        <input type="password" id="newPassword" name="newPassword" class="form-control" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="confirmNewPassword" class="form-label">Powtórz nowe hasło:</label>
+                                        <input type="password" id="confirmNewPassword" name="confirmNewPassword" class="form-control" required>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-save me-1"></i>Zapisz zmiany
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>

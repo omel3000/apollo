@@ -1,0 +1,358 @@
+﻿<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Moje deklaracje dostępności | Apollo</title>
+    <style>
+        /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
+        html { visibility: hidden; }
+        
+        /* Kolory kalendarza dla dni specjalnych */
+        #calGrid button[data-day].available-full {
+            background-color: #c8e6c9 !important; /* Zielony - dostępny cały dzień */
+            color: #1b5e20 !important;
+        }
+        
+        #calGrid button[data-day].available-partial {
+            background-color: #fff9c4 !important; /* Żółty - dostępny częściowo */
+            color: #f57f17 !important;
+        }
+        
+        #calGrid button[data-day].unavailable {
+            background-color: #ffcdd2 !important; /* Czerwony - niedostępny */
+            color: #b71c1c !important;
+        }
+        
+        #calGrid button[data-day].absence {
+            background-color: #e1bee7 !important; /* Fioletowy - urlop/L4/inne */
+            color: #4a148c !important;
+        }
+        
+        /* Hover */
+        #calGrid button[data-day].available-full:hover,
+        #calGrid button[data-day].available-partial:hover,
+        #calGrid button[data-day].unavailable:hover,
+        #calGrid button[data-day].absence:hover {
+            background-color: #BF6E50 !important;
+            color: #F2EEEB !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Zachowaj dominację dla selected i today */
+        #calGrid button[data-day].selected {
+            background-color: #736A65 !important;
+            color: #F2EEEB !important;
+            font-weight: bold !important;
+            box-shadow: 0 0 0 3px #BF6E50 inset !important;
+        }
+        
+        #calGrid button[data-day].today {
+            border: 2px solid #BF6E50 !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Fioletowy badge */
+        .bg-purple {
+            background-color: #8b5cf6 !important;
+        }
+        
+        /* Zakładki - kolory głównego motywu */
+        .nav-tabs .nav-link {
+            color: #736A65;
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: #BF6E50;
+            border-color: #dee2e6 #dee2e6 #fff;
+            font-weight: 600;
+        }
+        
+        .nav-tabs .nav-link:hover {
+            color: #736A65;
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="/style.css" rel="stylesheet">
+    
+    <script src="/hr/auth-hr.js" defer></script>
+    <script src="/logout.js" defer></script>
+    <script src="/hr/availability/availability.js" defer></script>
+    <script>
+        // Obsługa mobilnego menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            
+            // Zamknij menu po kliknięciu w link
+            if (sidebar && navbarToggler) {
+                const sidebarLinks = sidebar.querySelectorAll('.nav-link');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('show');
+                        navbarToggler.setAttribute('aria-expanded', 'false');
+                        navbarToggler.classList.add('collapsed');
+                    });
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                
+                <a class="navbar-brand" href="/hr/">
+                    <strong class="h4 mb-0">Apollo</strong> <span class="d-none d-md-inline">| Panel HR</span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" 
+                        aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="d-flex align-items-center ms-auto me-2 me-md-0">
+                    <a href="/hr/account" class="btn btn-sm btn-primary me-2">Konto</a>
+                    <a href="/logout" class="btn btn-sm btn-outline-danger">Wyloguj</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3 sidebar-sticky">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-uppercase">
+                        <span>Nawigacja</span>
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/">
+                                <i class="bi bi-house-door-fill me-2"></i>Strona główna
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/reports/">
+                                <i class="bi bi-calendar-check me-2"></i>Rejestracja czasu pracy
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/summary/">
+                                <i class="bi bi-bar-chart-line-fill me-2"></i>Moje podsumowania
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="/hr/availability/">
+                                <i class="bi bi-calendar2-check me-2"></i>Moje deklaracje dostępności
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h2 class="h2">Moje deklaracje dostępności</h2>
+                </div>
+
+                <!-- Kalendarz i formularz... -->
+                <div class="row">
+                    <!-- Główny panel - formularz -->
+                    <div class="col-lg-8 col-md-12 order-lg-1 order-2">
+                        
+                        <!-- Formularz Dostępności -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header" id="availabilityCardHeader" style="background-color: #c8e6c9;">
+                                <h5 class="mb-0" id="availabilityCardTitle" style="color: #1b5e20;"><i class="bi bi-calendar2-check me-2"></i>Zgłoś dostępność</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="availabilityForm">
+                                    <div class="mb-3">
+                                        <label for="availabilityDate" class="form-label">Data:</label>
+                                        <input type="date" id="availabilityDate" name="date" class="form-control" required>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Status dostępności:</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="availabilityStatus" id="availableFull" value="full" checked>
+                                            <label class="form-check-label" for="availableFull">
+                                                Dostępny cały dzień
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="availabilityStatus" id="availablePartial" value="partial">
+                                            <label class="form-check-label" for="availablePartial">
+                                                Dostępny w wybranych godzinach
+                                            </label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="availabilityStatus" id="unavailable" value="unavailable">
+                                            <label class="form-check-label" for="unavailable">
+                                                Niedostępny
+                                            </label>
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3" id="timeRangeGroup" style="display: none;">
+                                        <label class="form-label">Godziny dostępności:</label>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">Od</span>
+                                                    <input type="time" id="timeFrom" name="time_from" class="form-control" step="60">
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <span class="input-group-text">Do</span>
+                                                    <input type="time" id="timeTo" name="time_to" class="form-control" step="60">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" id="availabilitySubmitBtn" class="btn" style="background-color: #2e7d32; color: white;">
+                                            <i class="bi bi-save me-1"></i>Zapisz dostępność
+                                        </button>
+                                        <button type="button" id="availabilityDeleteBtn" class="btn btn-danger" style="display: none;" onclick="deleteCurrentAvailability()">
+                                            <i class="bi bi-trash me-1"></i>Usuń
+                                        </button>
+                                        <button type="reset" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-circle me-1"></i>Wyczyść
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Formularz Nieobecności -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header" style="background-color: #e1bee7;">
+                                <h5 class="mb-0" style="color: #4a148c;"><i class="bi bi-calendar-x me-2"></i>Zgłoś nieobecność</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="absenceForm">
+                                    <div class="mb-3">
+                                        <label for="absenceType" class="form-label">Typ nieobecności:</label>
+                                        <select id="absenceType" name="absence_type" class="form-select" required>
+                                            <option value="">Wybierz typ</option>
+                                            <option value="urlop">Urlop</option>
+                                            <option value="L4">L4 (zwolnienie lekarskie)</option>
+                                            <option value="inne">Inne</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-md-6">
+                                            <label for="absenceDateFrom" class="form-label">Data od:</label>
+                                            <input type="date" id="absenceDateFrom" name="date_from" class="form-control" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="absenceDateTo" class="form-label">Data do:</label>
+                                            <input type="date" id="absenceDateTo" name="date_to" class="form-control" required>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" id="absenceSubmitBtn" class="btn" style="background-color: #8b5cf6; color: white;">
+                                            <i class="bi bi-save me-1"></i>Zapisz nieobecność
+                                        </button>
+                                        <button type="button" id="absenceDeleteBtn" class="btn btn-danger" style="display: none;" onclick="deleteCurrentAbsence()">
+                                            <i class="bi bi-trash me-1"></i>Usuń
+                                        </button>
+                                        <button type="reset" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-circle me-1"></i>Wyczyść
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Lista wpisów -->
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Twoje wpisy</h5>
+                            </div>
+                            <div class="card-body">
+                                <!-- Tabs dla dostępności i nieobecności -->
+                                <ul class="nav nav-tabs mb-3" id="entriesTabs" role="tablist">
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link active" id="availability-tab" data-bs-toggle="tab" data-bs-target="#availability-entries" type="button" role="tab">
+                                            Dostępność
+                                        </button>
+                                    </li>
+                                    <li class="nav-item" role="presentation">
+                                        <button class="nav-link" id="absence-tab" data-bs-toggle="tab" data-bs-target="#absence-entries" type="button" role="tab">
+                                            Nieobecności
+                                        </button>
+                                    </li>
+                                </ul>
+                                <div class="tab-content" id="entriesTabContent">
+                                    <div class="tab-pane fade show active" id="availability-entries" role="tabpanel">
+                                        <div id="availabilityList">
+                                            <p class="text-muted">Ładowanie wpisów dostępności...</p>
+                                        </div>
+                                    </div>
+                                    <div class="tab-pane fade" id="absence-entries" role="tabpanel">
+                                        <div id="absenceList">
+                                            <p class="text-muted">Ładowanie nieobecności...</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kalendarz -->
+                    <div class="col-lg-4 col-md-12 mb-4 order-lg-2 order-1">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Kalendarz</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="calendarContainer">
+                                    <div id="calControls" class="d-flex justify-content-between align-items-center mb-3">
+                                        <button type="button" id="calPrevMonth" class="btn btn-sm btn-outline-secondary" aria-label="Poprzedni miesiąc">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <select id="calMonthSelect" class="form-select form-select-sm" aria-label="Miesiąc"></select>
+                                            <select id="calYearSelect" class="form-select form-select-sm" aria-label="Rok"></select>
+                                        </div>
+                                        <button type="button" id="calNextMonth" class="btn btn-sm btn-outline-secondary" aria-label="Następny miesiąc">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div id="calGrid"></div>
+                                </div>
+                                
+                                <!-- Legenda -->
+                                <div class="mt-3 pt-3 border-top">
+                                    <h6 class="small text-uppercase mb-2">Legenda:</h6>
+                                    <div class="small">
+                                        <div class="mb-1"><span class="badge" style="background-color: #c8e6c9; color: #1b5e20;">■</span> Dostępny cały dzień</div>
+                                        <div class="mb-1"><span class="badge" style="background-color: #fff9c4; color: #f57f17;">■</span> Dostępny częściowo</div>
+                                        <div class="mb-1"><span class="badge" style="background-color: #ffcdd2; color: #b71c1c;">■</span> Niedostępny</div>
+                                        <div class="mb-1"><span class="badge" style="background-color: #e1bee7; color: #4a148c;">■</span> Urlop/L4/Inne</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>

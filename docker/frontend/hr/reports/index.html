@@ -1,0 +1,266 @@
+﻿<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rejestracja Czasu Pracy | Apollo</title>
+    <style>
+        /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
+        html { visibility: hidden; }
+        
+        /* Kolory kalendarza dla dni specjalnych - wyższa specyficzność */
+        #calGrid button[data-day].holiday {
+            background-color: #ffcccc !important; /* Jasny czerwony - weekendy/święta */
+            color: #261C1E !important;
+        }
+        
+        #calGrid button[data-day].reported {
+            background-color: #ffe5b4 !important; /* Delikatny pomarańczowy - dni z raportami */
+            color: #261C1E !important;
+        }
+        
+        #calGrid button[data-day].holiday-reported {
+            background-color: #e6ccff !important; /* Delikatny fioletowy - weekend/święto z raportem */
+            color: #261C1E !important;
+        }
+        
+        /* Hover nadal działa */
+        #calGrid button[data-day].holiday:hover,
+        #calGrid button[data-day].reported:hover,
+        #calGrid button[data-day].holiday-reported:hover {
+            background-color: #BF6E50 !important;
+            color: #F2EEEB !important;
+            font-weight: 600 !important;
+        }
+        
+        /* Zachowaj dominację dla selected i today */
+        #calGrid button[data-day].selected {
+            background-color: #736A65 !important;
+            color: #F2EEEB !important;
+            font-weight: bold !important;
+            box-shadow: 0 0 0 2px #BF6E50 inset !important;
+        }
+        
+        #calGrid button[data-day].today {
+            border: 2px solid #BF6E50 !important;
+            font-weight: 600 !important;
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="/style.css" rel="stylesheet">
+    
+    <script src="/hr/auth-hr.js" defer></script>
+    <script src="/logout.js" defer></script>
+    <script src="/hr/date-navigator.js" defer></script>
+    <script src="/hr/reports/reports.js" defer></script>
+    <script>
+        // Obsługa mobilnego menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            
+            // Zamknij menu po kliknięciu w link
+            if (sidebar && navbarToggler) {
+                const sidebarLinks = sidebar.querySelectorAll('.nav-link');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('show');
+                        navbarToggler.setAttribute('aria-expanded', 'false');
+                        navbarToggler.classList.add('collapsed');
+                    });
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                
+                <a class="navbar-brand" href="/hr/">
+                    <strong class="h4 mb-0">Apollo</strong> <span class="d-none d-md-inline">| Panel HR</span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" 
+                        aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="d-flex align-items-center ms-auto me-2 me-md-0">
+                    <a href="/hr/account" class="btn btn-sm btn-primary me-2">Konto</a>
+                    <a href="/logout" class="btn btn-sm btn-outline-danger">Wyloguj</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3 sidebar-sticky">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-uppercase">
+                        <span>Nawigacja</span>
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/">
+                                <i class="bi bi-house-door-fill me-2"></i>Strona główna
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="/hr/reports/">
+                                <i class="bi bi-calendar-check me-2"></i>Rejestracja czasu pracy
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/summary/">
+                                <i class="bi bi-bar-chart-line-fill me-2"></i>Moje podsumowania
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/availability/">
+                                <i class="bi bi-calendar2-check me-2"></i>Moje deklaracje dostępności
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h2 class="h2">Rejestracja Czasu Pracy</h2>
+                </div>
+
+                <!-- Kalendarz i nawigacja datami -->
+                <div class="row">
+                    <!-- Główny panel - data i formularz -->
+                    <div class="col-lg-8 col-md-12 order-lg-1 order-2">
+                        <!-- Informacja o dniu -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                    <div>
+                                        <h3 id="dayName" class="h4 mb-1">Dzień tygodnia</h3>
+                                        <p id="dateDisplay" class="text-muted mb-0">Data dd.mm.rrrr</p>
+                                    </div>
+                                    <div class="text-end">
+                                        <h4 id="totalTime" class="mb-0">0h 0min</h4>
+                                    </div>
+                                </div>
+                                
+                                <!-- Przyciski nawigacji dni -->
+                                <div class="d-flex gap-2 mt-3 justify-content-center">
+                                    <button type="button" id="prevDayBtn" class="btn btn-outline-secondary">
+                                        <i class="bi bi-chevron-left"></i> Poprzedni
+                                    </button>
+                                    <button type="button" id="todayBtn" class="btn btn-primary">
+                                        <i class="bi bi-calendar-today me-1"></i>Dzisiaj
+                                    </button>
+                                    <button type="button" id="nextDayBtn" class="btn btn-outline-secondary">
+                                        Następny <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Formularz dodawania wpisu -->
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Dodaj nowy wpis</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="reportForm">
+                                    <div class="mb-3">
+                                        <label for="projektSelect" class="form-label">Projekt:</label>
+                                        <select name="projekt" id="projektSelect" class="form-select" required>
+                                            <option value="">Ładowanie...</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label for="opis" class="form-label">Opis (opcjonalny):</label>
+                                        <textarea name="opis" id="opis" class="form-control" rows="3" placeholder="Opisz wykonaną pracę..."></textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label">Czas pracy:</label>
+                                        <div class="row g-2">
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <input type="number" id="czas_h" name="czas_h" min="0" max="24" value="0" class="form-control" aria-label="Godziny">
+                                                    <span class="input-group-text">h</span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="input-group">
+                                                    <input type="number" id="czas_m" name="czas_m" min="0" max="59" value="0" class="form-control" aria-label="Minuty">
+                                                    <span class="input-group-text">min</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="d-flex gap-2">
+                                        <button type="submit" id="saveBtn" class="btn btn-primary">
+                                            <i class="bi bi-save me-1"></i>Zapisz
+                                        </button>
+                                        <button type="reset" class="btn btn-outline-secondary">
+                                            <i class="bi bi-x-circle me-1"></i>Wyczyść
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Istniejące wpisy -->
+                        <div class="card shadow-sm">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Twoje wpisy</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="existingReports">
+                                    <p class="text-muted">Ładowanie wpisów...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Kalendarz -->
+                    <div class="col-lg-4 col-md-12 mb-4 order-lg-2 order-1">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Kalendarz</h5>
+                            </div>
+                            <div class="card-body">
+                                <div id="calendarContainer">
+                                    <div id="calControls" class="d-flex justify-content-between align-items-center mb-3">
+                                        <button type="button" id="calPrevMonth" class="btn btn-sm btn-outline-secondary" aria-label="Poprzedni miesiąc">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </button>
+                                        <div class="d-flex gap-2">
+                                            <select id="calMonthSelect" class="form-select form-select-sm" aria-label="Miesiąc"></select>
+                                            <select id="calYearSelect" class="form-select form-select-sm" aria-label="Rok"></select>
+                                        </div>
+                                        <button type="button" id="calNextMonth" class="btn btn-sm btn-outline-secondary" aria-label="Następny miesiąc">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div id="calGrid"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>
