@@ -22,7 +22,9 @@ def create_user(db: Session, user: UserCreate):
         phone_number=user.phone_number,
         password_hash=hash_password(user.password),
         role=user.role,
-        account_status="aktywny"
+        account_status="aktywny",
+        birth_date=user.birth_date,
+        address=user.address
     )
     db.add(db_user)
     db.commit()
