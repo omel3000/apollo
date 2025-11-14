@@ -3,6 +3,10 @@ let calYear = null;
 let calMonth = null;
 let availabilityData = new Map(); // Map<'YYYY-MM-DD', {is_available, time_from, time_to}>
 let absenceData = []; // Array of absence objects
+let isEditingAvailability = false; // Tryb edycji dostępności
+let editingAvailabilityDate = null; // Data edytowanej dostępności
+let isEditingAbsence = false; // Tryb edycji nieobecności
+let editingAbsenceDateFrom = null; // Data początku edytowanej nieobecności
 
 const monthNamesPl = [
   'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -152,7 +156,12 @@ function setupAvailabilityForm() {
     if (submitBtn) {
       submitBtn.style.backgroundColor = '#2e7d32';
       submitBtn.style.color = 'white';
+      submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz dostępność';
     }
+    
+    // Wyłącz tryb edycji
+    isEditingAvailability = false;
+    editingAvailabilityDate = null;
   });
 }
 
@@ -182,11 +191,15 @@ async function handleAvailabilitySubmit() {
   }
 
   let payload = {
-    date: date,
     is_available: selectedStatus !== 'unavailable',
     time_from: null,
     time_to: null
   };
+  
+  // Dla POST dodajemy datę do payload
+  if (!isEditingAvailability) {
+    payload.date = date;
+  }
 
   if (selectedStatus === 'partial') {
     if (!timeFrom.value || !timeTo.value) {
@@ -202,8 +215,22 @@ async function handleAvailabilitySubmit() {
   }
 
   try {
-    const response = await fetch('/availability/my_availability', {
-      method: 'POST',
+    let response;
+    let url;
+    let method;
+    
+    if (isEditingAvailability && editingAvailabilityDate) {
+      // Tryb edycji - PUT
+      url = `/availability/my_availability/${editingAvailabilityDate}`;
+      method = 'PUT';
+    } else {
+      // Tryb dodawania - POST
+      url = '/availability/my_availability';
+      method = 'POST';
+    }
+    
+    response = await fetch(url, {
+      method: method,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -222,12 +249,20 @@ async function handleAvailabilitySubmit() {
       throw new Error(message || 'Błąd zapisu dostępności');
     }
 
-    alert('Dostępność zapisana!');
+    alert(isEditingAvailability ? 'Dostępność zaktualizowana!' : 'Dostępność zapisana!');
     
     // Wyczyść formularz
     document.getElementById('availabilityForm').reset();
     document.getElementById('availabilityDate').value = toApiDate(new Date());
     document.getElementById('timeRangeGroup').style.display = 'none';
+    
+    // Przywróć tryb dodawania
+    isEditingAvailability = false;
+    editingAvailabilityDate = null;
+    const submitBtn = document.getElementById('availabilitySubmitBtn');
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz dostępność';
+    }
 
     // Odśwież dane
     await loadDataForMonth();
@@ -264,6 +299,14 @@ function setupAbsenceForm() {
     const dateToInput = document.getElementById('absenceDateTo');
     if (dateFromInput) dateFromInput.value = toApiDate(new Date());
     if (dateToInput) dateToInput.value = toApiDate(new Date());
+    
+    // Przywróć tryb dodawania
+    isEditingAbsence = false;
+    editingAbsenceDateFrom = null;
+    const submitBtn = document.getElementById('absenceSubmitBtn');
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz nieobecność';
+    }
   });
 }
 
@@ -294,8 +337,22 @@ async function handleAbsenceSubmit() {
   };
 
   try {
-    const response = await fetch('/absences/my_absences', {
-      method: 'POST',
+    let response;
+    let url;
+    let method;
+    
+    if (isEditingAbsence && editingAbsenceDateFrom) {
+      // Tryb edycji - PUT
+      url = `/absences/my_absences/${editingAbsenceDateFrom}`;
+      method = 'PUT';
+    } else {
+      // Tryb dodawania - POST
+      url = '/absences/my_absences';
+      method = 'POST';
+    }
+    
+    response = await fetch(url, {
+      method: method,
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -314,12 +371,20 @@ async function handleAbsenceSubmit() {
       throw new Error(message || 'Błąd zapisu nieobecności');
     }
 
-    alert('Nieobecność zapisana!');
+    alert(isEditingAbsence ? 'Nieobecność zaktualizowana!' : 'Nieobecność zapisana!');
     
     // Wyczyść formularz
     document.getElementById('absenceForm').reset();
     document.getElementById('absenceDateFrom').value = toApiDate(new Date());
     document.getElementById('absenceDateTo').value = toApiDate(new Date());
+    
+    // Przywróć tryb dodawania
+    isEditingAbsence = false;
+    editingAbsenceDateFrom = null;
+    const submitBtn = document.getElementById('absenceSubmitBtn');
+    if (submitBtn) {
+      submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz nieobecność';
+    }
 
     // Odśwież dane
     await loadDataForMonth();
@@ -665,48 +730,98 @@ function onCalendarDayClick(ev) {
   const cardHeader = document.getElementById('availabilityCardHeader');
   const cardTitle = document.getElementById('availabilityCardTitle');
   const submitBtn = document.getElementById('availabilitySubmitBtn');
+  const timeRangeGroup = document.getElementById('timeRangeGroup');
   
   if (availability) {
+    // Tryb edycji dostępności
+    isEditingAvailability = true;
+    editingAvailabilityDate = dateStr;
+    
     // Załaduj dane do formularza
     if (!availability.is_available) {
       document.getElementById('unavailable').checked = true;
+      if (timeRangeGroup) timeRangeGroup.style.display = 'none';
+      document.getElementById('timeFrom').value = '';
+      document.getElementById('timeTo').value = '';
       // Czerwony kolor
       if (cardHeader) cardHeader.style.backgroundColor = '#ffcdd2';
       if (cardTitle) cardTitle.style.color = '#b71c1c';
       if (submitBtn) {
         submitBtn.style.backgroundColor = '#b71c1c';
         submitBtn.style.color = 'white';
+        submitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany dostępności';
       }
     } else if (availability.time_from && availability.time_to) {
       document.getElementById('availablePartial').checked = true;
       document.getElementById('timeFrom').value = availability.time_from.substring(0, 5);
       document.getElementById('timeTo').value = availability.time_to.substring(0, 5);
-      document.getElementById('timeRangeGroup').style.display = 'block';
+      if (timeRangeGroup) timeRangeGroup.style.display = 'block';
       // Żółty kolor
       if (cardHeader) cardHeader.style.backgroundColor = '#fff9c4';
       if (cardTitle) cardTitle.style.color = '#f57f17';
       if (submitBtn) {
         submitBtn.style.backgroundColor = '#f57f17';
         submitBtn.style.color = 'white';
+        submitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany dostępności';
       }
     } else {
       document.getElementById('availableFull').checked = true;
+      if (timeRangeGroup) timeRangeGroup.style.display = 'none';
+      document.getElementById('timeFrom').value = '';
+      document.getElementById('timeTo').value = '';
       // Zielony kolor
       if (cardHeader) cardHeader.style.backgroundColor = '#c8e6c9';
       if (cardTitle) cardTitle.style.color = '#1b5e20';
       if (submitBtn) {
         submitBtn.style.backgroundColor = '#2e7d32';
         submitBtn.style.color = 'white';
+        submitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany dostępności';
       }
     }
   } else {
-    // Brak dostępności - ustaw domyślnie na "Dostępny cały dzień" (zielony)
+    // Brak dostępności - tryb dodawania, ustaw domyślnie na "Dostępny cały dzień" (zielony)
+    isEditingAvailability = false;
+    editingAvailabilityDate = null;
+    
     document.getElementById('availableFull').checked = true;
+    if (timeRangeGroup) timeRangeGroup.style.display = 'none';
+    document.getElementById('timeFrom').value = '';
+    document.getElementById('timeTo').value = '';
+    
     if (cardHeader) cardHeader.style.backgroundColor = '#c8e6c9';
     if (cardTitle) cardTitle.style.color = '#1b5e20';
     if (submitBtn) {
       submitBtn.style.backgroundColor = '#2e7d32';
       submitBtn.style.color = 'white';
+      submitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz dostępność';
+    }
+  }
+  
+  // Sprawdź czy istnieje nieobecność dla tego dnia
+  const absence = isDateInAbsenceRange(dateStr);
+  const absenceSubmitBtn = document.getElementById('absenceSubmitBtn');
+  const absenceTypeSelect = document.getElementById('absenceType');
+  
+  if (absence) {
+    // Tryb edycji nieobecności
+    isEditingAbsence = true;
+    editingAbsenceDateFrom = absence.date_from;
+    
+    // Załaduj dane do formularza
+    if (absenceDateFrom) absenceDateFrom.value = absence.date_from;
+    if (absenceDateTo) absenceDateTo.value = absence.date_to;
+    if (absenceTypeSelect) absenceTypeSelect.value = absence.absence_type;
+    
+    if (absenceSubmitBtn) {
+      absenceSubmitBtn.innerHTML = '<i class="bi bi-pencil me-1"></i>Zapisz zmiany nieobecności';
+    }
+  } else {
+    // Tryb dodawania nieobecności
+    isEditingAbsence = false;
+    editingAbsenceDateFrom = null;
+    
+    if (absenceSubmitBtn) {
+      absenceSubmitBtn.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz nieobecność';
     }
   }
 }
