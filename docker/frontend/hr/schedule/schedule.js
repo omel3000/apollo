@@ -1573,10 +1573,16 @@ async function editScheduleMain(scheduleId) {
   await checkWorkerAvailabilityMain();
   await checkTimeConflictsMain();
   
-  // Przewiń do nagłówka karty formularza (wyżej niż sam formularz)
+  // Przewiń do nagłówka karty formularza
   const formCard = document.getElementById('scheduleFormMain')?.closest('.card');
   if (formCard) {
-    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Na desktopie (szerokość >= 768px) przewiń na samą górę strony
+    // Na mobile zostaw standardowe przewijanie do karty
+    if (window.innerWidth >= 768) {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   }
 }
 
