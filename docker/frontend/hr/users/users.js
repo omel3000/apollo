@@ -84,11 +84,7 @@ async function loadUsers() {
             return;
         }
         const data = await response.json();
-        data.sort((a, b) => {
-            const last = a.last_name.localeCompare(b.last_name, 'pl');
-            if (last !== 0) return last;
-            return a.first_name.localeCompare(b.first_name, 'pl');
-        });
+        data.sort(compareUsersByName);
         allUsers = data;
         if (selectedUser) {
             selectedUser = allUsers.find(user => user.user_id === selectedUser.user_id) || null;
@@ -104,7 +100,12 @@ function applyFilters() {
     const roleFilter = document.getElementById('filterRole')?.value || '';
     const statusFilter = document.getElementById('filterStatus')?.value || '';
 
-    let filtered = allUsers.slice();
+    let filtered = allUsers.filter(user => shouldDisplayUser(user));
+
+    if (selectedUser && !shouldDisplayUser(selectedUser)) {
+        selectedUser = null;
+        clearUserDetails();
+    }
 
     if (searchTerm) {
         filtered = filtered.filter(user => {
@@ -125,11 +126,7 @@ function applyFilters() {
         filtered = filtered.filter(user => statusMatchesFilter(user.account_status, statusFilter));
     }
 
-    filtered.sort((a, b) => {
-        const last = a.last_name.localeCompare(b.last_name, 'pl');
-        if (last !== 0) return last;
-        return a.first_name.localeCompare(b.first_name, 'pl');
-    });
+    filtered.sort(compareUsersByName);
 
     filteredUsersCache = filtered;
     renderUsersList(filtered);
@@ -266,9 +263,11 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
     const canManageAdmins = currentUser?.role === 'admin';
     const roleOptions = [
         { value: 'worker', label: 'Pracownik', disabled: false },
-        { value: 'hr', label: 'HR', disabled: false },
-        { value: 'admin', label: 'Admin', disabled: !canManageAdmins }
+        { value: 'hr', label: 'HR', disabled: false }
     ];
+    if (canManageAdmins || normalizedRole === 'admin') {
+        roleOptions.push({ value: 'admin', label: 'Admin', disabled: !canManageAdmins });
+    }
 
     return `
         <h5>Dane użytkownika</h5>
@@ -424,6 +423,7 @@ async function handleUserUpdate(event) {
     const firstName = formData.get('first_name').trim();
     const lastName = formData.get('last_name').trim();
     const email = formData.get('email').trim().toLowerCase();
+    const chosenRole = sanitizeRoleInput(formData.get('role'));
 
     if (!firstName || !lastName || !email) {
         showError('Imię, nazwisko i email są obowiązkowe');
@@ -435,7 +435,7 @@ async function handleUserUpdate(event) {
         last_name: lastName,
         email,
         phone_number: normalizeEmpty(formData.get('phone_number')),
-        role: normalizeEmpty(formData.get('role')),
+        role: chosenRole,
         account_status: normalizeEmpty(formData.get('account_status')),
         birth_date: normalizeEmpty(formData.get('birth_date')),
         address: normalizeEmpty(formData.get('address'))
@@ -597,6 +597,9 @@ async function addProjectToUser(userId, selectId) {
 }
 
 async function removeProjectAssignment(userId, projectId) {
+    if (!confirm('Czy na pewno chcesz usunąć ten projekt z tego użytkownika?')) {
+        return;
+    }
     const token = localStorage.getItem('token');
     try {
         const response = await fetch(`/user_projects/${userId}/${projectId}`, {
@@ -721,7 +724,7 @@ function generateNewUserFormHtml() {
                     <select class="form-select" id="newRole" name="role" required>
                         <option value="worker">Pracownik</option>
                         <option value="hr">HR</option>
-                        <option value="admin" ${canManageAdmins ? '' : 'disabled'}>Admin</option>
+                        ${canManageAdmins ? '<option value="admin">Admin</option>' : ''}
                     </select>
                 </div>
                 <div class="col-md-6">
@@ -790,7 +793,7 @@ async function handleCreateUser(event) {
         last_name: lastName,
         email,
         phone_number: normalizeEmpty(formData.get('phone_number')),
-        role: formData.get('role'),
+        role: sanitizeRoleInput(formData.get('role')),
         password,
         birth_date: normalizeEmpty(formData.get('birth_date')),
         address: normalizeEmpty(formData.get('address'))
@@ -852,6 +855,17 @@ function normalizeRoleValue(role) {
     return normalized;
 }
 
+function sanitizeRoleInput(role) {
+    const normalized = normalizeRoleValue(role) || 'worker';
+    if (normalized === 'admin' && currentUser?.role !== 'admin') {
+        return 'worker';
+    }
+    if (normalized !== 'worker' && normalized !== 'hr' && normalized !== 'admin') {
+        return 'worker';
+    }
+    return normalized;
+}
+
 function normalizeEmpty(value) {
     if (value === null || value === undefined) return null;
     const trimmed = value.toString().trim();
@@ -883,4 +897,20 @@ function showSuccess(message) {
 
 function showError(message) {
     alert('Błąd: ' + message);
+}
+
+function compareUsersByName(a, b) {
+    const first = a.first_name.localeCompare(b.first_name, 'pl');
+    if (first !== 0) {
+        return first;
+    }
+    return a.last_name.localeCompare(b.last_name, 'pl');
+}
+
+function shouldDisplayUser(user) {
+    const role = normalizeRoleValue(user.role);
+    if (role === 'admin' && currentUser?.role !== 'admin') {
+        return false;
+    }
+    return true;
 }

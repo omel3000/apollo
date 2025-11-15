@@ -2,6 +2,11 @@
 
 html { visibility: hidden; }
 
+.users-container {
+    width: 100%;
+    overflow-x: hidden;
+}
+
 @media (min-width: 768px) {
     .users-container {
         display: flex;
@@ -14,12 +19,14 @@ html { visibility: hidden; }
         overflow-y: auto;
         border-right: 2px solid #D9D1CA;
         padding-right: 15px;
+        min-width: 0;
     }
 
     .user-details-panel {
         flex: 1;
         overflow-y: auto;
         padding-left: 15px;
+        min-width: 0;
     }
 
     .mobile-detail-inline,

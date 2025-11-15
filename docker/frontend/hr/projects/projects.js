@@ -429,11 +429,23 @@ async function createProject(event) {
     
     // Pobierz dane z formularza który został wysłany
     const form = event.target;
+    const projectName = form.querySelector('#newProjectName').value.trim();
+    const projectDescription = form.querySelector('#newProjectDescription').value.trim();
+    const ownerValue = form.querySelector('#newProjectOwner').value;
+    const ownerId = parseInt(ownerValue, 10);
+    if (!projectName) {
+        showError('Podaj nazwę projektu');
+        return;
+    }
+    if (!ownerValue || Number.isNaN(ownerId)) {
+        showError('Wybierz właściciela projektu');
+        return;
+    }
     const projectData = {
-        project_name: form.querySelector('#newProjectName').value,
-        description: form.querySelector('#newProjectDescription').value || null,
+        project_name: projectName,
+        description: projectDescription !== '' ? projectDescription : null,
         time_type: form.querySelector('input[name="newTimeType"]:checked').value,
-        owner_user_id: parseInt(form.querySelector('#newProjectOwner').value)
+        owner_user_id: ownerId
     };
     
     try {
