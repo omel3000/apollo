@@ -683,11 +683,23 @@ function renderWorkersList() {
     return true;
   });
 
-  // Sortuj alfabetycznie
+  // Sortuj według dostępności i alfabetycznie
   filtered.sort((a, b) => {
-    const nameA = `${a.first_name} ${a.last_name}`;
-    const nameB = `${b.first_name} ${b.last_name}`;
-    return nameA.localeCompare(nameB);
+    // Jeśli zaznaczono dzień, sortuj według dostępności
+    if (selectedDate) {
+      const availA = getWorkerAvailabilityForDate(a.user_id, selectedDate);
+      const availB = getWorkerAvailabilityForDate(b.user_id, selectedDate);
+      
+      const priorityA = getAvailabilityPriority(availA);
+      const priorityB = getAvailabilityPriority(availB);
+      
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB;
+      }
+    }
+    
+    // Sortuj alfabetycznie po imieniu (drugorzędnie)
+    return a.first_name.localeCompare(b.first_name);
   });
 
   // Render
@@ -809,6 +821,24 @@ function getAvailabilityIcon(availability) {
   };
   
   return icons[availability.type] || '';
+}
+
+function getAvailabilityPriority(availability) {
+  // Zwraca priorytet sortowania (niższy = wyżej na liście):
+  // 1 = available (cały dzień)
+  // 2 = partial (częściowa dostępność)
+  // 3 = null (brak wpisu)
+  // 4 = unavailable (niedostępny)
+  // 5 = absence (nieobecność - urlop/L4/inne)
+  if (!availability) return 3;
+  
+  switch (availability.type) {
+    case 'available': return 1;
+    case 'partial': return 2;
+    case 'unavailable': return 4;
+    case 'absence': return 5;
+    default: return 3;
+  }
 }
 
 function getAvailabilityBadge(availability) {
