@@ -218,14 +218,14 @@ function generateProjectDetailsHtml(project, assignedUsers, availableUsers, owne
                 <label class="form-label">Typ rejestracji czasu</label>
                 <div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="timeType" id="timeTypeConstant" value="constant" ${project.time_type === 'constant' ? 'checked' : ''}>
-                        <label class="form-check-label" for="timeTypeConstant">
+                        <input class="form-check-input" type="radio" name="timeType" id="timeTypeConstant-${project.project_id}" value="constant" ${project.time_type === 'constant' ? 'checked' : ''}>
+                        <label class="form-check-label" for="timeTypeConstant-${project.project_id}">
                             Stały (tylko godziny)
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="timeType" id="timeTypeFromTo" value="from_to" ${project.time_type === 'from_to' ? 'checked' : ''}>
-                        <label class="form-check-label" for="timeTypeFromTo">
+                        <input class="form-check-input" type="radio" name="timeType" id="timeTypeFromTo-${project.project_id}" value="from_to" ${project.time_type === 'from_to' ? 'checked' : ''}>
+                        <label class="form-check-label" for="timeTypeFromTo-${project.project_id}">
                             Przedziały czasowe (od-do)
                         </label>
                     </div>
