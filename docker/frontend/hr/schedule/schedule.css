@@ -356,8 +356,8 @@
     margin-top: 8px;
 }
 
-/* Wiersz projektu */
-.timeline-project-row {
+/* Grupa projektu (etykieta + wiele wierszy) */
+.timeline-project-group {
     display: flex;
     margin-bottom: 8px;
     align-items: stretch;
@@ -382,7 +382,42 @@
     text-overflow: ellipsis;
 }
 
-/* Kontener dla zmian projektu */
+/* Kontener dla wierszy projektu */
+.timeline-project-rows {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Pojedynczy wiersz ze zmianami (nie nakładające się) */
+.timeline-project-row-shifts {
+    position: relative;
+    min-height: 40px;
+    background-color: white;
+    border: 1px solid #D9D1CA;
+}
+
+.timeline-project-group:first-child .timeline-project-rows .timeline-project-row-shifts:first-child {
+    border-radius: 0 4px 0 0;
+}
+
+.timeline-project-group:first-child .timeline-project-rows .timeline-project-row-shifts:last-child {
+    border-radius: 0 0 4px 0;
+}
+
+.timeline-project-group:first-child .timeline-project-rows .timeline-project-row-shifts:only-child {
+    border-radius: 0 4px 4px 0;
+}
+
+/* Stara struktura (zachowana dla kompatybilności) */
+.timeline-project-row {
+    display: flex;
+    margin-bottom: 8px;
+    align-items: stretch;
+}
+
+/* Kontener dla zmian projektu (stary) */
 .timeline-project-shifts {
     position: relative;
     flex: 1;

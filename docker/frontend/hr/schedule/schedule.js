@@ -999,34 +999,71 @@ function renderTimeline(schedules) {
   sortedProjects.forEach(projectGroup => {
     const projectColor = getProjectColor(projectGroup.project_id);
     
-    shiftsHtml += `<div class="timeline-project-row">`;
-    shiftsHtml += `<div class="timeline-project-label" style="background-color: ${projectColor};" title="${projectGroup.project_name}">`;
-    shiftsHtml += `${projectGroup.project_name}`;
-    shiftsHtml += `</div>`;
-    shiftsHtml += `<div class="timeline-project-shifts">`;
-    
+    // Pogrupuj zmiany w wierszu według nakładających się godzin
+    const rows = [];
     projectGroup.shifts.forEach(shift => {
       const fromHour = parseTimeToDecimal(shift.time_from);
       const toHour = parseTimeToDecimal(shift.time_to);
-      const left = (fromHour / 24) * 100;
-      const width = ((toHour - fromHour) / 24) * 100;
       
-      const workerName = `${shift.first_name} ${shift.last_name}`;
-      const projectInfo = shift.project_name ? ` - ${shift.project_name}` : '';
+      // Znajdź pierwszy wiersz, w którym ta zmiana się zmieści (nie nakłada się)
+      let placed = false;
+      for (let i = 0; i < rows.length; i++) {
+        const canFit = !rows[i].some(existingShift => {
+          const existingFrom = parseTimeToDecimal(existingShift.time_from);
+          const existingTo = parseTimeToDecimal(existingShift.time_to);
+          // Sprawdź czy nakładają się
+          return fromHour < existingTo && toHour > existingFrom;
+        });
+        
+        if (canFit) {
+          rows[i].push(shift);
+          placed = true;
+          break;
+        }
+      }
       
-      shiftsHtml += `
-        <div class="timeline-shift-block" 
-             style="left: ${left}%; width: ${width}%; background-color: ${projectColor};"
-             onclick="editSchedule(${shift.schedule_id})"
-             title="${workerName} ${shift.time_from}-${shift.time_to}${projectInfo}">
-          <span class="timeline-shift-worker">${shift.first_name} ${shift.last_name[0]}.</span>
-          <span class="timeline-shift-time">${shift.time_from.substring(0,5)}</span>
-        </div>
-      `;
+      // Jeśli nie zmieściła się w żadnym wierszu, utwórz nowy
+      if (!placed) {
+        rows.push([shift]);
+      }
     });
     
-    shiftsHtml += `</div>`; // timeline-project-shifts
-    shiftsHtml += `</div>`; // timeline-project-row
+    // Renderuj grupę projektu z wieloma wierszami
+    shiftsHtml += `<div class="timeline-project-group">`;
+    shiftsHtml += `<div class="timeline-project-label" style="background-color: ${projectColor};" title="${projectGroup.project_name}">`;
+    shiftsHtml += `${projectGroup.project_name}`;
+    shiftsHtml += `</div>`;
+    shiftsHtml += `<div class="timeline-project-rows">`;
+    
+    // Renderuj każdy wiersz
+    rows.forEach(rowShifts => {
+      shiftsHtml += `<div class="timeline-project-row-shifts">`;
+      
+      rowShifts.forEach(shift => {
+        const fromHour = parseTimeToDecimal(shift.time_from);
+        const toHour = parseTimeToDecimal(shift.time_to);
+        const left = (fromHour / 24) * 100;
+        const width = ((toHour - fromHour) / 24) * 100;
+        
+        const workerName = `${shift.first_name} ${shift.last_name}`;
+        const projectInfo = shift.project_name ? ` - ${shift.project_name}` : '';
+        
+        shiftsHtml += `
+          <div class="timeline-shift-block" 
+               style="left: ${left}%; width: ${width}%; background-color: ${projectColor};"
+               onclick="editSchedule(${shift.schedule_id})"
+               title="${workerName} ${shift.time_from}-${shift.time_to}${projectInfo}">
+            <span class="timeline-shift-worker">${shift.first_name} ${shift.last_name[0]}.</span>
+            <span class="timeline-shift-time">${shift.time_from.substring(0,5)}</span>
+          </div>
+        `;
+      });
+      
+      shiftsHtml += `</div>`; // timeline-project-row-shifts
+    });
+    
+    shiftsHtml += `</div>`; // timeline-project-rows
+    shiftsHtml += `</div>`; // timeline-project-group
   });
   
   shiftsHtml += '</div>';
