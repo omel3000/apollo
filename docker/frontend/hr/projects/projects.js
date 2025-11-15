@@ -68,10 +68,11 @@ function renderProjectsList(projects) {
     container.innerHTML = projects.map(project => {
         const owner = allUsers.find(u => u.user_id === project.owner_user_id);
         const ownerName = owner ? `${owner.first_name} ${owner.last_name}` : 'Nieznany';
+        const isActive = selectedProject && selectedProject.project_id === project.project_id;
         
         return `
-            <div class="project-list-item ${selectedProject && selectedProject.project_id === project.project_id ? 'active' : ''}" 
-                 onclick="selectProject(${project.project_id})">
+            <div class="project-list-item ${isActive ? 'active' : ''}" 
+                 onclick="selectProject(${project.project_id})" data-project-id="${project.project_id}">
                 <div class="project-name">${escapeHtml(project.project_name)}</div>
                 <div class="project-meta">
                     <small>
@@ -79,6 +80,7 @@ function renderProjectsList(projects) {
                         <i class="bi bi-clock"></i> ${project.time_type === 'constant' ? 'Stały' : 'Przedziały czasowe'}
                     </small>
                 </div>
+                ${isActive ? `<div class="mobile-detail-inline" id="mobileDetail-${project.project_id}"></div>` : ''}
             </div>
         `;
     }).join('');
@@ -113,8 +115,16 @@ async function selectProject(projectId) {
     // Pobierz użytkowników przypisanych do projektu
     const assignedUsers = await loadAssignedUsers(projectId);
     
-    // Renderuj szczegóły
+    // Renderuj szczegóły (desktop i mobile)
     renderProjectDetails(selectedProject, assignedUsers);
+    
+    // Scroll do wybranego projektu na mobile
+    if (window.innerWidth < 768) {
+        const projectElement = document.querySelector(`[data-project-id="${projectId}"]`);
+        if (projectElement) {
+            projectElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
 }
 
 // Pobierz użytkowników przypisanych do projektu
@@ -138,8 +148,6 @@ async function loadAssignedUsers(projectId) {
 
 // Renderuj szczegóły projektu
 function renderProjectDetails(project, assignedUsers) {
-    const container = document.getElementById('projectDetails');
-    
     const owner = allUsers.find(u => u.user_id === project.owner_user_id);
     const creator = allUsers.find(u => u.user_id === project.created_by_user_id);
     
@@ -147,8 +155,27 @@ function renderProjectDetails(project, assignedUsers) {
     const assignedUserIds = assignedUsers.map(u => u.user_id);
     const availableUsers = allUsers.filter(u => !assignedUserIds.includes(u.user_id));
     
-    container.innerHTML = `
-        <h4>Szczegóły projektu</h4>
+    const detailsHtml = generateProjectDetailsHtml(project, assignedUsers, availableUsers, owner, creator);
+    
+    // Desktop - panel po prawej
+    const desktopContainer = document.getElementById('projectDetails');
+    if (desktopContainer) {
+        desktopContainer.innerHTML = detailsHtml;
+        attachProjectFormListeners();
+    }
+    
+    // Mobile - inline pod projektem
+    const mobileContainer = document.getElementById(`mobileDetail-${project.project_id}`);
+    if (mobileContainer) {
+        mobileContainer.innerHTML = detailsHtml;
+        attachProjectFormListeners();
+    }
+}
+
+// Generuj HTML szczegółów projektu (współdzielony między desktop i mobile)
+function generateProjectDetailsHtml(project, assignedUsers, availableUsers, owner, creator) {
+    return `
+        <h5>Szczegóły projektu</h5>
         
         <form id="projectForm" class="mb-4">
             <div class="mb-3">
@@ -197,7 +224,7 @@ function renderProjectDetails(project, assignedUsers) {
                 </small>
             </div>
             
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save me-2"></i>Zapisz zmiany
                 </button>
@@ -209,10 +236,10 @@ function renderProjectDetails(project, assignedUsers) {
         
         <hr>
         
-        <h5>Użytkownicy w projekcie</h5>
+        <h6>Użytkownicy w projekcie</h6>
         
         <div class="mb-3">
-            ${assignedUsers.length === 0 ? '<p class="text-muted">Brak przypisanych użytkowników</p>' : ''}
+            ${assignedUsers.length === 0 ? '<p class="text-muted"><small>Brak przypisanych użytkowników</small></p>' : ''}
             <div id="assignedUsersList">
                 ${assignedUsers.map(user => `
                     <div class="user-assignment-item">
@@ -244,18 +271,23 @@ function renderProjectDetails(project, assignedUsers) {
             </div>
         ` : '<p class="text-muted"><small>Wszyscy użytkownicy są już przypisani do tego projektu</small></p>'}
     `;
-    
-    // Dodaj event listener do formularza
-    document.getElementById('projectForm').addEventListener('submit', updateProject);
+}
+
+// Podłącz listenery do formularza projektu
+function attachProjectFormListeners() {
+    const forms = document.querySelectorAll('#projectForm');
+    forms.forEach(form => {
+        form.removeEventListener('submit', updateProject);
+        form.addEventListener('submit', updateProject);
+    });
 }
 
 // Pokaż formularz nowego projektu
 function showNewProjectForm() {
     selectedProject = null;
-    const container = document.getElementById('projectDetails');
     
-    container.innerHTML = `
-        <h4>Nowy projekt</h4>
+    const formHtml = `
+        <h5>Nowy projekt</h5>
         
         <form id="newProjectForm">
             <div class="mb-3">
@@ -298,7 +330,7 @@ function showNewProjectForm() {
                 </select>
             </div>
             
-            <div class="d-flex gap-2">
+            <div class="d-flex gap-2 flex-wrap">
                 <button type="submit" class="btn btn-success">
                     <i class="bi bi-plus-circle me-2"></i>Utwórz projekt
                 </button>
@@ -309,7 +341,26 @@ function showNewProjectForm() {
         </form>
     `;
     
-    document.getElementById('newProjectForm').addEventListener('submit', createProject);
+    // Desktop - panel po prawej
+    const desktopContainer = document.getElementById('projectDetails');
+    if (desktopContainer) {
+        desktopContainer.innerHTML = formHtml;
+    }
+    
+    // Mobile - kontener na górze
+    const mobileContainer = document.getElementById('newProjectFormContainer');
+    if (mobileContainer && window.innerWidth < 768) {
+        mobileContainer.innerHTML = formHtml;
+        mobileContainer.style.display = 'block';
+        // Scroll do góry
+        mobileContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    
+    // Podłącz event listener do formularza
+    const forms = document.querySelectorAll('#newProjectForm');
+    forms.forEach(form => {
+        form.addEventListener('submit', createProject);
+    });
 }
 
 // Utwórz nowy projekt
@@ -483,12 +534,28 @@ async function removeUserFromProject(userId, projectId) {
 
 // Anuluj tworzenie nowego projektu
 function cancelNewProject() {
-    document.getElementById('projectDetails').innerHTML = `
-        <div class="empty-state">
-            <i class="bi bi-folder text-muted"></i>
-            <p>Wybierz projekt z listy lub utwórz nowy</p>
-        </div>
-    `;
+    selectedProject = null;
+    
+    // Desktop
+    const desktopContainer = document.getElementById('projectDetails');
+    if (desktopContainer) {
+        desktopContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="bi bi-folder text-muted"></i>
+                <p>Wybierz projekt z listy lub utwórz nowy</p>
+            </div>
+        `;
+    }
+    
+    // Mobile
+    const mobileContainer = document.getElementById('newProjectFormContainer');
+    if (mobileContainer) {
+        mobileContainer.innerHTML = '';
+        mobileContainer.style.display = 'none';
+    }
+    
+    // Odśwież listę projektów
+    renderProjectsList(allProjects);
 }
 
 // Funkcje pomocnicze

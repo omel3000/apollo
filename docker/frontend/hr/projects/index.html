@@ -28,6 +28,14 @@
                 overflow-y: auto;
                 padding-left: 15px;
             }
+            
+            .mobile-detail-inline {
+                display: none !important;
+            }
+            
+            .new-project-form-container {
+                display: none;
+            }
         }
         
         /* Mobile layout */
@@ -41,11 +49,32 @@
             }
             
             .project-details-panel {
-                display: none;
+                display: none !important;
             }
             
-            .project-details-panel.active {
-                display: block;
+            .mobile-detail-inline {
+                margin-top: 10px;
+                padding: 15px;
+                background-color: #f8f9fa;
+                border-radius: 8px;
+                border: 2px solid #736A65;
+            }
+            
+            .mobile-detail-inline h5 {
+                font-size: 1rem;
+                margin-bottom: 15px;
+            }
+            
+            .new-project-form-container {
+                margin-bottom: 20px;
+                padding: 15px;
+                background-color: #f0f8ff;
+                border: 2px solid #BF6E50;
+                border-radius: 8px;
+            }
+            
+            .project-list-item.active {
+                border-width: 2px;
             }
         }
         
@@ -87,6 +116,13 @@
             margin-bottom: 6px;
             background-color: #f8f9fa;
             border-radius: 4px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .user-assignment-item span {
+            flex: 1;
+            min-width: 150px;
         }
         
         .empty-state {
@@ -98,6 +134,26 @@
         .empty-state i {
             font-size: 3rem;
             margin-bottom: 15px;
+        }
+        
+        /* Dodatkowe style mobilne */
+        @media (max-width: 767px) {
+            .user-assignment-item {
+                font-size: 0.9rem;
+            }
+            
+            .btn-sm {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.8rem;
+            }
+            
+            h5 {
+                font-size: 1.1rem;
+            }
+            
+            h6 {
+                font-size: 1rem;
+            }
         }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
@@ -202,6 +258,9 @@
                 <div class="projects-container">
                     <!-- Lewa kolumna: Lista projektów -->
                     <div class="projects-list-panel">
+                        <!-- Kontener na formularz nowego projektu (mobile) -->
+                        <div id="newProjectFormContainer" class="new-project-form-container" style="display: none;"></div>
+                        
                         <div class="mb-3">
                             <button class="btn btn-primary w-100 mb-3" id="btnNewProject">
                                 <i class="bi bi-plus-circle me-2"></i>Nowy projekt
