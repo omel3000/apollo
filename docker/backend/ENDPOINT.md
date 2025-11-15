@@ -27,6 +27,7 @@
 | POST | `/projects` | Tworzenie nowego projektu | ❌ | ✅ | ✅ | ❌ |
 | GET | `/projects` | Odczyt wszystkich projektów | ❌ | ✅ | ✅ | ❌ |
 | PUT | `/projects/{project_id}` | Aktualizacja projektu | ❌ | ✅ | ✅ | ❌ |
+| DELETE | `/projects/{project_id}` | Usunięcie projektu | ❌ | ✅ | ✅ | ❌ |
 | POST | `/projects/monthly_summary` | Suma miesięczna czasu dla projektu | ❌ | ✅ | ✅ | ❌ |
 | POST | `/projects/monthly_summary_with_users` | Miesięczna suma + lista użytkowników | ❌ | ✅ | ✅ | ❌ |
 | POST | `/projects/user_detailed_report` | Szczegóły dni użytkownika w projekcie | ❌ | ✅ | ✅ | ❌ |

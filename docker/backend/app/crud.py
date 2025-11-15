@@ -67,6 +67,43 @@ def create_project(db: Session, project: ProjectCreate, user_id: int):
     db.refresh(db_project)
     return db_project
 
+def delete_project(db: Session, project_id: int):
+    """
+    Usuwa projekt z bazy danych.
+    Sprawdza czy projekt istnieje i czy nie ma powiązanych rekordów.
+    Zwraca True jeśli usunięto, False jeśli projekt nie istnieje.
+    Rzuca ValueError jeśli istnieją powiązane rekordy.
+    """
+    project = db.query(Project).filter(Project.project_id == project_id).first()
+    if not project:
+        return False
+    
+    try:
+        db.delete(project)
+        db.commit()
+        return True
+    except IntegrityError as e:
+        db.rollback()
+        # Sprawdź co jest powiązane
+        work_reports_count = db.query(WorkReport).filter(WorkReport.project_id == project_id).count()
+        user_projects_count = db.query(UserProject).filter(UserProject.project_id == project_id).count()
+        
+        error_details = []
+        if work_reports_count > 0:
+            error_details.append(f"{work_reports_count} raport(y/ów) pracy")
+        if user_projects_count > 0:
+            error_details.append(f"{user_projects_count} przypisań użytkowników")
+        
+        if error_details:
+            raise ValueError(
+                f"Nie można usunąć projektu '{project.project_name}'. "
+                f"Istnieją powiązane rekordy: {', '.join(error_details)}. "
+                f"Usuń najpierw powiązane dane lub skontaktuj się z administratorem."
+            )
+        else:
+            # Inny błąd integralności
+            raise ValueError(f"Nie można usunąć projektu '{project.project_name}': {str(e)}")
+
 def get_active_messages(db: Session):
     return db.query(Message).filter(Message.is_active == True).all()
 
@@ -310,17 +347,41 @@ def delete_user_project_assignment(db: Session, user_id: int, project_id: int):
     """
     Usuwa przypisanie użytkownika do projektu.
     Zwraca True jeśli usunięto, False jeśli nie znaleziono.
+    Rzuca ValueError jeśli istnieją powiązane raporty pracy.
     """
     assignment = db.query(UserProject).filter(
         UserProject.user_id == user_id,
         UserProject.project_id == project_id
     ).first()
     
-    if assignment:
+    if not assignment:
+        return False
+    
+    # Sprawdź czy użytkownik ma raporty pracy w tym projekcie
+    work_reports_count = db.query(WorkReport).filter(
+        WorkReport.user_id == user_id,
+        WorkReport.project_id == project_id
+    ).count()
+    
+    if work_reports_count > 0:
+        user = get_user_by_id(db, user_id)
+        project = db.query(Project).filter(Project.project_id == project_id).first()
+        user_name = f"{user.first_name} {user.last_name}" if user else f"ID {user_id}"
+        project_name = project.project_name if project else f"ID {project_id}"
+        
+        raise ValueError(
+            f"Nie można usunąć przypisania. Użytkownik {user_name} ma {work_reports_count} "
+            f"raport(y/ów) pracy w projekcie '{project_name}'. "
+            f"Usuń najpierw raporty pracy lub skontaktuj się z administratorem."
+        )
+    
+    try:
         db.delete(assignment)
         db.commit()
         return True
-    return False
+    except IntegrityError as e:
+        db.rollback()
+        raise ValueError(f"Nie można usunąć przypisania: {str(e)}")
 
 def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     start_date = date(year, month, 1)

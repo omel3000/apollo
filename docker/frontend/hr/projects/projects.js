@@ -386,8 +386,28 @@ async function deleteProject(projectId) {
         return;
     }
     
-    showError('Endpoint DELETE /projects/{project_id} nie jest jeszcze zaimplementowany w backendzie');
-    // TODO: Implementacja po dodaniu endpointu w backendzie
+    const token = localStorage.getItem('token');
+    
+    try {
+        const response = await fetch(`/projects/${projectId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            showSuccess('Projekt usunięty pomyślnie');
+            await loadProjects();
+            cancelNewProject();
+        } else {
+            const error = await response.json();
+            showError(error.detail || 'Nie udało się usunąć projektu');
+        }
+    } catch (error) {
+        console.error('Błąd:', error);
+        showError('Błąd połączenia z serwerem');
+    }
 }
 
 // Dodaj użytkownika do projektu

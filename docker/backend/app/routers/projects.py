@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas import ProjectCreate, ProjectRead, ProjectUpdate, ProjectMonthlySummaryRequest, ProjectMonthlySummary, ProjectMonthlySummaryWithUsers, UserProjectDetailedRequest, UserProjectDetailedReport
-from crud import create_project, update_project, get_project_monthly_summary, get_project_monthly_summary_with_users, get_user_project_detailed_report
+from crud import create_project, update_project, delete_project, get_project_monthly_summary, get_project_monthly_summary_with_users, get_user_project_detailed_report
 from auth import get_current_user, admin_or_hr_required
 from models import User, Project
 
@@ -40,6 +40,24 @@ def update_project_endpoint(
     try:
         updated = update_project(db, project_id, project)
         return updated
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.delete("/{project_id}")
+def delete_project_endpoint(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required)
+):
+    """Usunięcie projektu - dostępne dla admin/HR"""
+    try:
+        deleted = delete_project(db, project_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Projekt o id {project_id} nie istnieje"
+            )
+        return {"message": "Projekt usunięty pomyślnie"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

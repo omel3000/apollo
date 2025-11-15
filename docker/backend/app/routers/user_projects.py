@@ -45,10 +45,13 @@ def remove_assignment(user_id: int, project_id: int, db: Session = Depends(get_d
     """
     Usuwa przypisanie użytkownika do projektu - tylko admin/HR.
     """
-    deleted = delete_user_project_assignment(db, user_id, project_id)
-    if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Nie znaleziono przypisania użytkownika {user_id} do projektu {project_id}"
-        )
-    return {"message": "Przypisanie usunięte pomyślnie"}
+    try:
+        deleted = delete_user_project_assignment(db, user_id, project_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Nie znaleziono przypisania użytkownika {user_id} do projektu {project_id}"
+            )
+        return {"message": "Przypisanie usunięte pomyślnie"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
