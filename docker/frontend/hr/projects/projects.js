@@ -137,10 +137,8 @@ async function selectProject(projectId) {
 
 // Odśwież szczegóły projektu bez zamykania (dla dodawania/usuwania użytkowników)
 async function refreshProjectDetails(projectId) {
-    // Upewnij się że mamy aktualną wersję projektu
-    if (!selectedProject || selectedProject.project_id !== projectId) {
-        selectedProject = allProjects.find(p => p.project_id === projectId);
-    }
+    // Znajdź zaktualizowany projekt z allProjects (może być odświeżony przez loadProjects)
+    selectedProject = allProjects.find(p => p.project_id === projectId);
     if (!selectedProject) {
         console.error('Nie znaleziono projektu o ID:', projectId);
         return;
