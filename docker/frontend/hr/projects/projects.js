@@ -528,7 +528,7 @@ async function addUserToProject() {
     console.log('Dodawanie użytkownika:', assignmentData);
     
     try {
-        const response = await fetch('/user_projects', {
+        const response = await fetch('/user_projects/', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
