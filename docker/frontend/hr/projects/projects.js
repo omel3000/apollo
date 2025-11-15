@@ -80,7 +80,7 @@ function renderProjectsList(projects) {
                         <i class="bi bi-clock"></i> ${project.time_type === 'constant' ? 'Stały' : 'Przedziały czasowe'}
                     </small>
                 </div>
-                ${isActive ? `<div class="mobile-detail-inline" id="mobileDetail-${project.project_id}"></div>` : ''}
+                ${isActive ? `<div class="mobile-detail-inline" id="mobileDetail-${project.project_id}" onclick="event.stopPropagation()"></div>` : ''}
             </div>
         `;
     }).join('');
@@ -137,12 +137,19 @@ async function selectProject(projectId) {
 
 // Odśwież szczegóły projektu bez zamykania (dla dodawania/usuwania użytkowników)
 async function refreshProjectDetails(projectId) {
-    // Zaktualizuj dane projektu z listy
-    selectedProject = allProjects.find(p => p.project_id === projectId);
-    if (!selectedProject) return;
+    // Upewnij się że mamy aktualną wersję projektu
+    if (!selectedProject || selectedProject.project_id !== projectId) {
+        selectedProject = allProjects.find(p => p.project_id === projectId);
+    }
+    if (!selectedProject) {
+        console.error('Nie znaleziono projektu o ID:', projectId);
+        return;
+    }
     
     // Pobierz użytkowników przypisanych do projektu
     const assignedUsers = await loadAssignedUsers(projectId);
+    
+    console.log('Odświeżam szczegóły projektu:', projectId, 'Liczba użytkowników:', assignedUsers.length);
     
     // Renderuj szczegóły bez zmiany listy projektów (nie zamyka na mobile)
     renderProjectDetails(selectedProject, assignedUsers);
@@ -518,6 +525,8 @@ async function addUserToProject() {
         project_id: selectedProject.project_id
     };
     
+    console.log('Dodawanie użytkownika:', assignmentData);
+    
     try {
         const response = await fetch('/user_projects', {
             method: 'POST',
@@ -533,6 +542,7 @@ async function addUserToProject() {
             await refreshProjectDetails(selectedProject.project_id);
         } else {
             const error = await response.json();
+            console.error('Błąd dodawania użytkownika:', error);
             showError(error.detail || 'Nie udało się dodać użytkownika');
         }
     } catch (error) {
