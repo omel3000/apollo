@@ -48,6 +48,31 @@ html { visibility: hidden; }
 .filters-toggle {
     text-transform: uppercase;
     letter-spacing: 0.04em;
+    background-color: #F8F6F3 !important;
+    border-color: #BF6E50 !important;
+    color: #261C1E !important;
+}
+
+.filters-toggle:hover {
+    background-color: #BF6E50 !important;
+    border-color: #BF6E50 !important;
+    color: #F2EEEB !important;
+}
+
+.filters-toggle[aria-expanded="true"] {
+    background-color: #736A65 !important;
+    border-color: #736A65 !important;
+    color: #F2EEEB !important;
+}
+
+.filter-options .form-check-input:checked {
+    background-color: #BF6E50 !important;
+    border-color: #BF6E50 !important;
+}
+
+.filter-options .form-check-input:focus {
+    border-color: #BF6E50 !important;
+    box-shadow: 0 0 0 0.15rem rgba(191, 110, 80, 0.25) !important;
 }
 
 #filtersCollapse {
