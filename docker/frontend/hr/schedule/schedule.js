@@ -975,20 +975,37 @@ function renderTimeline(schedules) {
   // Generuj bloki zmian
   let shiftsHtml = '<div class="timeline-shifts">';
   
-  // Grupuj zmiany po pracownikach
-  const workerShifts = new Map();
+  // Grupuj zmiany po projektach
+  const projectShifts = new Map();
   sorted.forEach(schedule => {
-    const key = schedule.user_id;
-    if (!workerShifts.has(key)) {
-      workerShifts.set(key, []);
+    const key = schedule.project_id || 'absence'; // Klucz dla nieobecności
+    if (!projectShifts.has(key)) {
+      projectShifts.set(key, {
+        project_id: schedule.project_id,
+        project_name: schedule.project_name || getShiftTypeName(schedule.shift_type),
+        shifts: []
+      });
     }
-    workerShifts.get(key).push(schedule);
+    projectShifts.get(key).shifts.push(schedule);
   });
 
-  workerShifts.forEach((shifts, userId) => {
-    shiftsHtml += '<div class="timeline-worker-row">';
+  // Sortuj projekty alfabetycznie (nieobecności na końcu)
+  const sortedProjects = Array.from(projectShifts.values()).sort((a, b) => {
+    if (a.project_id === null && b.project_id !== null) return 1;
+    if (a.project_id !== null && b.project_id === null) return -1;
+    return a.project_name.localeCompare(b.project_name);
+  });
+
+  sortedProjects.forEach(projectGroup => {
+    const projectColor = getProjectColor(projectGroup.project_id);
     
-    shifts.forEach(shift => {
+    shiftsHtml += `<div class="timeline-project-row">`;
+    shiftsHtml += `<div class="timeline-project-label" style="background-color: ${projectColor};" title="${projectGroup.project_name}">`;
+    shiftsHtml += `${projectGroup.project_name}`;
+    shiftsHtml += `</div>`;
+    shiftsHtml += `<div class="timeline-project-shifts">`;
+    
+    projectGroup.shifts.forEach(shift => {
       const fromHour = parseTimeToDecimal(shift.time_from);
       const toHour = parseTimeToDecimal(shift.time_to);
       const left = (fromHour / 24) * 100;
@@ -998,17 +1015,18 @@ function renderTimeline(schedules) {
       const projectInfo = shift.project_name ? ` - ${shift.project_name}` : '';
       
       shiftsHtml += `
-        <div class="timeline-shift-block shift-${shift.shift_type}" 
-             style="left: ${left}%; width: ${width}%;"
+        <div class="timeline-shift-block" 
+             style="left: ${left}%; width: ${width}%; background-color: ${projectColor};"
              onclick="editSchedule(${shift.schedule_id})"
              title="${workerName} ${shift.time_from}-${shift.time_to}${projectInfo}">
           <span class="timeline-shift-worker">${shift.first_name} ${shift.last_name[0]}.</span>
-          ${shift.project_name ? `<span class="timeline-shift-project">${shift.project_name}</span>` : ''}
+          <span class="timeline-shift-time">${shift.time_from.substring(0,5)}</span>
         </div>
       `;
     });
     
-    shiftsHtml += '</div>';
+    shiftsHtml += `</div>`; // timeline-project-shifts
+    shiftsHtml += `</div>`; // timeline-project-row
   });
   
   shiftsHtml += '</div>';
@@ -1584,6 +1602,31 @@ function parseTimeToDecimal(timeStr) {
   // "HH:MM" -> decimal (e.g., "14:30" -> 14.5)
   const [hours, minutes] = timeStr.split(':').map(Number);
   return hours + (minutes / 60);
+}
+
+function getProjectColor(projectId) {
+  // Generuje spójny kolor dla projektu na podstawie ID
+  if (!projectId) {
+    return '#8b5cf6'; // Fioletowy dla nieobecności (urlop/L4/inne)
+  }
+  
+  // Paleta kolorów dla projektów (ciepłe, czytelne kolory)
+  const colors = [
+    '#2e7d32', // Zielony
+    '#1976d2', // Niebieski
+    '#d32f2f', // Czerwony
+    '#f57c00', // Pomarańczowy
+    '#7b1fa2', // Fioletowy
+    '#0097a7', // Cyjan
+    '#c2185b', // Różowy
+    '#5d4037', // Brązowy
+    '#616161', // Szary
+    '#00796b', // Morski
+    '#e64a19', // Głęboka pomarańcza
+    '#303f9f'  // Indygo
+  ];
+  
+  return colors[projectId % colors.length];
 }
 
 function calculateMinutesBetween(timeFrom, timeTo) {

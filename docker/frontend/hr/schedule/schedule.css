@@ -356,7 +356,43 @@
     margin-top: 8px;
 }
 
-/* Wiersz pracownika */
+/* Wiersz projektu */
+.timeline-project-row {
+    display: flex;
+    margin-bottom: 8px;
+    align-items: stretch;
+}
+
+/* Etykieta projektu po lewej */
+.timeline-project-label {
+    min-width: 120px;
+    max-width: 120px;
+    padding: 8px 12px;
+    background-color: #736A65;
+    color: white;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border-radius: 4px 0 0 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    word-wrap: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Kontener dla zmian projektu */
+.timeline-project-shifts {
+    position: relative;
+    flex: 1;
+    min-height: 40px;
+    background-color: white;
+    border-radius: 0 4px 4px 0;
+    border: 1px solid #D9D1CA;
+}
+
+/* Wiersz pracownika (usunięty, zastąpiony przez timeline-project-row) */
 .timeline-worker-row {
     position: relative;
     height: 40px;
@@ -382,6 +418,7 @@
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
+    gap: 4px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -389,23 +426,16 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0,0,0,0.2);
     z-index: 10;
+    filter: brightness(1.1);
 }
 
-/* Kolory dla typów zmian */
-.timeline-shift-block.shift-normalna {
-    background-color: #2e7d32;
+.timeline-shift-worker {
+    font-weight: 600;
 }
 
-.timeline-shift-block.shift-urlop {
-    background-color: #8b5cf6;
-}
-
-.timeline-shift-block.shift-L4 {
-    background-color: #b71c1c;
-}
-
-.timeline-shift-block.shift-inne {
-    background-color: #f57f17;
+.timeline-shift-time {
+    font-size: 0.7rem;
+    opacity: 0.9;
 }
 
 /* Nazwa pracownika w bloku */
