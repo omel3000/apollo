@@ -26,8 +26,8 @@ html { visibility: hidden; }
         flex: 1;
         overflow-y: auto;
         padding-left: 15px;
+        padding-right: 15px;
         min-width: 0;
-        max-width: 900px;
     }
 
     .mobile-detail-inline,
