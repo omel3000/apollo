@@ -18,6 +18,7 @@
 | GET | `/users/me` | Odczyt danych zalogowanego użytkownika | ✅ | ✅ | ✅ | ❌ |
 | PUT | `/users/me/change-email` | Zmiana adresu email | ✅ | ✅ | ✅ | ❌ |
 | PUT | `/users/me/change-password` | Zmiana hasła | ✅ | ✅ | ✅ | ❌ |
+| PUT | `/users/{user_id}/password` | Reset hasła przez admin/HR | ❌ | ✅* | ✅ | ❌ |
 | PUT | `/users/{user_id}` | Edycja danych użytkownika | ❌ | ✅* | ✅ | ❌ |
 | DELETE | `/users/{user_id}` | Usuwanie użytkownika | ❌ | ✅* | ✅ | ❌ |
 | POST | `/users/monthly_active_users` | Użytkownicy z czasem w miesiącu (z sumą) | ❌ | ✅ | ✅ | ❌ |
@@ -89,6 +90,7 @@
   - Nadawanie roli "admin" przy rejestracji/edycji może wykonać tylko użytkownik z rolą "admin".
   - Edycję danych użytkownika z rolą "admin" może wykonać tylko "admin".
   - Usuwanie użytkownika z rolą "admin" może wykonać tylko "admin".
+  - Reset hasła użytkownika z rolą "admin" może wykonać tylko "admin".
 - Dostępność:
   - Worker może dodawać, przeglądać, edytować i usuwać swoją dostępność (dostępny/niedostępny, przedziały czasowe).
   - HR/Admin mają dostęp do dostępności wszystkich użytkowników z filtrowaniem (user_id, zakres dat).

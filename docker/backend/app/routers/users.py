@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
-from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest, UserUpdate
+from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest, UserUpdate, AdminSetPasswordRequest
 from crud import (
     create_user, get_user_by_email, get_user_by_id, delete_user,
     change_user_email, change_user_password, update_user,
@@ -116,6 +116,28 @@ def change_password(
     try:
         change_user_password(db, current_user.user_id, request.new_password)
         return {"message": "Hasło zostało zmienione pomyślnie"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+@router.put("/{user_id}/password")
+def admin_set_password(
+    user_id: int,
+    request: AdminSetPasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required)
+):
+    """Reset hasła użytkownika przez admin/HR."""
+    target = get_user_by_id(db, user_id)
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Użytkownik nie istnieje")
+    if target.role == "admin" and current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Tylko administrator może zmieniać hasło użytkownika z rolą 'admin'"
+        )
+    try:
+        change_user_password(db, user_id, request.new_password)
+        return {"message": "Hasło zostało zresetowane"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 

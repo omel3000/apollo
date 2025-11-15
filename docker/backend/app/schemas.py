@@ -274,6 +274,16 @@ class ChangePasswordRequest(BaseModel):
             raise ValueError("Nowe hasła nie są identyczne")
         return self
 
+class AdminSetPasswordRequest(BaseModel):
+    new_password: str
+    confirm_new_password: str
+
+    @model_validator(mode="after")
+    def admin_passwords_match(self):
+        if self.new_password != self.confirm_new_password:
+            raise ValueError("Nowe hasła nie są identyczne")
+        return self
+
 class ProjectMonthlySummaryRequest(BaseModel):
     project_id: int
     month: int  # Month as an integer (1-12)

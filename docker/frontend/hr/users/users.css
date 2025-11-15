@@ -1,0 +1,185 @@
+/* users.css - style dedykowane stronie HR Zarządzanie użytkownikami */
+
+html { visibility: hidden; }
+
+@media (min-width: 768px) {
+    .users-container {
+        display: flex;
+        height: calc(100vh - 200px);
+        gap: 20px;
+    }
+
+    .users-list-panel {
+        flex: 0 0 340px;
+        overflow-y: auto;
+        border-right: 2px solid #D9D1CA;
+        padding-right: 15px;
+    }
+
+    .user-details-panel {
+        flex: 1;
+        overflow-y: auto;
+        padding-left: 15px;
+    }
+
+    .mobile-detail-inline,
+    #newUserFormContainer {
+        display: none !important;
+    }
+}
+
+@media (max-width: 767px) {
+    .users-container {
+        display: block;
+    }
+
+    .users-list-panel {
+        margin-bottom: 20px;
+    }
+
+    .user-details-panel {
+        display: none !important;
+    }
+
+    .mobile-detail-inline {
+        margin-top: 10px;
+        padding: 15px;
+        background-color: #FFFFFF;
+        border-radius: 8px;
+        border: 2px solid #736A65;
+        color: #261C1E;
+    }
+
+    .mobile-detail-inline h5 {
+        font-size: 1rem;
+        margin-bottom: 15px;
+    }
+
+    #newUserFormContainer {
+        margin-bottom: 20px;
+        padding: 15px;
+        background-color: #F9F4F0;
+        border: 2px solid #BF6E50;
+        border-radius: 8px;
+        color: #261C1E;
+    }
+
+    .user-list-item.active {
+        border-width: 2px;
+    }
+
+    .user-project-item {
+        font-size: 0.9rem;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    h5 { font-size: 1.1rem; }
+    h6 { font-size: 1rem; }
+}
+
+.users-list-panel::-webkit-scrollbar,
+.user-details-panel::-webkit-scrollbar {
+    width: 6px;
+}
+
+.users-list-panel::-webkit-scrollbar-thumb,
+.user-details-panel::-webkit-scrollbar-thumb {
+    background-color: rgba(115, 106, 101, 0.5);
+    border-radius: 3px;
+}
+
+.user-list-item {
+    cursor: pointer;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid #E0D6CF;
+    border-radius: 6px;
+    transition: all 0.2s;
+    background-color: #FFFFFF;
+}
+
+.user-list-item:hover {
+    background-color: #F8F6F3;
+    border-color: #BF6E50;
+}
+
+.user-list-item.active {
+    background-color: #736A65;
+    color: #F2EEEB;
+    border-color: #736A65;
+}
+
+.user-list-item .user-name {
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.user-list-item .user-meta {
+    font-size: 0.85rem;
+    opacity: 0.9;
+}
+
+.badge-role {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+.badge-role.user { background: #E0F7FA; color: #006064; }
+.badge-role.hr { background: #FFF3CD; color: #8A6D3B; }
+.badge-role.admin { background: #FDE2E1; color: #A83227; }
+
+.user-project-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    background-color: #F8F9FA;
+    border-radius: 4px;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.user-project-item span {
+    flex: 1;
+    min-width: 150px;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #6C757D;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 15px;
+}
+
+.form-check-label {
+    cursor: pointer;
+    user-select: none;
+}
+
+.users-list-panel .input-group-text {
+    background-color: #F8F6F3;
+    border-color: #D9D1CA;
+}
+
+.users-list-panel .form-select,
+.users-list-panel .form-control {
+    border-color: #D9D1CA;
+}
+
+.users-list-panel .form-select:focus,
+.users-list-panel .form-control:focus {
+    border-color: #BF6E50;
+    box-shadow: 0 0 0 0.1rem rgba(191, 110, 80, 0.2);
+}
