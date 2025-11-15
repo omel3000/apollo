@@ -38,14 +38,20 @@ function setupEventHandlers() {
         searchInput.addEventListener('input', applyFilters);
     }
 
-    const roleFilter = document.getElementById('filterRole');
-    if (roleFilter) {
-        roleFilter.addEventListener('change', applyFilters);
-    }
+    document.querySelectorAll('.filter-role').forEach(input => {
+        input.addEventListener('change', applyFilters);
+    });
 
-    const statusFilter = document.getElementById('filterStatus');
-    if (statusFilter) {
-        statusFilter.addEventListener('change', applyFilters);
+    document.querySelectorAll('.filter-status').forEach(input => {
+        input.addEventListener('change', applyFilters);
+    });
+
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', event => {
+            event.preventDefault();
+            resetFilters();
+        });
     }
 }
 
@@ -105,8 +111,8 @@ async function loadUsers() {
 
 function applyFilters() {
     const searchTerm = (document.getElementById('searchUsers')?.value || '').trim().toLowerCase();
-    const roleFilter = document.getElementById('filterRole')?.value || '';
-    const statusFilter = document.getElementById('filterStatus')?.value || '';
+    const selectedRoles = getSelectedValues('.filter-role');
+    const selectedStatuses = getSelectedValues('.filter-status');
 
     let filtered = allUsers.filter(user => shouldDisplayUser(user));
 
@@ -126,12 +132,12 @@ function applyFilters() {
         });
     }
 
-    if (roleFilter) {
-        filtered = filtered.filter(user => normalizeRoleValue(user.role) === roleFilter);
+    if (selectedRoles.length > 0) {
+        filtered = filtered.filter(user => selectedRoles.includes(normalizeRoleValue(user.role)));
     }
 
-    if (statusFilter) {
-        filtered = filtered.filter(user => statusMatchesFilter(user.account_status, statusFilter));
+    if (selectedStatuses.length > 0) {
+        filtered = filtered.filter(user => statusMatchesFilter(user.account_status, selectedStatuses));
     }
 
     filtered.sort(compareUsersByStatusThenName);
@@ -880,11 +886,26 @@ function normalizeEmpty(value) {
     return trimmed === '' ? null : trimmed;
 }
 
-function statusMatchesFilter(status, filter) {
-    if (!filter) return true;
+function resetFilters() {
+    document.querySelectorAll('.filter-role, .filter-status').forEach(input => {
+        input.checked = false;
+    });
+    applyFilters();
+}
+
+function getSelectedValues(selector) {
+    return Array.from(document.querySelectorAll(selector))
+        .filter(input => input.checked)
+        .map(input => input.value);
+}
+
+function statusMatchesFilter(status, filters) {
+    if (!filters || filters.length === 0) return true;
     const normalized = normalizeStatus(status);
-    const candidates = STATUS_FILTER_MAP[filter] || [filter];
-    return candidates.some(item => item === normalized);
+    return filters.some(filter => {
+        const candidates = STATUS_FILTER_MAP[filter] || [filter];
+        return candidates.includes(normalized);
+    });
 }
 
 function escapeHtml(text) {

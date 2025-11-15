@@ -116,19 +116,42 @@
                                 <input type="text" class="form-control" id="searchUsers" placeholder="Szukaj użytkowników...">
                             </div>
 
-                            <div class="d-flex flex-wrap gap-2">
-                                <select class="form-select form-select-sm" id="filterRole">
-                                    <option value="">Wszystkie role</option>
-                                    <option value="worker">Pracownicy</option>
-                                    <option value="hr">HR</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                                <select class="form-select form-select-sm" id="filterStatus">
-                                    <option value="">Każdy status</option>
-                                    <option value="active">Aktywne</option>
-                                    <option value="inactive">Nieaktywne</option>
-                                    <option value="blocked">Zablokowane</option>
-                                </select>
+                            <div class="filter-section">
+                                <div class="filter-card">
+                                    <p class="filter-title mb-1">Rola</p>
+                                    <div class="filter-options">
+                                        <div class="form-check">
+                                            <input class="form-check-input filter-role" type="checkbox" value="worker" id="roleWorker">
+                                            <label class="form-check-label" for="roleWorker">Pracownicy</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input filter-role" type="checkbox" value="hr" id="roleHr">
+                                            <label class="form-check-label" for="roleHr">HR</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input filter-role" type="checkbox" value="admin" id="roleAdmin">
+                                            <label class="form-check-label" for="roleAdmin">Admin</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="filter-card">
+                                    <p class="filter-title mb-1">Status konta</p>
+                                    <div class="filter-options">
+                                        <div class="form-check">
+                                            <input class="form-check-input filter-status" type="checkbox" value="active" id="statusActive">
+                                            <label class="form-check-label" for="statusActive">Aktywne</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input filter-status" type="checkbox" value="inactive" id="statusInactive">
+                                            <label class="form-check-label" for="statusInactive">Nieaktywne</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input filter-status" type="checkbox" value="blocked" id="statusBlocked">
+                                            <label class="form-check-label" for="statusBlocked">Zablokowane</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="btn btn-outline-secondary btn-sm w-100" type="button" id="resetFilters">Wyczyść filtry</button>
                             </div>
                         </div>
 

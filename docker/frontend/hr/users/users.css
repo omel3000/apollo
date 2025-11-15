@@ -7,6 +7,39 @@ html { visibility: hidden; }
     overflow-x: hidden;
 }
 
+.filter-section {
+    background-color: #F8F6F3;
+    border: 1px solid #D9D1CA;
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.filter-card {
+    background-color: #FFFFFF;
+    border: 1px solid #E0D6CF;
+    border-radius: 6px;
+    padding: 12px;
+}
+
+.filter-title {
+    font-weight: 600;
+    color: #261C1E;
+}
+
+.filter-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+}
+
+.filter-options .form-check {
+    min-width: 140px;
+    margin-bottom: 0;
+}
+
 @media (min-width: 768px) {
     .users-container {
         display: flex;
