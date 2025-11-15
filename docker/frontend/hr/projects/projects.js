@@ -135,6 +135,19 @@ async function selectProject(projectId) {
     }
 }
 
+// Odśwież szczegóły projektu bez zamykania (dla dodawania/usuwania użytkowników)
+async function refreshProjectDetails(projectId) {
+    // Zaktualizuj dane projektu z listy
+    selectedProject = allProjects.find(p => p.project_id === projectId);
+    if (!selectedProject) return;
+    
+    // Pobierz użytkowników przypisanych do projektu
+    const assignedUsers = await loadAssignedUsers(projectId);
+    
+    // Renderuj szczegóły bez zmiany listy projektów (nie zamyka na mobile)
+    renderProjectDetails(selectedProject, assignedUsers);
+}
+
 // Pobierz użytkowników przypisanych do projektu
 async function loadAssignedUsers(projectId) {
     const token = localStorage.getItem('token');
@@ -433,7 +446,7 @@ async function updateProject(event) {
         if (response.ok) {
             showSuccess('Projekt zaktualizowany pomyślnie');
             await loadProjects();
-            selectProject(selectedProject.project_id);
+            await refreshProjectDetails(selectedProject.project_id);
         } else {
             const error = await response.json();
             showError(error.detail || 'Nie udało się zaktualizować projektu');
@@ -476,8 +489,13 @@ async function deleteProject(projectId) {
 
 // Dodaj użytkownika do projektu
 async function addUserToProject() {
-    const userId = parseInt(document.getElementById('userToAdd').value);
-    if (!userId) {
+    const userSelect = document.getElementById('userToAdd');
+    if (!userSelect || !userSelect.value || userSelect.value === '') {
+        showError('Wybierz użytkownika z listy');
+        return;
+    }
+    const userId = parseInt(userSelect.value);
+    if (!userId || isNaN(userId)) {
         showError('Wybierz użytkownika z listy');
         return;
     }
@@ -500,7 +518,7 @@ async function addUserToProject() {
         
         if (response.ok) {
             showSuccess('Użytkownik dodany do projektu');
-            selectProject(selectedProject.project_id);
+            await refreshProjectDetails(selectedProject.project_id);
         } else {
             const error = await response.json();
             showError(error.detail || 'Nie udało się dodać użytkownika');
@@ -529,7 +547,7 @@ async function removeUserFromProject(userId, projectId) {
         
         if (response.ok) {
             showSuccess('Użytkownik usunięty z projektu');
-            selectProject(projectId);
+            await refreshProjectDetails(projectId);
         } else {
             const error = await response.json();
             showError(error.detail || 'Nie udało się usunąć użytkownika');
