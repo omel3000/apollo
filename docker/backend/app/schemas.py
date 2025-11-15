@@ -113,6 +113,11 @@ class MessageRead(MessageBase):
 
     model_config = {"from_attributes": True}
 
+class MessageUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    is_active: Optional[bool] = None
+
 # Use Annotated + Field for simple bounds
 Hours = Annotated[int, Field(ge=0, le=24)]
 Minutes = Annotated[int, Field(ge=0, le=59)]

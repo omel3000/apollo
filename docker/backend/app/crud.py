@@ -118,6 +118,32 @@ def create_message(db: Session, message: MessageCreate):
     db.refresh(db_message)
     return db_message
 
+def update_message(db: Session, message_id: int, message_data):
+    """Aktualizuje komunikat (tylko admin)"""
+    db_message = db.query(Message).filter(Message.message_id == message_id).first()
+    if not db_message:
+        return None
+    
+    if message_data.title is not None:
+        db_message.title = message_data.title
+    if message_data.content is not None:
+        db_message.content = message_data.content
+    if message_data.is_active is not None:
+        db_message.is_active = message_data.is_active
+    
+    db.commit()
+    db.refresh(db_message)
+    return db_message
+
+def delete_message(db: Session, message_id: int):
+    """Usuwa komunikat (tylko admin)"""
+    db_message = db.query(Message).filter(Message.message_id == message_id).first()
+    if db_message:
+        db.delete(db_message)
+        db.commit()
+        return True
+    return False
+
 def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
     # Sprawdź czy user istnieje
     user = get_user_by_id(db, user_id)
