@@ -339,7 +339,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap mt-3">
-                <button type="submit" class="btn btn-primary" ${fieldsDisabled ? 'disabled' : ''}>
+                <button type="submit" class="btn btn-primary save-user-btn" id="saveBtn-${suffix}" ${fieldsDisabled ? 'disabled' : ''}>
                     <i class="bi bi-save me-2"></i>Zapisz zmiany
                 </button>
                 <button type="button" class="btn btn-danger delete-user-btn" data-user-id="${user.user_id}" ${fieldsDisabled ? 'disabled' : ''}>
@@ -408,6 +408,20 @@ function attachUserDetailListeners() {
     document.querySelectorAll('.user-form').forEach(form => {
         form.removeEventListener('submit', handleUserUpdate);
         form.addEventListener('submit', handleUserUpdate);
+        
+        // Dodaj listener dla zmiany statusu - umożliwia zapisanie gdy zmienia się status zablokowanego użytkownika
+        const statusSelect = form.querySelector('[name="account_status"]');
+        const saveBtn = form.querySelector('.save-user-btn');
+        if (statusSelect && saveBtn) {
+            statusSelect.addEventListener('change', function() {
+                const allFieldsDisabled = form.querySelector('[name="first_name"]')?.disabled;
+                const adminLocked = form.querySelector('[name="first_name"]')?.disabled && !statusSelect.disabled;
+                // Jeśli wszystkie pola są zablokowane POZA statusem (użytkownik zablokowany), odblokuj przycisk zapisu
+                if (allFieldsDisabled && !statusSelect.disabled) {
+                    saveBtn.disabled = false;
+                }
+            });
+        }
     });
 
     document.querySelectorAll('.user-password-form').forEach(form => {
@@ -435,12 +449,48 @@ async function handleUserUpdate(event) {
     event.preventDefault();
     const form = event.currentTarget;
     const userId = Number(form.dataset.userId);
-    const adminLocked = form.querySelector('[name="first_name"]').disabled;
+    const firstNameField = form.querySelector('[name="first_name"]');
+    const statusField = form.querySelector('[name="account_status"]');
+    const adminLocked = firstNameField.disabled && statusField.disabled;
+    const isBlocked = firstNameField.disabled && !statusField.disabled;
+    
     if (adminLocked) {
         return;
     }
 
     const formData = new FormData(form);
+    
+    // Jeśli użytkownik jest zablokowany, pozwól tylko na zmianę statusu
+    if (isBlocked) {
+        const payload = {
+            account_status: normalizeEmpty(formData.get('account_status'))
+        };
+        
+        const token = localStorage.getItem('token');
+        try {
+            const response = await fetch(`/users/${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || 'Nie udało się zaktualizować użytkownika');
+            }
+            showSuccess('Status konta został zmieniony');
+            await loadUsers();
+            applyFilters();
+            await refreshSelectedUserDetails();
+        } catch (error) {
+            console.error('Błąd aktualizacji użytkownika:', error);
+            showError(error.message);
+        }
+        return;
+    }
+    
     const firstName = formData.get('first_name').trim();
     const lastName = formData.get('last_name').trim();
     const email = formData.get('email').trim().toLowerCase();
