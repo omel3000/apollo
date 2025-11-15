@@ -453,21 +453,25 @@ async function loadWorkersMonthlyHours() {
       let totalMinutes = 0;
       const projects = new Map();
       
-      schedules.forEach(schedule => {
-        const minutes = calculateMinutesBetween(schedule.time_from, schedule.time_to);
-        totalMinutes += minutes;
-        
-        if (schedule.project_id && schedule.project_name) {
-          const current = projects.get(schedule.project_id) || 0;
-          projects.set(schedule.project_id, current + minutes);
-        }
-      });
+      // Sumujemy wyłącznie zmiany typu 'normalna' (realne godziny w grafiku)
+      schedules
+        .filter(s => s.shift_type === 'normalna')
+        .forEach(schedule => {
+          const minutes = calculateMinutesBetween(schedule.time_from, schedule.time_to);
+          totalMinutes += minutes;
+
+          if (schedule.project_id) {
+            const current = projects.get(schedule.project_id) || 0;
+            projects.set(schedule.project_id, current + minutes);
+          }
+        });
       
       workerMonthlyHours.set(worker.user_id, {
         totalMinutes,
         projects: Array.from(projects.entries()).map(([id, mins]) => ({
           project_id: id,
-          project_name: schedules.find(s => s.project_id === id)?.project_name || 'Nieznany',
+          // ScheduleRead nie zawiera nazwy projektu; nazwa nieznana bez dodatkowego zapytania
+          project_name: 'Nieznany',
           minutes: mins
         }))
       });
