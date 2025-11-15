@@ -1650,31 +1650,6 @@ function parseTimeToDecimal(timeStr) {
   return hours + (minutes / 60);
 }
 
-function getProjectColor(projectId) {
-  // Generuje spójny kolor dla projektu na podstawie ID
-  if (!projectId) {
-    return '#8b5cf6'; // Fioletowy dla nieobecności (urlop/L4/inne)
-  }
-  
-  // Paleta kolorów dla projektów (ciepłe, czytelne kolory)
-  const colors = [
-    '#2e7d32', // Zielony
-    '#1976d2', // Niebieski
-    '#d32f2f', // Czerwony
-    '#f57c00', // Pomarańczowy
-    '#7b1fa2', // Fioletowy
-    '#0097a7', // Cyjan
-    '#c2185b', // Różowy
-    '#5d4037', // Brązowy
-    '#616161', // Szary
-    '#00796b', // Morski
-    '#e64a19', // Głęboka pomarańcza
-    '#303f9f'  // Indygo
-  ];
-  
-  return colors[projectId % colors.length];
-}
-
 function calculateMinutesBetween(timeFrom, timeTo) {
   const from = parseTimeToDecimal(timeFrom);
   const to = parseTimeToDecimal(timeTo);

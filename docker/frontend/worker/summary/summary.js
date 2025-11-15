@@ -4,30 +4,6 @@ let currentMonth = null; // 0-11
 let projectsMap = {}; // Map project_id -> { name, time_type }
 let lastSummaryData = null; // do ponownego renderowania wykresu przy resize
 
-// 15 kolorów (główne + pokrewne, inspirowane paletą Bootstrap i odcieniami)
-const PROJECT_COLORS = [
-  '#0d6efd', // blue
-  '#6ea8fe', // blue light
-  '#6610f2', // indigo
-  '#a370f7', // indigo light
-  '#198754', // green
-  '#51cf66', // green light
-  '#dc3545', // red
-  '#ff6b6b', // red light
-  '#fd7e14', // orange
-  '#ff922b', // orange light
-  '#20c997', // teal
-  '#63e6be', // teal light
-  '#0dcaf0', // cyan
-  '#66d9ff', // cyan light
-  '#6c757d'  // gray
-];
-
-function getProjectColor(projectId) {
-  const idx = Math.abs(parseInt(projectId, 10)) % PROJECT_COLORS.length; // np. 20 % 15 = 5
-  return PROJECT_COLORS[idx];
-}
-
 const monthNamesPl = [
   'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
   'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
