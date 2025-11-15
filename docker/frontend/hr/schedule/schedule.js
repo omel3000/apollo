@@ -14,6 +14,7 @@ let editingScheduleId = null;
 
 // Dane
 let allWorkers = [];
+let allProjects = []; // Lista wszystkich projektów
 let scheduleData = new Map(); // Map<'YYYY-MM-DD', Array<schedule>>
 let availabilityData = new Map(); // Map<userId, Map<'YYYY-MM-DD', availability>>
 let absenceData = new Map(); // Map<userId, Array<absence>>
@@ -61,7 +62,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Calendar init error:', err);
   }
 
-  // Załaduj pracowników i dane
+  // Załaduj projekty, pracowników i dane
+  await loadProjects();
   await loadWorkers();
   await loadMonthData();
 });
@@ -399,6 +401,34 @@ function onCalendarDayClick(ev) {
 // ŁADOWANIE DANYCH
 // ============================================================================
 
+async function loadProjects() {
+  try {
+    const response = await fetch('/projects/', {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      console.warn('Failed to load projects');
+      return;
+    }
+
+    const data = await response.json();
+    allProjects = data;
+    
+    console.log('Projects loaded:', allProjects.length);
+  } catch (error) {
+    console.error('Error loading projects:', error);
+  }
+}
+
 async function loadWorkers() {
   try {
     const response = await fetch('/users/', {
@@ -468,12 +498,14 @@ async function loadWorkersMonthlyHours() {
       
       workerMonthlyHours.set(worker.user_id, {
         totalMinutes,
-        projects: Array.from(projects.entries()).map(([id, mins]) => ({
-          project_id: id,
-          // ScheduleRead nie zawiera nazwy projektu; nazwa nieznana bez dodatkowego zapytania
-          project_name: 'Nieznany',
-          minutes: mins
-        }))
+        projects: Array.from(projects.entries()).map(([id, mins]) => {
+          const project = allProjects.find(p => p.project_id === id);
+          return {
+            project_id: id,
+            project_name: project ? project.project_name : 'Nieznany',
+            minutes: mins
+          };
+        })
       });
     } catch (error) {
       console.error(`Error loading hours for worker ${worker.user_id}:`, error);
@@ -764,10 +796,20 @@ function createWorkerCard(worker) {
     </div>
   `;
 
-  // Kliknięcie - rozwiń/zwiń projekty
+  // Kliknięcie - wypełnij formularz i rozwiń/zwiń projekty
   card.addEventListener('click', (e) => {
     // Nie rozwijaj jeśli kliknięto w ikonę dostępności
     if (e.target.closest('.availability-icon')) return;
+    
+    // Wypełnij formularz główny
+    const shiftWorkerMain = document.getElementById('shiftWorkerMain');
+    if (shiftWorkerMain) {
+      shiftWorkerMain.value = worker.user_id;
+      // Załaduj projekty dla tego pracownika
+      loadWorkerProjectsMain();
+      // Sprawdź dostępność
+      checkWorkerAvailabilityMain();
+    }
     
     card.classList.toggle('expanded');
   });
