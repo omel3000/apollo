@@ -72,7 +72,7 @@ function renderProjectsList(projects) {
         
         return `
             <div class="project-list-item ${isActive ? 'active' : ''}" 
-                 onclick="selectProject(${project.project_id})" data-project-id="${project.project_id}">
+                 data-project-id="${project.project_id}">
                 <div class="project-name">${escapeHtml(project.project_name)}</div>
                 <div class="project-meta">
                     <small>
@@ -80,17 +80,34 @@ function renderProjectsList(projects) {
                         <i class="bi bi-clock"></i> ${project.time_type === 'constant' ? 'Stały' : 'Przedziały czasowe'}
                     </small>
                 </div>
-                ${isActive ? `<div class="mobile-detail-inline mobile-detail-stop-propagation" id="mobileDetail-${project.project_id}"></div>` : ''}
+                ${isActive ? `<div class="mobile-detail-inline" id="mobileDetail-${project.project_id}"></div>` : ''}
             </div>
         `;
     }).join('');
     
-    // Podłącz event listenery do mobile containers
+    // Podłącz event listenery do kliknięć w projekty
     setTimeout(() => {
-        const mobileContainers = document.querySelectorAll('.mobile-detail-stop-propagation');
-        mobileContainers.forEach(container => {
-            container.addEventListener('click', function(e) {
-                e.stopPropagation();
+        const projectItems = document.querySelectorAll('.project-list-item');
+        projectItems.forEach(item => {
+            // Usuń stare listenery jeśli istnieją
+            const newItem = item.cloneNode(true);
+            item.parentNode.replaceChild(newItem, item);
+            
+            newItem.addEventListener('click', function(e) {
+                // Nie zamykaj jeśli kliknięto w formularz lub jego elementy
+                if (e.target.closest('.mobile-detail-inline') || 
+                    e.target.closest('form') ||
+                    e.target.closest('.form-check') ||
+                    e.target.closest('input') ||
+                    e.target.closest('select') ||
+                    e.target.closest('textarea') ||
+                    e.target.closest('button') ||
+                    e.target.closest('label')) {
+                    return; // Nie rób nic, pozwól na normalną obsługę formularza
+                }
+                
+                const projectId = parseInt(newItem.dataset.projectId);
+                selectProject(projectId);
             });
         });
     }, 0);
