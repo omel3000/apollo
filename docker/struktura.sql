@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict XKiPq7nV2dkqzE2kHDN18SMSDIe0fbWYmbAf4rphTQOaMFElS6v9G7U6nIkJUaX
+\restrict 9iMBHOtSV7gjvKl7Qg9dvvhQoVSJ8lYFco5RDziZ0v5gxZdEsbJjRuCOKx0KKhE
 
 -- Dumped from database version 16.10
 -- Dumped by pg_dump version 16.10
@@ -19,6 +19,33 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
+-- Name: absencetype; Type: TYPE; Schema: public; Owner: apollo
+--
+
+CREATE TYPE public.absencetype AS ENUM (
+    'urlop',
+    'L4',
+    'inne'
+);
+
+
+ALTER TYPE public.absencetype OWNER TO apollo;
+
+--
+-- Name: shifttype; Type: TYPE; Schema: public; Owner: apollo
+--
+
+CREATE TYPE public.shifttype AS ENUM (
+    'normalna',
+    'urlop',
+    'L4',
+    'inne'
+);
+
+
+ALTER TYPE public.shifttype OWNER TO apollo;
+
+--
 -- Name: timetype; Type: TYPE; Schema: public; Owner: apollo
 --
 
@@ -33,6 +60,61 @@ ALTER TYPE public.timetype OWNER TO apollo;
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
+
+--
+-- Name: absences; Type: TABLE; Schema: public; Owner: apollo
+--
+
+CREATE TABLE public.absences (
+    absence_id integer NOT NULL,
+    user_id integer NOT NULL,
+    absence_type character varying(20) NOT NULL,
+    date_from date NOT NULL,
+    date_to date NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT absences_absence_type_check CHECK (((absence_type)::text = ANY ((ARRAY['urlop'::character varying, 'L4'::character varying, 'inne'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.absences OWNER TO apollo;
+
+--
+-- Name: absences_absence_id_seq; Type: SEQUENCE; Schema: public; Owner: apollo
+--
+
+CREATE SEQUENCE public.absences_absence_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.absences_absence_id_seq OWNER TO apollo;
+
+--
+-- Name: absences_absence_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: apollo
+--
+
+ALTER SEQUENCE public.absences_absence_id_seq OWNED BY public.absences.absence_id;
+
+
+--
+-- Name: availability; Type: TABLE; Schema: public; Owner: apollo
+--
+
+CREATE TABLE public.availability (
+    user_id integer NOT NULL,
+    date date NOT NULL,
+    is_available boolean NOT NULL,
+    time_from time without time zone,
+    time_to time without time zone,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.availability OWNER TO apollo;
 
 --
 -- Name: messages; Type: TABLE; Schema: public; Owner: apollo
@@ -112,6 +194,48 @@ ALTER SEQUENCE public.projects_project_id_seq OWNED BY public.projects.project_i
 
 
 --
+-- Name: schedule; Type: TABLE; Schema: public; Owner: apollo
+--
+
+CREATE TABLE public.schedule (
+    schedule_id integer NOT NULL,
+    user_id integer NOT NULL,
+    project_id integer,
+    work_date date NOT NULL,
+    time_from time without time zone NOT NULL,
+    time_to time without time zone NOT NULL,
+    shift_type character varying(20) NOT NULL,
+    created_by_user_id integer,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT schedule_shift_type_check CHECK (((shift_type)::text = ANY ((ARRAY['normalna'::character varying, 'urlop'::character varying, 'L4'::character varying, 'inne'::character varying])::text[])))
+);
+
+
+ALTER TABLE public.schedule OWNER TO apollo;
+
+--
+-- Name: schedule_schedule_id_seq; Type: SEQUENCE; Schema: public; Owner: apollo
+--
+
+CREATE SEQUENCE public.schedule_schedule_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER SEQUENCE public.schedule_schedule_id_seq OWNER TO apollo;
+
+--
+-- Name: schedule_schedule_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: apollo
+--
+
+ALTER SEQUENCE public.schedule_schedule_id_seq OWNED BY public.schedule.schedule_id;
+
+
+--
 -- Name: user_projects; Type: TABLE; Schema: public; Owner: apollo
 --
 
@@ -161,7 +285,9 @@ CREATE TABLE public.users (
     role character varying(50) NOT NULL,
     registration_date timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
     account_status character varying(50) DEFAULT 'aktywny'::character varying,
-    password_reset_token character varying(255)
+    password_reset_token character varying(255),
+    birth_date date,
+    address character varying(500)
 );
 
 
@@ -232,6 +358,13 @@ ALTER SEQUENCE public.work_reports_report_id_seq OWNED BY public.work_reports.re
 
 
 --
+-- Name: absences absence_id; Type: DEFAULT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.absences ALTER COLUMN absence_id SET DEFAULT nextval('public.absences_absence_id_seq'::regclass);
+
+
+--
 -- Name: messages message_id; Type: DEFAULT; Schema: public; Owner: apollo
 --
 
@@ -243,6 +376,13 @@ ALTER TABLE ONLY public.messages ALTER COLUMN message_id SET DEFAULT nextval('pu
 --
 
 ALTER TABLE ONLY public.projects ALTER COLUMN project_id SET DEFAULT nextval('public.projects_project_id_seq'::regclass);
+
+
+--
+-- Name: schedule schedule_id; Type: DEFAULT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.schedule ALTER COLUMN schedule_id SET DEFAULT nextval('public.schedule_schedule_id_seq'::regclass);
 
 
 --
@@ -267,6 +407,22 @@ ALTER TABLE ONLY public.work_reports ALTER COLUMN report_id SET DEFAULT nextval(
 
 
 --
+-- Name: absences absences_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.absences
+    ADD CONSTRAINT absences_pkey PRIMARY KEY (absence_id);
+
+
+--
+-- Name: availability availability_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.availability
+    ADD CONSTRAINT availability_pkey PRIMARY KEY (user_id, date);
+
+
+--
 -- Name: messages messages_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
 --
 
@@ -280,6 +436,14 @@ ALTER TABLE ONLY public.messages
 
 ALTER TABLE ONLY public.projects
     ADD CONSTRAINT projects_pkey PRIMARY KEY (project_id);
+
+
+--
+-- Name: schedule schedule_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.schedule
+    ADD CONSTRAINT schedule_pkey PRIMARY KEY (schedule_id);
 
 
 --
@@ -320,6 +484,22 @@ ALTER TABLE ONLY public.users
 
 ALTER TABLE ONLY public.work_reports
     ADD CONSTRAINT work_reports_pkey PRIMARY KEY (report_id);
+
+
+--
+-- Name: absences absences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.absences
+    ADD CONSTRAINT absences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
+-- Name: availability availability_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.availability
+    ADD CONSTRAINT availability_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
 
 
 --
@@ -371,8 +551,32 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
+-- Name: schedule schedule_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.schedule
+    ADD CONSTRAINT schedule_created_by_user_id_fkey FOREIGN KEY (created_by_user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
+
+
+--
+-- Name: schedule schedule_project_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.schedule
+    ADD CONSTRAINT schedule_project_id_fkey FOREIGN KEY (project_id) REFERENCES public.projects(project_id) ON DELETE SET NULL;
+
+
+--
+-- Name: schedule schedule_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
+--
+
+ALTER TABLE ONLY public.schedule
+    ADD CONSTRAINT schedule_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
+
+
+--
 -- PostgreSQL database dump complete
 --
 
-\unrestrict XKiPq7nV2dkqzE2kHDN18SMSDIe0fbWYmbAf4rphTQOaMFElS6v9G7U6nIkJUaX
+\unrestrict 9iMBHOtSV7gjvKl7Qg9dvvhQoVSJ8lYFco5RDziZ0v5gxZdEsbJjRuCOKx0KKhE
 
