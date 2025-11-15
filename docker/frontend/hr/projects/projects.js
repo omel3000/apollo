@@ -106,6 +106,14 @@ function filterProjects() {
 
 // Wybierz projekt i pokaż szczegóły
 async function selectProject(projectId) {
+    // Jeśli kliknięto ten sam projekt, zamknij go
+    if (selectedProject && selectedProject.project_id === projectId) {
+        selectedProject = null;
+        renderProjectsList(allProjects);
+        cancelNewProject();
+        return;
+    }
+    
     selectedProject = allProjects.find(p => p.project_id === projectId);
     if (!selectedProject) return;
     
