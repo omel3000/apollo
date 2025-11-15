@@ -389,11 +389,14 @@ async function createProject(event) {
     event.preventDefault();
     
     const token = localStorage.getItem('token');
+    
+    // Pobierz dane z formularza który został wysłany
+    const form = event.target;
     const projectData = {
-        project_name: document.getElementById('newProjectName').value,
-        description: document.getElementById('newProjectDescription').value || null,
-        time_type: document.querySelector('input[name="newTimeType"]:checked').value,
-        owner_user_id: parseInt(document.getElementById('newProjectOwner').value)
+        project_name: form.querySelector('#newProjectName').value,
+        description: form.querySelector('#newProjectDescription').value || null,
+        time_type: form.querySelector('input[name="newTimeType"]:checked').value,
+        owner_user_id: parseInt(form.querySelector('#newProjectOwner').value)
     };
     
     try {
@@ -426,11 +429,14 @@ async function updateProject(event) {
     event.preventDefault();
     
     const token = localStorage.getItem('token');
+    
+    // Pobierz dane z formularza który został wysłany
+    const form = event.target;
     const projectData = {
-        project_name: document.getElementById('projectName').value,
-        description: document.getElementById('projectDescription').value || null,
-        time_type: document.querySelector('input[name="timeType"]:checked').value,
-        owner_user_id: parseInt(document.getElementById('projectOwner').value)
+        project_name: form.querySelector('#projectName').value,
+        description: form.querySelector('#projectDescription').value || null,
+        time_type: form.querySelector('input[name="timeType"]:checked').value,
+        owner_user_id: parseInt(form.querySelector('#projectOwner').value)
     };
     
     try {
@@ -489,12 +495,18 @@ async function deleteProject(projectId) {
 
 // Dodaj użytkownika do projektu
 async function addUserToProject() {
-    const userSelect = document.getElementById('userToAdd');
-    if (!userSelect || !userSelect.value || userSelect.value === '') {
-        showError('Wybierz użytkownika z listy');
-        return;
+    // Znajdź wszystkie selecty (może być desktop + mobile)
+    const userSelects = document.querySelectorAll('#userToAdd');
+    let userId = null;
+    
+    // Znajdź pierwszy select z wybraną wartością
+    for (let select of userSelects) {
+        if (select && select.value && select.value !== '') {
+            userId = parseInt(select.value);
+            break;
+        }
     }
-    const userId = parseInt(userSelect.value);
+    
     if (!userId || isNaN(userId)) {
         showError('Wybierz użytkownika z listy');
         return;
