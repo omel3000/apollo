@@ -1112,7 +1112,7 @@ function renderShiftsList(schedules) {
             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="editSchedule(${schedule.schedule_id})">
               <i class="bi bi-pencil"></i> Edytuj
             </button>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSchedule(${schedule.schedule_id})">
+            <button type="button" class="btn btn-sm btn-danger" onclick="deleteSchedule(${schedule.schedule_id})">
               <i class="bi bi-trash"></i> Usuń
             </button>
           </div>
@@ -1573,8 +1573,11 @@ async function editScheduleMain(scheduleId) {
   await checkWorkerAvailabilityMain();
   await checkTimeConflictsMain();
   
-  // Przewiń do formularza
-  document.getElementById('scheduleFormMain').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  // Przewiń do nagłówka karty formularza (wyżej niż sam formularz)
+  const formCard = document.getElementById('scheduleFormMain')?.closest('.card');
+  if (formCard) {
+    formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 window.deleteSchedule = async function(scheduleId) {
