@@ -316,6 +316,7 @@
 .timeline-grid {
     position: relative;
     min-height: 60px;
+    margin-left: 120px; /* Offset dla etykiet projektów */
 }
 
 /* Oś czasu (0-24h) */
@@ -326,6 +327,7 @@
     padding: 0 4px;
     font-size: 0.75rem;
     color: #736A65;
+    margin-left: 120px; /* Offset dla etykiet projektów */
 }
 
 .timeline-hour {
@@ -361,6 +363,7 @@
     display: flex;
     margin-bottom: 8px;
     align-items: stretch;
+    margin-left: 0;
 }
 
 /* Etykieta projektu po lewej */
@@ -380,6 +383,8 @@
     word-wrap: break-word;
     overflow: hidden;
     text-overflow: ellipsis;
+    flex-shrink: 0;
+    z-index: 1;
 }
 
 /* Kontener dla wierszy projektu */
@@ -388,6 +393,7 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    margin-left: 0;
 }
 
 /* Pojedynczy wiersz ze zmianami (nie nakładające się) */
