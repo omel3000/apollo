@@ -17,6 +17,11 @@ html { visibility: hidden; }
     gap: 12px;
 }
 
+.filter-section.compact {
+    padding: 10px;
+    gap: 10px;
+}
+
 .filter-card {
     background-color: #FFFFFF;
     border: 1px solid #E0D6CF;
@@ -38,6 +43,15 @@ html { visibility: hidden; }
 .filter-options .form-check {
     min-width: 140px;
     margin-bottom: 0;
+}
+
+.filters-toggle {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+#filtersCollapse {
+    margin-bottom: 0.5rem;
 }
 
 @media (min-width: 768px) {

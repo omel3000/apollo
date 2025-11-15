@@ -116,42 +116,43 @@
                                 <input type="text" class="form-control" id="searchUsers" placeholder="Szukaj użytkowników...">
                             </div>
 
-                            <div class="filter-section">
-                                <div class="filter-card">
-                                    <p class="filter-title mb-1">Rola</p>
-                                    <div class="filter-options">
-                                        <div class="form-check">
-                                            <input class="form-check-input filter-role" type="checkbox" value="worker" id="roleWorker">
-                                            <label class="form-check-label" for="roleWorker">Pracownicy</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input filter-role" type="checkbox" value="hr" id="roleHr">
-                                            <label class="form-check-label" for="roleHr">HR</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input filter-role" type="checkbox" value="admin" id="roleAdmin">
-                                            <label class="form-check-label" for="roleAdmin">Admin</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="filter-card">
-                                    <p class="filter-title mb-1">Status konta</p>
-                                    <div class="filter-options">
-                                        <div class="form-check">
-                                            <input class="form-check-input filter-status" type="checkbox" value="active" id="statusActive">
-                                            <label class="form-check-label" for="statusActive">Aktywne</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input filter-status" type="checkbox" value="inactive" id="statusInactive">
-                                            <label class="form-check-label" for="statusInactive">Nieaktywne</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input filter-status" type="checkbox" value="blocked" id="statusBlocked">
-                                            <label class="form-check-label" for="statusBlocked">Zablokowane</label>
+                            <button class="btn btn-outline-primary btn-sm w-100 mb-2 filters-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#filtersCollapse" aria-expanded="false" aria-controls="filtersCollapse">
+                                <i class="bi bi-funnel me-1"></i>Filtry
+                            </button>
+                            <div class="collapse" id="filtersCollapse">
+                                <div class="filter-section compact">
+                                    <div class="filter-card">
+                                        <p class="filter-title mb-1">Rola</p>
+                                        <div class="filter-options">
+                                            <div class="form-check">
+                                                <input class="form-check-input filter-role" type="checkbox" value="worker" id="roleWorker">
+                                                <label class="form-check-label" for="roleWorker">Pracownicy</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input filter-role" type="checkbox" value="hr" id="roleHr">
+                                                <label class="form-check-label" for="roleHr">HR</label>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div class="filter-card">
+                                        <p class="filter-title mb-1">Status konta</p>
+                                        <div class="filter-options">
+                                            <div class="form-check">
+                                                <input class="form-check-input filter-status" type="checkbox" value="active" id="statusActive">
+                                                <label class="form-check-label" for="statusActive">Aktywne</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input filter-status" type="checkbox" value="inactive" id="statusInactive">
+                                                <label class="form-check-label" for="statusInactive">Nieaktywne</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input filter-status" type="checkbox" value="blocked" id="statusBlocked">
+                                                <label class="form-check-label" for="statusBlocked">Zablokowane</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button class="btn btn-outline-secondary btn-sm w-100" type="button" id="resetFilters">Wyczyść filtry</button>
                                 </div>
-                                <button class="btn btn-outline-secondary btn-sm w-100" type="button" id="resetFilters">Wyczyść filtry</button>
                             </div>
                         </div>
 
