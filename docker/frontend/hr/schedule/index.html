@@ -103,10 +103,10 @@
                     <h2 class="h2">Grafik pracowników</h2>
                 </div>
 
-                <!-- Główny kontener - formularz i kalendarz -->
+                <!-- Główny kontener - formularz, kalendarz i pracownicy -->
                 <div class="row">
-                    <!-- Formularz dodawania zmiany - lewy górny -->
-                    <div class="col-lg-6 col-md-12 mb-4 order-lg-1 order-1">
+                    <!-- Formularz dodawania zmiany - lewy -->
+                    <div class="col-lg-4 col-md-12 mb-4 order-lg-1 order-1">
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
                                 <h5 class="mb-0">
@@ -178,8 +178,8 @@
                         </div>
                     </div>
 
-                    <!-- Kalendarz - prawy górny -->
-                    <div class="col-lg-6 col-md-12 mb-4 order-lg-2 order-2">
+                    <!-- Kalendarz - środkowy -->
+                    <div class="col-lg-4 col-md-12 mb-4 order-lg-2 order-2">
                         <div class="card shadow-sm schedule-calendar-card">
                             <div class="card-header bg-primary text-white">
                                 <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Kalendarz</h5>
@@ -212,15 +212,13 @@
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Lista pracowników - pełna szerokość pod kalendarzem -->
-                <div class="row">
-                    <div class="col-12 mb-4">
+                    <!-- Lista pracowników - prawy -->
+                    <div class="col-lg-4 col-md-12 mb-4 order-lg-3 order-3">
                         <div class="card shadow-sm">
                             <div class="card-header bg-primary text-white">
                                 <div class="d-flex justify-content-between align-items-center flex-wrap">
-                                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Pracownicy - podsumowanie miesiąca</h5>
+                                    <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Pracownicy</h5>
                                     <div class="d-flex gap-2 mt-2 mt-md-0">
                                         <div class="form-check form-check-inline">
                                             <input class="form-check-input" type="checkbox" id="filterActiveOnly" checked>
@@ -238,6 +236,11 @@
                                         <span class="input-group-text"><i class="bi bi-search"></i></span>
                                         <input type="text" id="workerSearch" class="form-control" placeholder="Szukaj pracownika...">
                                     </div>
+                                </div>
+                                
+                                <!-- Nagłówek kolumny -->
+                                <div class="mb-2">
+                                    <strong class="text-muted small">Godziny w grafiku:</strong>
                                 </div>
                                 
                                 <!-- Lista pracowników -->
