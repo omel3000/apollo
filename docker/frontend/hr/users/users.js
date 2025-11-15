@@ -118,7 +118,7 @@ function applyFilters() {
     }
 
     if (roleFilter) {
-        filtered = filtered.filter(user => (user.role || '').toLowerCase() === roleFilter);
+        filtered = filtered.filter(user => normalizeRoleValue(user.role) === roleFilter);
     }
 
     if (statusFilter) {
@@ -146,11 +146,12 @@ function renderUsersList(users) {
 
     container.innerHTML = users.map(user => {
         const isActive = selectedUser && selectedUser.user_id === user.user_id;
+        const normalizedRole = normalizeRoleValue(user.role);
         return `
             <div class="user-list-item ${isActive ? 'active' : ''}" data-user-id="${user.user_id}">
                 <div class="user-name d-flex justify-content-between align-items-center">
                     <span>${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</span>
-                    <span class="badge-role ${user.role}">${escapeHtml(formatRoleLabel(user.role))}</span>
+                    <span class="badge-role ${normalizedRole}">${escapeHtml(formatRoleLabel(user.role))}</span>
                 </div>
                 <div class="user-meta">
                     <div><i class="bi bi-envelope me-2"></i>${escapeHtml(user.email)}</div>
@@ -256,6 +257,7 @@ function renderUserDetails(user, assignedProjects) {
 
 function generateUserDetailsHtml(user, assignedProjects, availableProjects, suffix) {
     const adminLocked = user.role === 'admin' && currentUser?.role !== 'admin';
+    const normalizedRole = normalizeRoleValue(user.role);
     const statusOptions = [
         { value: 'aktywny', label: 'Aktywny' },
         { value: 'nieaktywny', label: 'Nieaktywny' },
@@ -263,7 +265,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
     ];
     const canManageAdmins = currentUser?.role === 'admin';
     const roleOptions = [
-        { value: 'user', label: 'Użytkownik', disabled: false },
+        { value: 'worker', label: 'Pracownik', disabled: false },
         { value: 'hr', label: 'HR', disabled: false },
         { value: 'admin', label: 'Admin', disabled: !canManageAdmins }
     ];
@@ -293,7 +295,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                     <label class="form-label" for="role-${suffix}">Rola</label>
                     <select class="form-select" id="role-${suffix}" name="role" ${adminLocked ? 'disabled' : ''}>
                         ${roleOptions.map(option => `
-                            <option value="${option.value}" ${option.disabled ? 'disabled' : ''} ${option.value === (user.role || '').toLowerCase() ? 'selected' : ''}>
+                            <option value="${option.value}" ${option.disabled ? 'disabled' : ''} ${option.value === normalizedRole ? 'selected' : ''}>
                                 ${option.label}
                             </option>
                         `).join('')}
@@ -717,7 +719,7 @@ function generateNewUserFormHtml() {
                 <div class="col-md-6">
                     <label class="form-label" for="newRole">Rola</label>
                     <select class="form-select" id="newRole" name="role" required>
-                        <option value="user">Użytkownik</option>
+                        <option value="worker">Pracownik</option>
                         <option value="hr">HR</option>
                         <option value="admin" ${canManageAdmins ? '' : 'disabled'}>Admin</option>
                     </select>
@@ -819,12 +821,13 @@ async function handleCreateUser(event) {
 }
 
 function formatRoleLabel(role) {
+    const normalized = normalizeRoleValue(role);
     const map = {
-        user: 'Użytkownik',
+        worker: 'Pracownik',
         hr: 'HR',
         admin: 'Admin'
     };
-    return map[role?.toLowerCase()] || role || '';
+    return map[normalized] || (role || '');
 }
 
 function formatStatusLabel(status) {
@@ -839,6 +842,14 @@ function formatStatusLabel(status) {
 
 function normalizeStatus(status) {
     return (status || '').toLowerCase();
+}
+
+function normalizeRoleValue(role) {
+    const normalized = (role || '').toLowerCase();
+    if (normalized === 'user') {
+        return 'worker';
+    }
+    return normalized;
 }
 
 function normalizeEmpty(value) {

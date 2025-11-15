@@ -131,6 +131,7 @@ html { visibility: hidden; }
     text-transform: uppercase;
 }
 
+.badge-role.worker,
 .badge-role.user { background: #E0F7FA; color: #006064; }
 .badge-role.hr { background: #FFF3CD; color: #8A6D3B; }
 .badge-role.admin { background: #FDE2E1; color: #A83227; }
