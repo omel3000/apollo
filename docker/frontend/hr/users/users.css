@@ -182,15 +182,41 @@ html { visibility: hidden; }
     background-color: #FFFFFF;
 }
 
-.user-list-item:hover {
-    background-color: #F8F6F3;
-    border-color: #BF6E50;
+.user-list-item.status-active {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
 }
 
-.user-list-item.active {
-    background-color: #736A65;
-    color: #F2EEEB;
-    border-color: #736A65;
+.user-list-item.status-inactive {
+    background-color: #fff3cd;
+    border-color: #ffeaa7;
+}
+
+.user-list-item.status-blocked {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+
+.user-list-item:hover {
+    filter: brightness(0.95);
+}
+
+.user-list-item.status-active.active {
+    background-color: #28a745;
+    color: #FFFFFF;
+    border-color: #28a745;
+}
+
+.user-list-item.status-inactive.active {
+    background-color: #ffc107;
+    color: #261C1E;
+    border-color: #ffc107;
+}
+
+.user-list-item.status-blocked.active {
+    background-color: #dc3545;
+    color: #FFFFFF;
+    border-color: #dc3545;
 }
 
 .user-list-item .user-name {

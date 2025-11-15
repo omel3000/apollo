@@ -158,8 +158,9 @@ function renderUsersList(users) {
     container.innerHTML = users.map(user => {
         const isActive = selectedUser && selectedUser.user_id === user.user_id;
         const normalizedRole = normalizeRoleValue(user.role);
+        const statusClass = getStatusColorClass(user.account_status);
         return `
-            <div class="user-list-item ${isActive ? 'active' : ''}" data-user-id="${user.user_id}">
+            <div class="user-list-item ${statusClass} ${isActive ? 'active' : ''}" data-user-id="${user.user_id}">
                 <div class="user-name d-flex justify-content-between align-items-center">
                     <span>${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</span>
                     <span class="badge-role ${normalizedRole}">${escapeHtml(formatRoleLabel(user.role))}</span>
@@ -954,4 +955,18 @@ function shouldDisplayUser(user) {
         return false;
     }
     return true;
+}
+
+function getStatusColorClass(status) {
+    const normalized = normalizeStatus(status);
+    if (normalized === 'aktywny' || normalized === 'active') {
+        return 'status-active';
+    }
+    if (normalized === 'nieaktywny' || normalized === 'inactive') {
+        return 'status-inactive';
+    }
+    if (normalized === 'zablokowany' || normalized === 'blocked') {
+        return 'status-blocked';
+    }
+    return '';
 }
