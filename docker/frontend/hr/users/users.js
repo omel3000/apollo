@@ -9,6 +9,14 @@ const STATUS_FILTER_MAP = {
     inactive: ["nieaktywny", "inactive"],
     blocked: ["zablokowany", "blocked"]
 };
+const STATUS_SORT_ORDER = {
+    aktywny: 0,
+    active: 0,
+    nieaktywny: 1,
+    inactive: 1,
+    zablokowany: 2,
+    blocked: 2
+};
 
 document.addEventListener('DOMContentLoaded', initUsersPage);
 
@@ -84,7 +92,7 @@ async function loadUsers() {
             return;
         }
         const data = await response.json();
-        data.sort(compareUsersByName);
+        data.sort(compareUsersByStatusThenName);
         allUsers = data;
         if (selectedUser) {
             selectedUser = allUsers.find(user => user.user_id === selectedUser.user_id) || null;
@@ -126,7 +134,7 @@ function applyFilters() {
         filtered = filtered.filter(user => statusMatchesFilter(user.account_status, statusFilter));
     }
 
-    filtered.sort(compareUsersByName);
+    filtered.sort(compareUsersByStatusThenName);
 
     filteredUsersCache = filtered;
     renderUsersList(filtered);
@@ -210,7 +218,7 @@ async function selectUser(userId, options = {}) {
 async function loadUserAssignments(userId) {
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch(`/user_projects?user_id=${userId}`, {
+        const response = await fetch(`/user_projects/?user_id=${userId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {
@@ -575,7 +583,7 @@ async function addProjectToUser(userId, selectId) {
 
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch('/user_projects', {
+        const response = await fetch('/user_projects/', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -899,12 +907,24 @@ function showError(message) {
     alert('Błąd: ' + message);
 }
 
-function compareUsersByName(a, b) {
+function compareUsersByStatusThenName(a, b) {
+    const statusDiff = getStatusSortValue(a.account_status) - getStatusSortValue(b.account_status);
+    if (statusDiff !== 0) {
+        return statusDiff;
+    }
+
     const first = a.first_name.localeCompare(b.first_name, 'pl');
     if (first !== 0) {
         return first;
     }
     return a.last_name.localeCompare(b.last_name, 'pl');
+}
+
+function getStatusSortValue(status) {
+    const normalized = normalizeStatus(status);
+    return STATUS_SORT_ORDER.hasOwnProperty(normalized)
+        ? STATUS_SORT_ORDER[normalized]
+        : Number.POSITIVE_INFINITY;
 }
 
 function shouldDisplayUser(user) {

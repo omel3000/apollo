@@ -4,14 +4,20 @@ html { visibility: hidden; }
 
 .users-container {
     width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
     overflow-x: hidden;
+    box-sizing: border-box;
 }
 
 @media (min-width: 768px) {
     .users-container {
         display: flex;
+        flex-wrap: wrap;
         height: calc(100vh - 200px);
         gap: 20px;
+        align-items: flex-start;
     }
 
     .users-list-panel {
@@ -23,15 +29,22 @@ html { visibility: hidden; }
     }
 
     .user-details-panel {
-        flex: 1;
+        flex: 1 1 420px;
         overflow-y: auto;
         padding-left: 15px;
         min-width: 0;
+        max-width: 100%;
     }
 
     .mobile-detail-inline,
     #newUserFormContainer {
         display: none !important;
+    }
+}
+
+@media (min-width: 1200px) {
+    .user-details-panel {
+        max-width: 820px;
     }
 }
 
