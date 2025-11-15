@@ -208,29 +208,34 @@ function renderProjectDetails(project, assignedUsers) {
     const assignedUserIds = assignedUsers.map(u => u.user_id);
     const availableUsers = allUsers.filter(u => !assignedUserIds.includes(u.user_id));
     
-    const detailsHtml = generateProjectDetailsHtml(project, assignedUsers, availableUsers, owner, creator);
+    const desktopHtml = generateProjectDetailsHtml(project, assignedUsers, availableUsers, owner, creator, 'desktop');
+    const mobileHtml = generateProjectDetailsHtml(project, assignedUsers, availableUsers, owner, creator, 'mobile');
     
     // Desktop - panel po prawej
     const desktopContainer = document.getElementById('projectDetails');
     if (desktopContainer) {
-        desktopContainer.innerHTML = detailsHtml;
+        desktopContainer.innerHTML = desktopHtml;
         attachProjectFormListeners();
     }
     
     // Mobile - inline pod projektem
     const mobileContainer = document.getElementById(`mobileDetail-${project.project_id}`);
     if (mobileContainer) {
-        mobileContainer.innerHTML = detailsHtml;
+        mobileContainer.innerHTML = mobileHtml;
         attachProjectFormListeners();
     }
 }
 
 // Generuj HTML szczegółów projektu (współdzielony między desktop i mobile)
-function generateProjectDetailsHtml(project, assignedUsers, availableUsers, owner, creator) {
+function generateProjectDetailsHtml(project, assignedUsers, availableUsers, owner, creator, instanceSuffix) {
+    const timeGroupName = `timeType-${project.project_id}-${instanceSuffix}`;
+    const constantId = `timeTypeConstant-${project.project_id}-${instanceSuffix}`;
+    const rangeId = `timeTypeFromTo-${project.project_id}-${instanceSuffix}`;
+    
     return `
         <h5>Szczegóły projektu</h5>
         
-        <form id="projectForm" class="mb-4">
+        <form class="project-form mb-4">
             <div class="mb-3">
                 <label for="projectName" class="form-label">Nazwa projektu</label>
                 <input type="text" class="form-control" id="projectName" value="${escapeHtml(project.project_name)}" required>
@@ -245,14 +250,14 @@ function generateProjectDetailsHtml(project, assignedUsers, availableUsers, owne
                 <label class="form-label">Typ rejestracji czasu</label>
                 <div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="timeType-${project.project_id}" id="timeTypeConstant-${project.project_id}" value="constant" ${project.time_type === 'constant' ? 'checked' : ''}>
-                        <label class="form-check-label" for="timeTypeConstant-${project.project_id}">
+                        <input class="form-check-input" type="radio" name="${timeGroupName}" id="${constantId}" value="constant" ${project.time_type === 'constant' ? 'checked' : ''}>
+                        <label class="form-check-label" for="${constantId}">
                             Stały (tylko godziny)
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="timeType-${project.project_id}" id="timeTypeFromTo-${project.project_id}" value="from_to" ${project.time_type === 'from_to' ? 'checked' : ''}>
-                        <label class="form-check-label" for="timeTypeFromTo-${project.project_id}">
+                        <input class="form-check-input" type="radio" name="${timeGroupName}" id="${rangeId}" value="from_to" ${project.time_type === 'from_to' ? 'checked' : ''}>
+                        <label class="form-check-label" for="${rangeId}">
                             Przedziały czasowe (od-do)
                         </label>
                     </div>
@@ -328,18 +333,10 @@ function generateProjectDetailsHtml(project, assignedUsers, availableUsers, owne
 
 // Podłącz listenery do formularza projektu
 function attachProjectFormListeners() {
-    const forms = document.querySelectorAll('#projectForm');
+    const forms = document.querySelectorAll('.project-form');
     forms.forEach(form => {
         form.removeEventListener('submit', updateProject);
         form.addEventListener('submit', updateProject);
-    });
-    
-    // Zatrzymaj propagację eventów w mobile-detail-inline
-    const mobileContainers = document.querySelectorAll('.mobile-detail-stop-propagation');
-    mobileContainers.forEach(container => {
-        container.addEventListener('click', function(e) {
-            e.stopPropagation();
-        });
     });
 }
 
@@ -475,7 +472,7 @@ async function updateProject(event) {
     const projectData = {
         project_name: form.querySelector('#projectName').value,
         description: form.querySelector('#projectDescription').value || null,
-        time_type: form.querySelector('input[type="radio"]:checked').value,
+        time_type: form.querySelector('input[type="radio"][name^="timeType-"]:checked').value,
         owner_user_id: parseInt(form.querySelector('#projectOwner').value)
     };
     
