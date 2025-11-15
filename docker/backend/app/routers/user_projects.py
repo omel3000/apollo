@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
 from schemas import UserProjectCreate, UserProjectRead, UserShortRead, ProjectRead
-from crud import assign_user_to_project, get_assignments, get_users_assigned_to_project, get_projects_for_user
+from crud import assign_user_to_project, get_assignments, get_users_assigned_to_project, get_projects_for_user, delete_user_project_assignment
 from auth import admin_or_hr_required, get_current_user
 from models import User
 
@@ -39,3 +39,16 @@ def read_my_projects(db: Session = Depends(get_db), current_user: User = Depends
     """
     projects = get_projects_for_user(db, current_user.user_id)
     return projects
+
+@router.delete("/{user_id}/{project_id}")
+def remove_assignment(user_id: int, project_id: int, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
+    """
+    Usuwa przypisanie użytkownika do projektu - tylko admin/HR.
+    """
+    deleted = delete_user_project_assignment(db, user_id, project_id)
+    if not deleted:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Nie znaleziono przypisania użytkownika {user_id} do projektu {project_id}"
+        )
+    return {"message": "Przypisanie usunięte pomyślnie"}

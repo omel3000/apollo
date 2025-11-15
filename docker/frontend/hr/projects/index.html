@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Zarządzanie projektami | Apollo</title>
+    <style>
+        /* Ukryj całą stronę zanim potwierdzimy uprawnienia */
+        html { visibility: hidden; }
+        
+        /* Split-screen layout dla desktop */
+        @media (min-width: 768px) {
+            .projects-container {
+                display: flex;
+                height: calc(100vh - 200px);
+                gap: 20px;
+            }
+            
+            .projects-list-panel {
+                flex: 0 0 350px;
+                overflow-y: auto;
+                border-right: 2px solid #dee2e6;
+                padding-right: 15px;
+            }
+            
+            .project-details-panel {
+                flex: 1;
+                overflow-y: auto;
+                padding-left: 15px;
+            }
+        }
+        
+        /* Mobile layout */
+        @media (max-width: 767px) {
+            .projects-container {
+                display: block;
+            }
+            
+            .projects-list-panel {
+                margin-bottom: 20px;
+            }
+            
+            .project-details-panel {
+                display: none;
+            }
+            
+            .project-details-panel.active {
+                display: block;
+            }
+        }
+        
+        .project-list-item {
+            cursor: pointer;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        
+        .project-list-item:hover {
+            background-color: #f8f9fa;
+            border-color: #BF6E50;
+        }
+        
+        .project-list-item.active {
+            background-color: #736A65;
+            color: #F2EEEB;
+            border-color: #736A65;
+        }
+        
+        .project-list-item .project-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+        
+        .project-list-item .project-meta {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        .user-assignment-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #6c757d;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="/style.css" rel="stylesheet">
+    
+    <script src="/hr/auth-hr.js" defer></script>
+    <script src="/logout.js" defer></script>
+    <script src="/hr/projects/projects.js" defer></script>
+    <script>
+        // Obsługa mobilnego menu
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            
+            // Zamknij menu po kliknięciu w link
+            if (sidebar && navbarToggler) {
+                const sidebarLinks = sidebar.querySelectorAll('.nav-link');
+                sidebarLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        sidebar.classList.remove('show');
+                        navbarToggler.setAttribute('aria-expanded', 'false');
+                        navbarToggler.classList.add('collapsed');
+                    });
+                });
+            }
+        });
+    </script>
+</head>
+<body>
+    
+    <header>
+        <nav class="navbar navbar-expand-md navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid">
+                
+                <a class="navbar-brand" href="/hr/">
+                    <strong class="h4 mb-0">Apollo</strong> <span class="d-none d-md-inline">| Panel HR</span>
+                </a>
+
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu" 
+                        aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="d-flex align-items-center ms-auto me-2 me-md-0">
+                    <a href="/hr/account" class="btn btn-sm btn-primary me-2">Konto</a>
+                    <a href="/logout" class="btn btn-sm btn-outline-danger">Wyloguj</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid">
+        <div class="row">
+            
+            <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-light sidebar collapse">
+                <div class="position-sticky pt-3 sidebar-sticky">
+                    <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-uppercase">
+                        <span>Nawigacja</span>
+                    </h6>
+                    <ul class="nav flex-column">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/">
+                                <i class="bi bi-house-door-fill me-2"></i>Strona główna
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/reports/">
+                                <i class="bi bi-calendar-check me-2"></i>Rejestracja czasu pracy
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/summary/">
+                                <i class="bi bi-bar-chart-line-fill me-2"></i>Moje podsumowania
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/availability/">
+                                <i class="bi bi-calendar2-check me-2"></i>Moje deklaracje dostępności
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/hr/schedule/">
+                                <i class="bi bi-calendar3 me-2"></i>Grafik pracowników
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link active" aria-current="page" href="/hr/projects/">
+                                <i class="bi bi-folder-fill me-2"></i>Zarządzanie projektami
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h2 class="h2">Zarządzanie projektami</h2>
+                </div>
+
+                <div class="projects-container">
+                    <!-- Lewa kolumna: Lista projektów -->
+                    <div class="projects-list-panel">
+                        <div class="mb-3">
+                            <button class="btn btn-primary w-100 mb-3" id="btnNewProject">
+                                <i class="bi bi-plus-circle me-2"></i>Nowy projekt
+                            </button>
+                            
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    <i class="bi bi-search"></i>
+                                </span>
+                                <input type="text" class="form-control" id="searchProjects" placeholder="Szukaj projektów...">
+                            </div>
+                        </div>
+                        
+                        <div id="projectsList">
+                            <!-- Projekty będą załadowane przez JS -->
+                        </div>
+                    </div>
+
+                    <!-- Prawa kolumna: Szczegóły projektu -->
+                    <div class="project-details-panel" id="projectDetails">
+                        <div class="empty-state">
+                            <i class="bi bi-folder text-muted"></i>
+                            <p>Wybierz projekt z listy lub utwórz nowy</p>
+                        </div>
+                    </div>
+                </div>
+
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-xB5FUXh60AbFgY+klQdDsLYT3J9zVkbVN5EvOJs/Tln6qHfBJz0q7f8C5g9lqQq7" crossorigin="anonymous"></script>
+</body>
+</html>

@@ -306,6 +306,22 @@ def get_assignments(db: Session, user_id: Optional[int] = None, project_id: Opti
         q = q.filter(UserProject.project_id == project_id)
     return q.all()
 
+def delete_user_project_assignment(db: Session, user_id: int, project_id: int):
+    """
+    Usuwa przypisanie użytkownika do projektu.
+    Zwraca True jeśli usunięto, False jeśli nie znaleziono.
+    """
+    assignment = db.query(UserProject).filter(
+        UserProject.user_id == user_id,
+        UserProject.project_id == project_id
+    ).first()
+    
+    if assignment:
+        db.delete(assignment)
+        db.commit()
+        return True
+    return False
+
 def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     start_date = date(year, month, 1)
     end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)

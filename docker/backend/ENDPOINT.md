@@ -43,6 +43,7 @@
 | POST | `/user_projects` | Przypisanie użytkownika do projektu | ❌ | ✅ | ✅ | ❌ |
 | GET | `/user_projects` | Odczyt przypisań użytkowników | ❌ | ✅ | ✅ | ❌ |
 | GET | `/user_projects/assigned_users/{project_id}` | Lista użytkowników przypisanych do projektu | ❌ | ✅ | ✅ | ❌ |
+| DELETE | `/user_projects/{user_id}/{project_id}` | Usunięcie przypisania użytkownika do projektu | ❌ | ✅ | ✅ | ❌ |
 | **DOSTĘPNOŚĆ** |||||||
 | POST | `/availability/my_availability` | Dodanie własnej dostępności | ✅ | ✅ | ✅ | ❌ |
 | GET | `/availability/my_availability` | Odczyt własnej dostępności (z filtrami) | ✅ | ✅ | ✅ | ❌ |
