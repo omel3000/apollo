@@ -97,7 +97,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (!loginResponse.ok) {
         const errorData = await loginResponse.json().catch(() => ({ detail: 'Błąd logowania' }));
-        alert(errorData.detail || 'Nieprawidłowy login lub hasło');
+        
+        // Sprawdź czy to błąd związany ze statusem konta
+        if (loginResponse.status === 403) {
+          // 403 Forbidden - konto nieaktywne lub zablokowane
+          alert(errorData.detail || 'Twoje konto jest nieaktywne lub zablokowane. Skontaktuj się z administratorem.');
+        } else {
+          // Inny błąd (401, 400, itp.)
+          alert(errorData.detail || 'Nieprawidłowy login lub hasło');
+        }
         return;
       }
 

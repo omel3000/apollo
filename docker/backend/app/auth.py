@@ -65,6 +65,20 @@ def get_current_user(
     user = db.query(User).filter(User.user_id == user_id).first()
     if user is None:
         raise credentials_exception
+    
+    # Sprawdź status konta - zablokuj dostęp dla nieaktywnych i zablokowanych
+    account_status_normalized = (user.account_status or '').lower()
+    if account_status_normalized == 'nieaktywny' or account_status_normalized == 'inactive':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Twoje konto jest nieaktywne. Skontaktuj się z administratorem."
+        )
+    if account_status_normalized == 'zablokowany' or account_status_normalized == 'blocked':
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Twoje konto zostało zablokowane. Skontaktuj się z administratorem."
+        )
+    
     return user
 
 def admin_required(current_user: User = Depends(get_current_user)):
