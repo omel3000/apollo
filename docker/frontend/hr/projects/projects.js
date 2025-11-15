@@ -6,8 +6,8 @@ let selectedProject = null;
 
 // Inicjalizacja po załadowaniu DOM
 document.addEventListener('DOMContentLoaded', async function() {
-    await loadProjects();
     await loadUsers();
+    await loadProjects();
     
     // Event listeners
     document.getElementById('btnNewProject').addEventListener('click', showNewProjectForm);
