@@ -269,6 +269,9 @@ function renderUserDetails(user, assignedProjects) {
 
 function generateUserDetailsHtml(user, assignedProjects, availableProjects, suffix) {
     const adminLocked = user.role === 'admin' && currentUser?.role !== 'admin';
+    const normalizedStatus = normalizeStatus(user.account_status);
+    const isBlocked = normalizedStatus === 'zablokowany' || normalizedStatus === 'blocked';
+    const fieldsDisabled = adminLocked || isBlocked;
     const normalizedRole = normalizeRoleValue(user.role);
     const statusOptions = [
         { value: 'aktywny', label: 'Aktywny' },
@@ -287,27 +290,28 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
     return `
         <h5>Dane użytkownika</h5>
         ${adminLocked ? '<div class="alert alert-warning">Zmiany konta administratora wymagają uprawnień administratora.</div>' : ''}
+        ${isBlocked ? '<div class="alert alert-danger"><i class="bi bi-lock-fill me-2"></i>To konto jest zablokowane. Możesz zmienić tylko status konta.</div>' : ''}
         <form class="user-form" data-user-id="${user.user_id}" data-instance="${suffix}">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="firstName-${suffix}">Imię</label>
-                    <input type="text" class="form-control" id="firstName-${suffix}" name="first_name" value="${escapeHtml(user.first_name)}" ${adminLocked ? 'disabled' : ''} required>
+                    <input type="text" class="form-control" id="firstName-${suffix}" name="first_name" value="${escapeHtml(user.first_name)}" ${fieldsDisabled ? 'disabled' : ''} required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="lastName-${suffix}">Nazwisko</label>
-                    <input type="text" class="form-control" id="lastName-${suffix}" name="last_name" value="${escapeHtml(user.last_name)}" ${adminLocked ? 'disabled' : ''} required>
+                    <input type="text" class="form-control" id="lastName-${suffix}" name="last_name" value="${escapeHtml(user.last_name)}" ${fieldsDisabled ? 'disabled' : ''} required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="email-${suffix}">Email</label>
-                    <input type="email" class="form-control" id="email-${suffix}" name="email" value="${escapeHtml(user.email)}" ${adminLocked ? 'disabled' : ''} required>
+                    <input type="email" class="form-control" id="email-${suffix}" name="email" value="${escapeHtml(user.email)}" ${fieldsDisabled ? 'disabled' : ''} required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="phone-${suffix}">Telefon</label>
-                    <input type="text" class="form-control" id="phone-${suffix}" name="phone_number" value="${escapeHtml(user.phone_number || '')}" ${adminLocked ? 'disabled' : ''}>
+                    <input type="text" class="form-control" id="phone-${suffix}" name="phone_number" value="${escapeHtml(user.phone_number || '')}" ${fieldsDisabled ? 'disabled' : ''}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="role-${suffix}">Rola</label>
-                    <select class="form-select" id="role-${suffix}" name="role" ${adminLocked ? 'disabled' : ''}>
+                    <select class="form-select" id="role-${suffix}" name="role" ${fieldsDisabled ? 'disabled' : ''}>
                         ${roleOptions.map(option => `
                             <option value="${option.value}" ${option.disabled ? 'disabled' : ''} ${option.value === normalizedRole ? 'selected' : ''}>
                                 ${option.label}
@@ -319,7 +323,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                     <label class="form-label" for="status-${suffix}">Status konta</label>
                     <select class="form-select" id="status-${suffix}" name="account_status" ${adminLocked ? 'disabled' : ''}>
                         ${statusOptions.map(option => `
-                            <option value="${option.value}" ${option.value === normalizeStatus(user.account_status) ? 'selected' : ''}>
+                            <option value="${option.value}" ${option.value === normalizedStatus ? 'selected' : ''}>
                                 ${option.label}
                             </option>
                         `).join('')}
@@ -327,18 +331,18 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="birth-${suffix}">Data urodzenia</label>
-                    <input type="date" class="form-control" id="birth-${suffix}" name="birth_date" value="${user.birth_date ? user.birth_date : ''}" ${adminLocked ? 'disabled' : ''}>
+                    <input type="date" class="form-control" id="birth-${suffix}" name="birth_date" value="${user.birth_date ? user.birth_date : ''}" ${fieldsDisabled ? 'disabled' : ''}>
                 </div>
                 <div class="col-12">
                     <label class="form-label" for="address-${suffix}">Adres</label>
-                    <textarea class="form-control" id="address-${suffix}" name="address" rows="2" ${adminLocked ? 'disabled' : ''}>${escapeHtml(user.address || '')}</textarea>
+                    <textarea class="form-control" id="address-${suffix}" name="address" rows="2" ${fieldsDisabled ? 'disabled' : ''}>${escapeHtml(user.address || '')}</textarea>
                 </div>
             </div>
             <div class="d-flex gap-2 flex-wrap mt-3">
-                <button type="submit" class="btn btn-primary" ${adminLocked ? 'disabled' : ''}>
+                <button type="submit" class="btn btn-primary" ${fieldsDisabled ? 'disabled' : ''}>
                     <i class="bi bi-save me-2"></i>Zapisz zmiany
                 </button>
-                <button type="button" class="btn btn-danger delete-user-btn" data-user-id="${user.user_id}" ${adminLocked ? 'disabled' : ''}>
+                <button type="button" class="btn btn-danger delete-user-btn" data-user-id="${user.user_id}" ${fieldsDisabled ? 'disabled' : ''}>
                     <i class="bi bi-trash me-2"></i>Usuń użytkownika
                 </button>
             </div>
@@ -347,23 +351,25 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
         <hr>
         <h6>Reset hasła</h6>
         ${adminLocked ? '<p class="text-muted"><small>Reset hasła administratora wymaga zalogowania jako administrator.</small></p>' : ''}
+        ${isBlocked ? '<p class="text-muted"><small>Nie można zmienić hasła dla zablokowanego konta.</small></p>' : ''}
         <form class="user-password-form" data-user-id="${user.user_id}" data-instance="${suffix}">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="newPass-${suffix}">Nowe hasło</label>
-                    <input type="password" class="form-control" id="newPass-${suffix}" name="new_password" ${adminLocked ? 'disabled' : ''}>
+                    <input type="password" class="form-control" id="newPass-${suffix}" name="new_password" ${fieldsDisabled ? 'disabled' : ''}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="confirmPass-${suffix}">Powtórz hasło</label>
-                    <input type="password" class="form-control" id="confirmPass-${suffix}" name="confirm_password" ${adminLocked ? 'disabled' : ''}>
+                    <input type="password" class="form-control" id="confirmPass-${suffix}" name="confirm_password" ${fieldsDisabled ? 'disabled' : ''}>
                 </div>
             </div>
-            <button type="submit" class="btn btn-outline-secondary mt-3" ${adminLocked ? 'disabled' : ''}>
+            <button type="submit" class="btn btn-outline-secondary mt-3" ${fieldsDisabled ? 'disabled' : ''}>
                 <i class="bi bi-key me-2"></i>Ustaw nowe hasło
             </button>
         </form>
         <hr>
         <h6>Przypisane projekty</h6>
+        ${isBlocked ? '<p class="text-muted"><small>Nie można zarządzać projektami dla zablokowanego konta.</small></p>' : ''}
         <div class="mb-3">
             ${assignedProjects.length === 0 ? '<p class="text-muted"><small>Brak przypisanych projektów</small></p>' : ''}
             <div>
@@ -373,14 +379,14 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                             <i class="bi bi-folder-fill me-2"></i>
                             ${escapeHtml(project.project_name)}
                         </span>
-                        <button type="button" class="btn btn-sm btn-danger remove-project-btn" data-user-id="${user.user_id}" data-project-id="${project.project_id}">
+                        <button type="button" class="btn btn-sm btn-danger remove-project-btn" data-user-id="${user.user_id}" data-project-id="${project.project_id}" ${isBlocked ? 'disabled' : ''}>
                             <i class="bi bi-x-circle"></i> Usuń
                         </button>
                     </div>
                 `).join('')}
             </div>
         </div>
-        ${availableProjects.length > 0 ? `
+        ${availableProjects.length > 0 && !isBlocked ? `
             <div class="input-group">
                 <select class="form-select" id="assignSelect-${suffix}">
                     <option value="">-- Wybierz projekt --</option>
@@ -394,7 +400,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                     <i class="bi bi-plus-circle me-1"></i>Dodaj
                 </button>
             </div>
-        ` : '<p class="text-muted"><small>Wszystkie projekty są już przypisane.</small></p>'}
+        ` : (!isBlocked ? '<p class="text-muted"><small>Wszystkie projekty są już przypisane.</small></p>' : '')}
     `;
 }
 
