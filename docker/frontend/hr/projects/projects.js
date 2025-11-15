@@ -26,6 +26,8 @@ async function loadProjects() {
         
         if (response.ok) {
             allProjects = await response.json();
+            // Sortowanie alfabetycznie po nazwie projektu
+            allProjects.sort((a, b) => a.project_name.localeCompare(b.project_name, 'pl'));
             renderProjectsList(allProjects);
         } else {
             showError('Nie udało się pobrać listy projektów');
@@ -93,6 +95,9 @@ function filterProjects() {
                (project.description && project.description.toLowerCase().includes(searchTerm)) ||
                ownerName.includes(searchTerm);
     });
+    
+    // Sortowanie alfabetycznie
+    filtered.sort((a, b) => a.project_name.localeCompare(b.project_name, 'pl'));
     
     renderProjectsList(filtered);
 }
@@ -215,7 +220,7 @@ function renderProjectDetails(project, assignedUsers) {
                             <i class="bi bi-person-fill me-2"></i>
                             ${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}
                         </span>
-                        <button class="btn btn-sm btn-outline-danger" onclick="removeUserFromProject(${user.user_id}, ${project.project_id})">
+                        <button class="btn btn-sm btn-danger" onclick="removeUserFromProject(${user.user_id}, ${project.project_id})">
                             <i class="bi bi-x-circle"></i> Usuń
                         </button>
                     </div>
