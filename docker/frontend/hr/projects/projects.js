@@ -80,10 +80,20 @@ function renderProjectsList(projects) {
                         <i class="bi bi-clock"></i> ${project.time_type === 'constant' ? 'Stały' : 'Przedziały czasowe'}
                     </small>
                 </div>
-                ${isActive ? `<div class="mobile-detail-inline" id="mobileDetail-${project.project_id}" onclick="event.stopPropagation()"></div>` : ''}
+                ${isActive ? `<div class="mobile-detail-inline mobile-detail-stop-propagation" id="mobileDetail-${project.project_id}"></div>` : ''}
             </div>
         `;
     }).join('');
+    
+    // Podłącz event listenery do mobile containers
+    setTimeout(() => {
+        const mobileContainers = document.querySelectorAll('.mobile-detail-stop-propagation');
+        mobileContainers.forEach(container => {
+            container.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+        });
+    }, 0);
 }
 
 // Filtrowanie projektów
@@ -218,13 +228,13 @@ function generateProjectDetailsHtml(project, assignedUsers, availableUsers, owne
                 <label class="form-label">Typ rejestracji czasu</label>
                 <div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="timeType" id="timeTypeConstant-${project.project_id}" value="constant" ${project.time_type === 'constant' ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="timeType-${project.project_id}" id="timeTypeConstant-${project.project_id}" value="constant" ${project.time_type === 'constant' ? 'checked' : ''}>
                         <label class="form-check-label" for="timeTypeConstant-${project.project_id}">
                             Stały (tylko godziny)
                         </label>
                     </div>
                     <div class="form-check">
-                        <input class="form-check-input" type="radio" name="timeType" id="timeTypeFromTo-${project.project_id}" value="from_to" ${project.time_type === 'from_to' ? 'checked' : ''}>
+                        <input class="form-check-input" type="radio" name="timeType-${project.project_id}" id="timeTypeFromTo-${project.project_id}" value="from_to" ${project.time_type === 'from_to' ? 'checked' : ''}>
                         <label class="form-check-label" for="timeTypeFromTo-${project.project_id}">
                             Przedziały czasowe (od-do)
                         </label>
@@ -305,6 +315,14 @@ function attachProjectFormListeners() {
     forms.forEach(form => {
         form.removeEventListener('submit', updateProject);
         form.addEventListener('submit', updateProject);
+    });
+    
+    // Zatrzymaj propagację eventów w mobile-detail-inline
+    const mobileContainers = document.querySelectorAll('.mobile-detail-stop-propagation');
+    mobileContainers.forEach(container => {
+        container.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
     });
 }
 
@@ -440,7 +458,7 @@ async function updateProject(event) {
     const projectData = {
         project_name: form.querySelector('#projectName').value,
         description: form.querySelector('#projectDescription').value || null,
-        time_type: form.querySelector('input[name="timeType"]:checked').value,
+        time_type: form.querySelector('input[type="radio"]:checked').value,
         owner_user_id: parseInt(form.querySelector('#projectOwner').value)
     };
     
