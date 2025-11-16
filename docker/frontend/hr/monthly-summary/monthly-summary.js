@@ -574,12 +574,6 @@ function setupEventListeners() {
   // Advanced filters
   document.getElementById('applyFiltersBtn').addEventListener('click', applyFilters);
   document.getElementById('resetFiltersBtn').addEventListener('click', resetFilters);
-  
-  // Export buttons
-  document.getElementById('exportCSVBtn').addEventListener('click', exportCSV);
-  document.getElementById('exportExcelBtn').addEventListener('click', exportExcel);
-  document.getElementById('exportPDFBtn').addEventListener('click', exportPDF);
-  document.getElementById('printBtn').addEventListener('click', printPage);
 }
 
 function applyFilters() {
@@ -804,85 +798,10 @@ async function showUserDetails(userId) {
       </div>
     `;
     
-    // Store data for export
-    document.getElementById('exportUserDetailBtn').onclick = () => exportUserDetail(user, allReports);
-    
   } catch (error) {
     console.error('Error loading user details:', error);
     modalBody.innerHTML = '<p class="text-danger">Błąd ładowania szczegółów</p>';
   }
-}
-
-// ============================================================================
-// EXPORT FUNCTIONS
-// ============================================================================
-
-function exportCSV() {
-  if (!overviewData) return;
-  
-  let csv = 'Podsumowanie miesięczne pracowników\n';
-  csv += `Miesiąc:,${monthNamesPl[currentMonth]} ${currentYear}\n\n`;
-  
-  csv += 'STATYSTYKI GLOBALNE\n';
-  csv += `Łączny czas:,${overviewData.total_hours}h ${overviewData.total_minutes}min\n`;
-  csv += `Liczba pracowników:,${overviewData.total_users}\n`;
-  csv += `Liczba projektów:,${overviewData.total_projects}\n`;
-  csv += `Średnia:,${overviewData.average_hours}h ${overviewData.average_minutes}min\n\n`;
-  
-  csv += 'PRACOWNICY\n';
-  csv += 'Lp,Imię,Nazwisko,Email,Telefon,Łączny czas,Dni robocze\n';
-  overviewData.users.forEach((user, idx) => {
-    csv += `${idx + 1},"${user.first_name}","${user.last_name}","${user.email || ''}","${user.phone_number || ''}","${user.total_hours}h ${user.total_minutes}min",${user.days_worked}\n`;
-  });
-  
-  csv += '\nPROJEKTY\n';
-  csv += 'Lp,Nazwa projektu,Łączny czas,Liczba pracowników\n';
-  overviewData.projects.forEach((project, idx) => {
-    csv += `${idx + 1},"${project.project_name}","${project.total_hours}h ${project.total_minutes}min",${project.users.length}\n`;
-  });
-  
-  downloadFile(csv, `Podsumowanie_${monthNamesPl[currentMonth]}_${currentYear}.csv`, 'text/csv;charset=utf-8;');
-}
-
-function exportExcel() {
-  // Simplified Excel export (CSV with .xlsx extension works in Excel)
-  exportCSV();
-  alert('Plik CSV został pobrany. Możesz otworzyć go w Microsoft Excel.');
-}
-
-function exportPDF() {
-  alert('Eksport PDF: Użyj funkcji drukowania przeglądarki (Ctrl+P) i wybierz "Zapisz jako PDF"');
-  window.print();
-}
-
-function printPage() {
-  window.print();
-}
-
-function exportUserDetail(user, reports) {
-  let csv = `Szczegóły pracownika: ${user.first_name} ${user.last_name}\n`;
-  csv += `Miesiąc: ${monthNamesPl[currentMonth]} ${currentYear}\n\n`;
-  
-  csv += 'STATYSTYKI\n';
-  csv += `Łączny czas:,${user.total_hours}h ${user.total_minutes}min\n`;
-  csv += `Dni robocze:,${user.days_worked}\n\n`;
-  
-  csv += 'RAPORTY DZIENNE\n';
-  csv += 'Data,Projekt,Godziny,Minuty,Opis\n';
-  reports.forEach(report => {
-    csv += `"${new Date(report.work_date).toLocaleDateString('pl-PL')}","${report.project_name}",${report.hours_spent},${report.minutes_spent},"${report.description || ''}"\n`;
-  });
-  
-  downloadFile(csv, `Szczegóły_${user.first_name}_${user.last_name}_${monthNamesPl[currentMonth]}_${currentYear}.csv`, 'text/csv;charset=utf-8;');
-}
-
-function downloadFile(content, fileName, mimeType) {
-  const blob = new Blob(['\ufeff' + content], { type: mimeType });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = fileName;
-  link.click();
-  URL.revokeObjectURL(link.href);
 }
 
 // ============================================================================
