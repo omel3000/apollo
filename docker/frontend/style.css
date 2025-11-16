@@ -447,14 +447,28 @@ html, body {
 
 .badge.bg-warning,
 .badge.bg-warning.text-dark {
-    background-color: var(--apollo-primary-muted) !important;
-    color: #F2EEEB !important;
+    background-color: #f0a500 !important;
+    color: #261C1E !important;
 }
 
 .alert-info {
     background-color: #E9DDDA !important;
     color: #261C1E !important;
     border-color: var(--apollo-primary) !important;
+}
+
+.list-group-item.active,
+.list-group-item.active:hover,
+.list-group-item.active:focus {
+    background-color: #F5E7DF !important;
+    border-color: var(--apollo-primary) !important;
+    color: #261C1E !important;
+}
+
+.list-group-item-action:focus,
+.list-group-item-action:hover {
+    background-color: #F5E7DF !important;
+    color: #261C1E !important;
 }
 
 /* Przycisk Usuń - hover w kolorze czerwonym */
