@@ -28,7 +28,9 @@ const collator = new Intl.Collator("pl", { sensitivity: "base" });
 
 let authHeader = "";
 let queueData = [];
-let selectedReportId = null;
+let groupedQueue = [];
+let activeGroupId = null;
+let focusedEntryId = null;
 let autoRefreshHandle = null;
 const selectedIds = new Set();
 let bulkActionInProgress = false;
@@ -56,6 +58,9 @@ function cacheElements() {
     bulkApproveBtn: document.getElementById("bulkApproveBtn"),
     bulkRejectBtn: document.getElementById("bulkRejectBtn"),
     bulkRejectionComment: document.getElementById("bulkRejectionComment"),
+    entryList: document.getElementById("entryList"),
+    groupSelectAllBtn: document.getElementById("groupSelectAllBtn"),
+    groupClearSelectionBtn: document.getElementById("groupClearSelectionBtn"),
     detailsPlaceholder: document.getElementById("detailsPlaceholder"),
     detailsPanel: document.getElementById("detailsPanel"),
     detailDate: document.getElementById("detailDate"),
@@ -66,7 +71,6 @@ function cacheElements() {
     detailSubmitted: document.getElementById("detailSubmitted"),
     detailDecision: document.getElementById("detailDecision"),
     detailDescription: document.getElementById("detailDescription"),
-    detailComment: document.getElementById("detailComment"),
     actionSection: document.getElementById("actionSection"),
     actionInfo: document.getElementById("actionInfo"),
     rejectionComment: document.getElementById("rejectionComment"),
@@ -198,9 +202,46 @@ function buildFiltersPayload() {
   return payload;
 }
 
+function buildGroupedQueue(reports) {
+  const groupsMap = new Map();
+  reports.forEach(report => {
+    const key = `${report.user_id}__${report.work_date}`;
+    if (!groupsMap.has(key)) {
+      groupsMap.set(key, {
+        groupId: key,
+        userId: report.user_id,
+        workDate: report.work_date,
+        entries: [],
+        totalMinutes: 0
+      });
+    }
+    const group = groupsMap.get(key);
+    group.entries.push(report);
+    const minutes = (Number(report.hours_spent) || 0) * 60 + (Number(report.minutes_spent) || 0);
+    group.totalMinutes += minutes;
+  });
+
+  const groups = Array.from(groupsMap.values());
+  groups.forEach(group => {
+    group.entries.sort((a, b) => new Date(a.created_at || a.work_date) - new Date(b.created_at || b.work_date));
+  });
+
+  return groups.sort((a, b) => {
+    const dateDiff = new Date(b.workDate) - new Date(a.workDate);
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    return collator.compare(getUserLabel(b.userId), getUserLabel(a.userId));
+  });
+}
+
+function getGroupById(groupId) {
+  return groupedQueue.find(group => group.groupId === groupId) || null;
+}
+
 async function refreshQueue(options = {}) {
   const { preserveSelection = false, silent = false } = options;
-  const previousSelection = preserveSelection ? selectedReportId : null;
+  const previousGroupId = preserveSelection ? activeGroupId : null;
 
   if (!preserveSelection) {
     clearDetails();
@@ -237,10 +278,11 @@ async function refreshQueue(options = {}) {
     }
 
     queueData = await response.json();
+    groupedQueue = buildGroupedQueue(queueData);
     if (preserveSelection) {
       pruneInvalidSelections();
     }
-    renderQueue(previousSelection);
+    renderQueue(previousGroupId);
     updateBulkControls();
   } catch (error) {
     console.error(error);
@@ -252,35 +294,33 @@ async function refreshQueue(options = {}) {
   }
 }
 
-function renderQueue(selectedId = null) {
+function renderQueue(selectedGroupId = null) {
   if (!selectors.queueList || !selectors.queueEmpty || !selectors.queueCounter) {
     return;
   }
   selectors.queueList.innerHTML = "";
-  if (!Array.isArray(queueData) || queueData.length === 0) {
+
+  if (!Array.isArray(groupedQueue) || groupedQueue.length === 0) {
     selectors.queueEmpty.classList.remove("d-none");
     selectors.queueCounter.textContent = "0 wpisów";
     clearSelection();
     updateBulkControls();
-    if (selectedReportId) {
-      clearDetails();
-    }
+    clearDetails();
     return;
   }
-  selectors.queueEmpty.classList.add("d-none");
-  selectors.queueCounter.textContent = formatCounter(queueData.length);
 
-  queueData.forEach(report => {
+  selectors.queueEmpty.classList.add("d-none");
+  const totalEntries = queueData.length;
+  selectors.queueCounter.textContent = formatCounter(totalEntries);
+
+  groupedQueue.forEach(group => {
     const item = document.createElement("button");
     item.type = "button";
     item.className = "list-group-item list-group-item-action queue-item";
-    item.dataset.reportId = String(report.report_id);
-    if (report.report_id === selectedId) {
+    item.dataset.groupId = group.groupId;
+    if (group.groupId === selectedGroupId) {
       item.classList.add("active");
     }
-
-    const statusKey = report.status || "roboczy";
-    const canSelect = REVIEWABLE_STATUSES.has(statusKey);
 
     const header = document.createElement("div");
     header.className = "d-flex align-items-start gap-3";
@@ -290,34 +330,42 @@ function renderQueue(selectedId = null) {
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.className = "form-check-input queue-select";
-    checkbox.checked = selectedIds.has(report.report_id);
-    checkbox.disabled = !canSelect || bulkActionInProgress;
-    if (!canSelect) {
-      selectionWrapper.title = "Wpis w tym statusie nie może być masowo przetworzony";
+    const groupSelectableIds = getGroupSelectableIds(group);
+    const selectableCount = groupSelectableIds.length;
+    const selectedCount = groupSelectableIds.filter(id => selectedIds.has(id)).length;
+    checkbox.checked = selectableCount > 0 && selectedCount === selectableCount;
+    checkbox.indeterminate = selectableCount > 0 && selectedCount > 0 && selectedCount < selectableCount;
+    checkbox.disabled = selectableCount === 0 || bulkActionInProgress;
+    if (selectableCount === 0) {
+      selectionWrapper.title = "Wpisy w tym dniu są w statusie, którego nie można masowo przetworzyć";
     }
     checkbox.addEventListener("click", (event) => event.stopPropagation());
-    checkbox.addEventListener("change", (event) => toggleSelection(report.report_id, event.target.checked));
+    checkbox.addEventListener("change", (event) => {
+      event.stopPropagation();
+      toggleGroupSelection(group, event.target.checked);
+    });
     selectionWrapper.appendChild(checkbox);
 
     const contentWrapper = document.createElement("div");
     contentWrapper.className = "flex-grow-1";
 
     const topRow = document.createElement("div");
-    topRow.className = "d-flex justify-content-between align-items-start";
+    topRow.className = "d-flex justify-content-between align-items-start flex-wrap gap-2";
 
     const title = document.createElement("div");
-    title.innerHTML = `<strong>${formatDateShort(report.work_date)}</strong><br>${escapeHtml(getUserLabel(report.user_id))}`;
+    title.innerHTML = `<strong>${formatDateShort(group.workDate)}</strong><br>${escapeHtml(getUserLabel(group.userId))}`;
 
-    const status = document.createElement("span");
-    status.className = `badge ${STATUS_BADGES[statusKey] || "bg-secondary"}`;
-    status.textContent = STATUS_LABELS[statusKey] || statusKey;
+    const statusInfo = getGroupStatusInfo(group);
+    const statusBadge = document.createElement("span");
+    statusBadge.className = `badge ${statusInfo.className}`;
+    statusBadge.textContent = statusInfo.label;
 
     topRow.appendChild(title);
-    topRow.appendChild(status);
+    topRow.appendChild(statusBadge);
 
     const meta = document.createElement("div");
     meta.className = "mt-2 small text-muted";
-    meta.innerHTML = `${escapeHtml(getProjectLabel(report.project_id))} • ${formatDuration(report)}`;
+    meta.innerHTML = `${group.entries.length} wpisów • ${formatTotalMinutes(group.totalMinutes)}`;
 
     contentWrapper.appendChild(topRow);
     contentWrapper.appendChild(meta);
@@ -328,37 +376,103 @@ function renderQueue(selectedId = null) {
     item.appendChild(header);
 
     item.addEventListener("click", () => {
-      selectReport(report.report_id);
+      selectGroup(group.groupId);
     });
 
     selectors.queueList.appendChild(item);
   });
 
-  if (selectedId) {
-    selectReport(selectedId);
+  if (selectedGroupId) {
+    selectGroup(selectedGroupId);
   }
 
   updateBulkControls();
 }
 
-function selectReport(reportId) {
-  const report = queueData.find(r => r.report_id === reportId);
-  if (!report) {
+function getGroupStatusInfo(group) {
+  const statuses = new Set(group.entries.map(entry => entry.status || "roboczy"));
+  if (statuses.size === 1) {
+    const statusKey = statuses.values().next().value;
+    return {
+      label: STATUS_LABELS[statusKey] || statusKey,
+      className: STATUS_BADGES[statusKey] || "bg-secondary"
+    };
+  }
+  return { label: "Różne statusy", className: "bg-primary" };
+}
+
+function formatTotalMinutes(totalMinutes) {
+  const total = Math.max(0, Math.round(totalMinutes));
+  const hours = Math.floor(total / 60);
+  const minutes = total % 60;
+  return `${hours}h ${minutes}min`;
+}
+
+function toggleGroupSelection(group, isSelected) {
+  const selectableIds = getGroupSelectableIds(group);
+  selectableIds.forEach(id => {
+    if (isSelected) {
+      selectedIds.add(id);
+    } else {
+      selectedIds.delete(id);
+    }
+  });
+  updateBulkControls();
+  renderQueue(activeGroupId);
+}
+
+function getGroupSelectableIds(group) {
+  return group.entries
+    .filter(entry => REVIEWABLE_STATUSES.has(entry.status || ""))
+    .map(entry => entry.report_id);
+}
+
+function selectAllInActiveGroup() {
+  if (!activeGroupId) {
+    return;
+  }
+  const group = getGroupById(activeGroupId);
+  if (!group) {
+    return;
+  }
+  toggleGroupSelection(group, true);
+}
+
+function clearActiveGroupSelection() {
+  if (!activeGroupId) {
+    return;
+  }
+  const group = getGroupById(activeGroupId);
+  if (!group) {
+    return;
+  }
+  const selectableIds = getGroupSelectableIds(group);
+  selectableIds.forEach(id => selectedIds.delete(id));
+  updateBulkControls();
+  renderQueue(activeGroupId);
+}
+
+function selectGroup(groupId) {
+  const group = getGroupById(groupId);
+  if (!group) {
     clearDetails();
     return;
   }
-  selectedReportId = reportId;
-
+  activeGroupId = groupId;
   const buttons = selectors.queueList ? selectors.queueList.querySelectorAll(".queue-item") : [];
   buttons.forEach(btn => {
-    const btnId = Number(btn.dataset?.reportId);
-    btn.classList.toggle("active", btnId === reportId);
+    btn.classList.toggle("active", btn.dataset?.groupId === groupId);
   });
 
-  showDetails(report);
+  const entryExists = group.entries.some(entry => entry.report_id === focusedEntryId);
+  if (!entryExists) {
+    focusedEntryId = group.entries[0]?.report_id || null;
+  }
+
+  renderGroupDetails(group);
 }
 
-function showDetails(report) {
+function renderGroupDetails(group) {
   if (!selectors.detailsPanel || !selectors.detailsPlaceholder) {
     return;
   }
@@ -366,52 +480,182 @@ function showDetails(report) {
   selectors.detailsPanel.classList.remove("d-none");
   selectors.refreshDetailsBtn?.removeAttribute("disabled");
 
-  selectors.detailDate.textContent = formatDateLong(report.work_date);
-  selectors.detailUser.textContent = `${getUserLabel(report.user_id)} • ${formatEmail(report.user_id)}`;
-  const statusKey = report.status || "roboczy";
-  selectors.detailStatus.className = `badge status-badge ${STATUS_BADGES[statusKey] || "bg-secondary"}`;
-  selectors.detailStatus.textContent = STATUS_LABELS[statusKey] || statusKey;
+  selectors.detailDate.textContent = formatDateLong(group.workDate);
+  selectors.detailUser.textContent = `${getUserLabel(group.userId)} • ${formatEmail(group.userId)}`;
 
-  selectors.detailProject.textContent = getProjectLabel(report.project_id);
-  selectors.detailTime.textContent = formatTimeRange(report);
-  selectors.detailSubmitted.textContent = report.submitted_at ? formatDateTime(report.submitted_at) : "brak informacji";
-  selectors.detailDecision.textContent = buildDecisionText(report);
-  selectors.detailDescription.textContent = report.description?.trim() || "Brak opisu.";
-  selectors.detailComment.textContent = report.reviewer_comment?.trim() || "Brak komentarza.";
-
-  updateActionSection(report);
-  loadHistory(report.report_id);
+  renderEntryList(group);
+  updateFocusedEntryDetails(group);
 }
 
-function buildDecisionText(report) {
-  if (report.status === "zaakceptowany" && report.approved_at) {
-    return `Zaakceptowano ${formatDateTime(report.approved_at)}`;
+function renderEntryList(group) {
+  if (!selectors.entryList) {
+    return;
   }
-  if (report.status === "odrzucony" && report.rejected_at) {
-    return `Odrzucono ${formatDateTime(report.rejected_at)}`;
+  selectors.entryList.innerHTML = "";
+  if (!group.entries.length) {
+    selectors.entryList.innerHTML = "<div class=\"text-muted\">Brak wpisów w tym dniu.</div>";
+    updateGroupQuickActions(group);
+    return;
   }
-  if (report.status === "oczekuje_na_akceptacje" && report.submitted_at) {
-    return `Oczekuje od ${formatDateTime(report.submitted_at)}`;
+
+  group.entries.forEach(entry => {
+    const row = document.createElement("div");
+    row.className = "list-group-item list-group-item-action d-flex align-items-center justify-content-between gap-3 entry-row";
+    row.dataset.entryId = String(entry.report_id);
+    if (entry.report_id === focusedEntryId) {
+      row.classList.add("active");
+    }
+
+    const left = document.createElement("div");
+    left.className = "d-flex align-items-center gap-3 flex-grow-1";
+
+    const checkboxWrapper = document.createElement("div");
+    checkboxWrapper.className = "form-check mb-0";
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "form-check-input";
+    const selectable = REVIEWABLE_STATUSES.has(entry.status || "");
+    checkbox.checked = selectedIds.has(entry.report_id);
+    checkbox.disabled = !selectable || bulkActionInProgress;
+    if (!selectable) {
+      checkbox.title = "Tego wpisu nie można masowo przetworzyć";
+    }
+    checkbox.addEventListener("click", (event) => event.stopPropagation());
+    checkbox.addEventListener("change", (event) => {
+      event.stopPropagation();
+      toggleSelection(entry.report_id, event.target.checked);
+    });
+    checkboxWrapper.appendChild(checkbox);
+
+    const info = document.createElement("div");
+    info.className = "flex-grow-1";
+    info.innerHTML = `
+      <div><strong>${escapeHtml(getProjectLabel(entry.project_id))}</strong></div>
+      <div class="text-muted">${formatTimeRange(entry)}</div>
+    `;
+
+    left.appendChild(checkboxWrapper);
+    left.appendChild(info);
+
+    const badge = document.createElement("span");
+    const statusKey = entry.status || "roboczy";
+    badge.className = `badge ${STATUS_BADGES[statusKey] || "bg-secondary"}`;
+    badge.textContent = STATUS_LABELS[statusKey] || statusKey;
+
+    row.appendChild(left);
+    row.appendChild(badge);
+
+    row.addEventListener("click", () => setFocusedEntry(entry.report_id));
+
+    selectors.entryList.appendChild(row);
+  });
+
+  updateGroupQuickActions(group);
+}
+
+function updateGroupQuickActions(group) {
+  if (selectors.groupSelectAllBtn) {
+    const selectable = getGroupSelectableIds(group);
+    selectors.groupSelectAllBtn.disabled = selectable.length === 0 || bulkActionInProgress;
+  }
+  if (selectors.groupClearSelectionBtn) {
+    const selectedCount = group.entries.filter(entry => selectedIds.has(entry.report_id)).length;
+    selectors.groupClearSelectionBtn.disabled = selectedCount === 0 || bulkActionInProgress;
+  }
+}
+
+function setFocusedEntry(entryId) {
+  if (!activeGroupId) {
+    return;
+  }
+  const group = getGroupById(activeGroupId);
+  if (!group) {
+    return;
+  }
+  const exists = group.entries.some(entry => entry.report_id === entryId);
+  if (!exists) {
+    return;
+  }
+  focusedEntryId = entryId;
+  renderEntryList(group);
+  updateFocusedEntryDetails(group);
+}
+
+function getFocusedEntry() {
+  if (!activeGroupId || !focusedEntryId) {
+    return null;
+  }
+  const group = getGroupById(activeGroupId);
+  if (!group) {
+    return null;
+  }
+  return group.entries.find(entry => entry.report_id === focusedEntryId) || null;
+}
+
+function getSelectedIdsForActiveGroup() {
+  if (!activeGroupId) {
+    return [];
+  }
+  const group = getGroupById(activeGroupId);
+  if (!group) {
+    return [];
+  }
+  return group.entries
+    .filter(entry => selectedIds.has(entry.report_id) && REVIEWABLE_STATUSES.has(entry.status || ""))
+    .map(entry => entry.report_id);
+}
+
+function updateFocusedEntryDetails(group) {
+  const entry = group.entries.find(item => item.report_id === focusedEntryId) || group.entries[0];
+  if (!entry) {
+    clearDetails();
+    return;
+  }
+  focusedEntryId = entry.report_id;
+
+  const statusKey = entry.status || "roboczy";
+  selectors.detailStatus.className = `badge status-badge ${STATUS_BADGES[statusKey] || "bg-secondary"}`;
+  selectors.detailStatus.textContent = STATUS_LABELS[statusKey] || statusKey;
+  selectors.detailProject.textContent = getProjectLabel(entry.project_id);
+  selectors.detailTime.textContent = formatTimeRange(entry);
+  selectors.detailSubmitted.textContent = entry.submitted_at ? formatDateTime(entry.submitted_at) : "brak informacji";
+  selectors.detailDecision.textContent = buildDecisionText(entry);
+  selectors.detailDescription.textContent = entry.description?.trim() || "Brak opisu.";
+
+  updateActionSection(entry);
+  loadEntryHistory(entry.report_id);
+}
+
+function buildDecisionText(entry) {
+  if (entry.status === "zaakceptowany" && entry.approved_at) {
+    return `Zaakceptowano ${formatDateTime(entry.approved_at)}`;
+  }
+  if (entry.status === "odrzucony" && entry.rejected_at) {
+    return `Odrzucono ${formatDateTime(entry.rejected_at)}`;
+  }
+  if (entry.status === "oczekuje_na_akceptacje" && entry.submitted_at) {
+    return `Oczekuje od ${formatDateTime(entry.submitted_at)}`;
   }
   return "Brak historii decyzji";
 }
 
-function updateActionSection(report) {
+function updateActionSection(entry) {
   if (!selectors.actionSection) {
     return;
   }
-  const statusKey = report.status || "roboczy";
-  const canReview = REVIEWABLE_STATUSES.has(statusKey);
+  const statusKey = entry?.status || "roboczy";
+  const isReviewableStatus = REVIEWABLE_STATUSES.has(statusKey);
+  const canReview = isReviewableStatus && !bulkActionInProgress;
   selectors.actionInfo.textContent = ACTION_MESSAGES[statusKey] || "Brak dodatkowych informacji.";
   selectors.approveBtn.disabled = !canReview;
   selectors.rejectBtn.disabled = !canReview;
   selectors.rejectionComment.disabled = !canReview;
-  if (!canReview && selectors.rejectionComment) {
+  if (!isReviewableStatus && selectors.rejectionComment) {
     selectors.rejectionComment.value = "";
   }
 }
 
-async function loadHistory(reportId) {
+async function loadEntryHistory(reportId) {
   if (!selectors.historyList) {
     return;
   }
@@ -431,6 +675,9 @@ async function loadHistory(reportId) {
       throw new Error("Błąd pobierania historii");
     }
     const entries = await response.json();
+    if (focusedEntryId !== reportId) {
+      return;
+    }
     if (!entries.length) {
       selectors.historyList.innerHTML = "Brak historii decyzji.";
       return;
@@ -453,7 +700,9 @@ async function loadHistory(reportId) {
     });
   } catch (error) {
     console.error(error);
-    selectors.historyList.innerHTML = "Nie udało się pobrać historii.";
+    if (focusedEntryId === reportId) {
+      selectors.historyList.innerHTML = "Nie udało się pobrać historii.";
+    }
   }
 }
 
@@ -471,48 +720,34 @@ function mapAction(action) {
 }
 
 async function handleDecision(decision) {
-  if (!selectedReportId) {
+  const groupSelection = getSelectedIdsForActiveGroup();
+  let targetIds = groupSelection;
+  if (!targetIds.length && focusedEntryId) {
+    const entry = queueData.find(item => item.report_id === focusedEntryId);
+    if (entry && REVIEWABLE_STATUSES.has(entry.status || "")) {
+      targetIds = [focusedEntryId];
+    }
+  }
+  if (!targetIds.length) {
+    showToast("Zaznacz wpisy lub wybierz wpis w statusie możliwym do oceny.");
     return;
   }
-  const report = queueData.find(r => r.report_id === selectedReportId);
-  if (!report || !REVIEWABLE_STATUSES.has(report.status || "")) {
-    return;
-  }
-  const payload = { decision };
+
+  let comment = null;
   if (decision === "reject") {
-    const comment = selectors.rejectionComment.value.trim();
+    comment = selectors.rejectionComment?.value.trim() || "";
     if (!comment) {
       showToast("Podaj komentarz przy odrzuceniu.");
       return;
     }
-    payload.comment = comment;
   }
 
   setActionButtonsDisabled(true);
   try {
-    const response = await fetch(`/work_reports/${selectedReportId}/review`, {
-      method: "POST",
-      headers: {
-        Authorization: authHeader,
-        "Content-Type": "application/json",
-        Accept: "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-    if (response.status === 401) {
-      handleUnauthorized();
-      return;
+    const success = await handleBulkDecision(decision, targetIds, comment, { skipBulkCommentReset: true });
+    if (success && selectors.rejectionComment) {
+      selectors.rejectionComment.value = "";
     }
-    if (!response.ok) {
-      const message = await response.text();
-      throw new Error(message || "Błąd zapisu decyzji");
-    }
-    selectors.rejectionComment.value = "";
-    await refreshQueue({ preserveSelection: true });
-    showToast("Decyzja została zapisana.");
-  } catch (error) {
-    console.error(error);
-    showToast(error.message || "Nie udało się zapisać decyzji.");
   } finally {
     setActionButtonsDisabled(false);
   }
@@ -528,18 +763,19 @@ function setActionButtonsDisabled(state) {
     selectors.rejectionComment.disabled = true;
     return;
   }
-  const report = queueData.find(r => r.report_id === selectedReportId);
-  if (report) {
-    updateActionSection(report);
-  } else {
-    selectors.approveBtn.disabled = true;
-    selectors.rejectBtn.disabled = true;
-    selectors.rejectionComment.disabled = true;
+  const entry = getFocusedEntry();
+  if (entry) {
+    updateActionSection(entry);
+    return;
   }
+  selectors.approveBtn.disabled = true;
+  selectors.rejectBtn.disabled = true;
+  selectors.rejectionComment.disabled = true;
 }
 
 function clearDetails() {
-  selectedReportId = null;
+  activeGroupId = null;
+  focusedEntryId = null;
   selectors.detailsPanel?.classList.add("d-none");
   selectors.detailsPlaceholder?.classList.remove("d-none");
   selectors.refreshDetailsBtn?.setAttribute("disabled", "disabled");
@@ -548,6 +784,12 @@ function clearDetails() {
   }
   if (selectors.rejectionComment) {
     selectors.rejectionComment.value = "";
+  }
+  if (selectors.groupSelectAllBtn) {
+    selectors.groupSelectAllBtn.disabled = true;
+  }
+  if (selectors.groupClearSelectionBtn) {
+    selectors.groupClearSelectionBtn.disabled = true;
   }
 }
 
@@ -608,8 +850,10 @@ function attachEvents() {
       selectable.forEach(id => selectedIds.delete(id));
     }
     updateBulkControls();
-    renderQueue(selectedReportId);
+    renderQueue(activeGroupId);
   });
+  selectors.groupSelectAllBtn?.addEventListener("click", selectAllInActiveGroup);
+  selectors.groupClearSelectionBtn?.addEventListener("click", clearActiveGroupSelection);
   selectors.approveBtn?.addEventListener("click", () => handleDecision("approve"));
   selectors.rejectBtn?.addEventListener("click", () => handleDecision("reject"));
   selectors.bulkApproveBtn?.addEventListener("click", () => handleBulkDecision("approve"));
@@ -771,28 +1015,47 @@ function toggleSelection(reportId, isSelected) {
     selectedIds.delete(reportId);
   }
   updateBulkControls();
+  window.setTimeout(() => {
+    renderQueue(activeGroupId);
+  }, 0);
 }
 
-async function handleBulkDecision(decision) {
-  const ids = Array.from(selectedIds);
-  if (!ids.length) {
-    return;
+async function handleBulkDecision(decision, overrideIds = null, overrideComment = null, options = {}) {
+  const { skipBulkCommentReset = false } = options;
+  const sourceIds = Array.isArray(overrideIds) && overrideIds.length ? overrideIds : Array.from(selectedIds);
+  if (!sourceIds.length) {
+    showToast("Zaznacz przynajmniej jeden wpis.");
+    return false;
   }
+
+  const validIds = sourceIds.filter(id => {
+    const report = queueData.find(item => item.report_id === id);
+    return report && REVIEWABLE_STATUSES.has(report.status || "");
+  });
+  if (!validIds.length) {
+    showToast("Wybrane wpisy nie są w statusie pozwalającym na decyzję.");
+    return false;
+  }
+
   let comment = "";
   if (decision === "reject") {
-    comment = selectors.bulkRejectionComment?.value.trim() || "";
+    if (overrideComment !== null) {
+      comment = overrideComment;
+    } else {
+      comment = selectors.bulkRejectionComment?.value.trim() || "";
+    }
     if (!comment) {
-      showToast("Podaj komentarz dla masowego odrzucenia.");
-      return;
+      showToast("Podaj komentarz dla odrzucenia.");
+      return false;
     }
   }
 
   bulkActionInProgress = true;
   updateBulkControls();
-  renderQueue(selectedReportId);
+  renderQueue(activeGroupId);
 
   const errors = [];
-  for (const reportId of ids) {
+  for (const reportId of validIds) {
     try {
       const payload = { decision };
       if (decision === "reject") {
@@ -811,7 +1074,7 @@ async function handleBulkDecision(decision) {
         handleUnauthorized();
         bulkActionInProgress = false;
         updateBulkControls();
-        return;
+        return false;
       }
       if (!response.ok) {
         const message = await response.text();
@@ -822,20 +1085,23 @@ async function handleBulkDecision(decision) {
     }
   }
 
-  if (decision === "reject" && selectors.bulkRejectionComment) {
+  if (decision === "reject" && selectors.bulkRejectionComment && !skipBulkCommentReset) {
     selectors.bulkRejectionComment.value = "";
   }
 
+  validIds.forEach(id => selectedIds.delete(id));
+
   bulkActionInProgress = false;
-  clearSelection();
-  await refreshQueue({ preserveSelection: false });
+  await refreshQueue({ preserveSelection: true });
+  updateBulkControls();
+
   if (errors.length) {
     console.error("Błędy podczas masowego przetwarzania:", errors);
     showToast(`Nie udało się przetworzyć ${errors.length} wpisów. Sprawdź konsolę.`);
-  } else {
-    showToast(decision === "approve" ? "Zatwierdzono wszystkie zaznaczone wpisy." : "Odrzucono wszystkie zaznaczone wpisy.");
+    return false;
   }
-  updateBulkControls();
+  showToast(decision === "approve" ? "Zatwierdzono wskazane wpisy." : "Odrzucono wskazane wpisy.");
+  return true;
 }
 
 async function initPage() {

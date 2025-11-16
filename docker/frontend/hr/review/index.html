@@ -6,13 +6,16 @@
     <title>Akceptacja wpisów | Apollo</title>
     <style>
         html { visibility: hidden; }
-        .queue-item { cursor: pointer; border-left: 4px solid transparent; }
-        .queue-item.active { border-left-color: #BF6E50; background-color: #fff4ec; }
+        .queue-item { cursor: pointer; border-left: 4px solid transparent; transition: background-color 0.2s ease; }
+        .queue-item.active { border-left-color: #0d6efd; background-color: #e7f1ff; }
         .queue-item + .queue-item { margin-top: 0.75rem; }
         .status-badge { font-size: 0.85rem; }
         .history-entry { border-left: 3px solid #d8d2cc; padding-left: 12px; margin-bottom: 0.75rem; }
         .history-entry:last-child { margin-bottom: 0; }
         .details-placeholder { padding: 60px 20px; text-align: center; color: #6c757d; }
+        .queue-select:disabled { cursor: not-allowed; }
+        .entry-row.active { border-color: #0d6efd; background-color: #eef5ff; }
+        .entry-row label { cursor: pointer; }
     </style>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
@@ -196,7 +199,7 @@
                                             <button type="button" id="bulkApproveBtn" class="btn btn-sm btn-success" disabled>
                                                 <i class="bi bi-check2-circle me-1"></i>Zatwierdź zaznaczone
                                             </button>
-                                            <button type="button" id="bulkRejectBtn" class="btn btn-sm btn-outline-danger" disabled>
+                                            <button type="button" id="bulkRejectBtn" class="btn btn-sm btn-danger" disabled>
                                                 <i class="bi bi-x-circle me-1"></i>Odrzuć zaznaczone
                                             </button>
                                         </div>
@@ -247,9 +250,17 @@
                                         <h6>Opis pracy</h6>
                                         <p id="detailDescription" class="mb-0">Brak opisu.</p>
                                     </div>
-                                    <div class="mb-3">
-                                        <h6>Komentarz recenzenta</h6>
-                                        <p id="detailComment" class="mb-0 text-muted">Brak komentarza.</p>
+                                    <div class="mb-4">
+                                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                            <h6 class="mb-0">Wpisy w tym dniu</h6>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" id="groupSelectAllBtn">
+                                                <i class="bi bi-check2-square me-1"></i>Zaznacz wszystkie
+                                            </button>
+                        						<button type="button" class="btn btn-sm btn-outline-secondary" id="groupClearSelectionBtn">
+                                                <i class="bi bi-x-square me-1"></i>Wyczyść zaznaczenia
+                                            </button>
+                                        </div>
+                                        <div id="entryList" class="list-group small"></div>
                                     </div>
                                     <div class="mb-4" id="actionSection">
                                         <h6>Działania</h6>
@@ -262,7 +273,7 @@
                                             <button type="button" id="approveBtn" class="btn btn-success">
                                                 <i class="bi bi-check-circle me-1"></i>Zatwierdź
                                             </button>
-                                            <button type="button" id="rejectBtn" class="btn btn-outline-danger">
+                                            <button type="button" id="rejectBtn" class="btn btn-danger">
                                                 <i class="bi bi-x-circle me-1"></i>Odrzuć
                                             </button>
                                         </div>
