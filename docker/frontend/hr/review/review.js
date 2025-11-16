@@ -17,7 +17,7 @@ const STATUS_BADGES = {
 const ACTION_MESSAGES = {
   oczekuje_na_akceptacje: "Wpis czeka na Twoją decyzję.",
   zaakceptowany: "Wpis jest zatwierdzony – możesz w razie potrzeby zmienić decyzję.",
-  odrzucony: "Wpis został odrzucony. Użytkownik musi przesłać poprawioną wersję.",
+  odrzucony: "Wpis został odrzucony – możesz zmienić decyzję, jeśli to konieczne.",
   roboczy: "Wpis jest w wersji roboczej – HR nie może go jeszcze oceniać.",
   zablokowany: "Okres rozliczeniowy został zamknięty. Edycja decyzji nie jest możliwa."
 };
@@ -27,7 +27,7 @@ const GROUPING_MODES = {
   MONTHLY: "monthly"
 };
 
-const REVIEWABLE_STATUSES = new Set(["oczekuje_na_akceptacje", "zaakceptowany"]);
+const REVIEWABLE_STATUSES = new Set(["oczekuje_na_akceptacje", "zaakceptowany", "odrzucony"]);
 const AUTO_REFRESH_INTERVAL = 60000; // 60 sekund
 const collator = new Intl.Collator("pl", { sensitivity: "base" });
 
