@@ -305,8 +305,18 @@ function renderProjectsChart() {
   const labels = filteredProjects.map(p => p.project_name);
   const data = filteredProjects.map(p => p.total_hours + p.total_minutes / 60);
   
-  // Generate colors using internal palette
-  const colors = filteredProjects.map((p, idx) => getProjectColorForChart(p.project_id, idx));
+  // Generuj kolory z centralnej palety (project-colors.js)
+  const colors = filteredProjects.map((p, idx) => {
+    if (typeof getProjectColor === 'function') {
+      return getProjectColor(p.project_id);
+    }
+    if (typeof getProjectColorPalette === 'function') {
+      const pal = getProjectColorPalette();
+      return pal[idx % pal.length];
+    }
+    // Fallback neutralny, gdy paleta nie jest dostępna
+    return '#999999';
+  });
   
   projectsChart = new Chart(ctx, {
     type: 'doughnut',
@@ -816,25 +826,7 @@ function hideSpinner() {
   document.getElementById('loadingSpinner').classList.remove('show');
 }
 
-function getProjectColorForChart(projectId, index) {
-  // Fallback colors - używamy zawsze wewnętrznej palety
-  const colors = [
-    'rgba(46, 125, 50, 0.8)',    // Zielony
-    'rgba(25, 118, 210, 0.8)',   // Niebieski
-    'rgba(211, 47, 47, 0.8)',    // Czerwony
-    'rgba(245, 124, 0, 0.8)',    // Pomarańczowy
-    'rgba(123, 31, 162, 0.8)',   // Fioletowy
-    'rgba(0, 151, 167, 0.8)',    // Cyjan
-    'rgba(194, 24, 91, 0.8)',    // Różowy
-    'rgba(93, 64, 55, 0.8)',     // Brązowy
-    'rgba(97, 97, 97, 0.8)',     // Szary
-    'rgba(0, 121, 107, 0.8)',    // Morski
-    'rgba(230, 74, 25, 0.8)',    // Głęboka pomarańcza
-    'rgba(48, 63, 159, 0.8)'     // Indygo
-  ];
-  
-  return colors[index % colors.length];
-}
+// Kolory dla wykresów projektów są centralnie zarządzane w project-colors.js
 
 // Make functions global for onclick handlers
 window.toggleUserCard = toggleUserCard;
