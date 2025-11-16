@@ -14,6 +14,24 @@ const monthNamesPl = [
   'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
 ];
 
+const REPORT_STATUS_LABELS = {
+  roboczy: 'Szkic',
+  odrzucony: 'Odrzucony',
+  oczekuje_na_akceptacje: 'Oczekuje na akceptację',
+  zaakceptowany: 'Zaakceptowany',
+  zablokowany: 'Zablokowany'
+};
+
+const REPORT_STATUS_BADGES = {
+  roboczy: 'bg-secondary',
+  odrzucony: 'bg-danger',
+  oczekuje_na_akceptacje: 'bg-warning text-dark',
+  zaakceptowany: 'bg-success',
+  zablokowany: 'bg-dark'
+};
+
+const EDITABLE_REPORT_STATUSES = new Set(['roboczy', 'odrzucony', 'oczekuje_na_akceptacje']);
+
 // Polskie święta (stałe i ruchome - przykładowe lata)
 const polishHolidays = {
   // Stałe święta (miesiąc 1-based, dzień)
@@ -285,6 +303,12 @@ function updateTotalTime(reports) {
 }
 
 function buildReportForm(report) {
+  const statusKey = report.status || 'roboczy';
+  const statusLabel = REPORT_STATUS_LABELS[statusKey] || statusKey;
+  const statusClass = REPORT_STATUS_BADGES[statusKey] || 'bg-secondary';
+  const canEdit = EDITABLE_REPORT_STATUSES.has(statusKey);
+  const isPending = statusKey === 'oczekuje_na_akceptacje';
+
   const card = document.createElement('div');
   card.className = 'card mb-3';
   card.dataset.reportId = report.report_id;
@@ -295,7 +319,6 @@ function buildReportForm(report) {
   const form = document.createElement('form');
   form.addEventListener('submit', (event) => event.preventDefault());
   
-  // Store original values for change detection
   const originalValues = {
     project_id: report.project_id,
     description: report.description || '',
@@ -303,46 +326,77 @@ function buildReportForm(report) {
     minutes: Number(report.minutes_spent) || 0
   };
 
-  // Projekt
+  const statusRow = document.createElement('div');
+  statusRow.className = 'd-flex flex-wrap justify-content-between align-items-start gap-2 mb-3';
+  const statusBadge = document.createElement('span');
+  statusBadge.className = `badge ${statusClass} px-3 py-2`;
+  statusBadge.textContent = statusLabel;
+  statusRow.appendChild(statusBadge);
+
+  const timeline = document.createElement('div');
+  timeline.className = 'small text-muted';
+  timeline.textContent = buildReportTimeline(report);
+  statusRow.appendChild(timeline);
+  form.appendChild(statusRow);
+
+  if (statusKey === 'odrzucony' && report.reviewer_comment) {
+    const rejectionAlert = document.createElement('div');
+    rejectionAlert.className = 'alert alert-danger mb-3';
+    const title = document.createElement('strong');
+    title.textContent = 'Powód odrzucenia:';
+    rejectionAlert.appendChild(title);
+    const comment = document.createElement('p');
+    comment.className = 'mb-0 mt-1';
+    comment.textContent = report.reviewer_comment;
+    rejectionAlert.appendChild(comment);
+    form.appendChild(rejectionAlert);
+  } else if (isPending) {
+    const pendingInfo = document.createElement('div');
+    pendingInfo.className = 'alert alert-info mb-3';
+    pendingInfo.textContent = 'Wpis oczekuje na decyzję. Możesz go poprawiać do chwili akceptacji.';
+    form.appendChild(pendingInfo);
+  } else if (statusKey === 'zablokowany') {
+    const lockedInfo = document.createElement('div');
+    lockedInfo.className = 'alert alert-secondary mb-3';
+    lockedInfo.textContent = 'Wpis zablokowano wraz z zamknięciem okresu.';
+    form.appendChild(lockedInfo);
+  }
+
   const projectGroup = document.createElement('div');
   projectGroup.className = 'mb-3';
-  
   const projectLabel = document.createElement('label');
   const projectFieldId = `existing-project-${report.report_id}`;
   projectLabel.setAttribute('for', projectFieldId);
   projectLabel.className = 'form-label';
   projectLabel.textContent = 'Projekt:';
-  
+
   const projectSelect = document.createElement('select');
   projectSelect.id = projectFieldId;
   projectSelect.name = 'project';
   projectSelect.className = 'form-select';
+  projectSelect.disabled = !canEdit;
   populateProjectSelect(projectSelect, report.project_id);
-  
   projectGroup.appendChild(projectLabel);
   projectGroup.appendChild(projectSelect);
 
-  // Opis
   const descriptionGroup = document.createElement('div');
   descriptionGroup.className = 'mb-3';
-  
   const descriptionLabel = document.createElement('label');
   const descriptionId = `existing-description-${report.report_id}`;
   descriptionLabel.setAttribute('for', descriptionId);
   descriptionLabel.className = 'form-label';
   descriptionLabel.textContent = 'Opis (opcjonalny):';
-  
+
   const descriptionArea = document.createElement('textarea');
   descriptionArea.id = descriptionId;
   descriptionArea.name = 'description';
   descriptionArea.className = 'form-control';
   descriptionArea.rows = 3;
   descriptionArea.value = report.description || '';
-  
+  descriptionArea.disabled = !canEdit;
   descriptionGroup.appendChild(descriptionLabel);
   descriptionGroup.appendChild(descriptionArea);
 
-  // Czas pracy (dynamiczny)
   const timeGroup = document.createElement('div');
   timeGroup.className = 'mb-3 time-group';
   const timeLabel = document.createElement('label');
@@ -388,22 +442,25 @@ function buildReportForm(report) {
         calcText.textContent = `przepracowany czas: ${diff.hours}h ${String(diff.minutes).padStart(2,'0')}min`;
       }
     };
-    // zainicjuj wyliczenie po złożeniu formularza
     setTimeout(updateCalc);
 
     timeGroup.appendChild(timeLabel);
     timeGroup.appendChild(timeRow);
     timeGroup.appendChild(calcRow);
 
-    // Listenery po dodaniu w DOM
     setTimeout(() => {
       const tf = form.querySelector('input[name="time_from"]');
       const tt = form.querySelector('input[name="time_to"]');
-      if (tf) tf.addEventListener('input', updateCalc);
-      if (tt) tt.addEventListener('input', updateCalc);
+      if (tf) {
+        tf.disabled = !canEdit;
+        tf.addEventListener('input', updateCalc);
+      }
+      if (tt) {
+        tt.disabled = !canEdit;
+        tt.addEventListener('input', updateCalc);
+      }
     });
   } else {
-    // standardowe pola godzin/minut
     const hoursCol = document.createElement('div');
     hoursCol.className = 'col-6';
     const hoursInputGroup = document.createElement('div');
@@ -416,6 +473,7 @@ function buildReportForm(report) {
     hoursInput.value = Number(report.hours_spent) || 0;
     hoursInput.className = 'form-control';
     hoursInput.setAttribute('aria-label', 'Godziny');
+    hoursInput.disabled = !canEdit;
     const hoursSpan = document.createElement('span');
     hoursSpan.className = 'input-group-text';
     hoursSpan.textContent = 'h';
@@ -435,6 +493,7 @@ function buildReportForm(report) {
     minutesInput.value = Number(report.minutes_spent) || 0;
     minutesInput.className = 'form-control';
     minutesInput.setAttribute('aria-label', 'Minuty');
+    minutesInput.disabled = !canEdit;
     const minutesSpan = document.createElement('span');
     minutesSpan.className = 'input-group-text';
     minutesSpan.textContent = 'min';
@@ -448,7 +507,6 @@ function buildReportForm(report) {
     timeGroup.appendChild(timeRow);
   }
 
-  // Przyciski
   const buttonGroup = document.createElement('div');
   buttonGroup.className = 'd-flex gap-2';
   
@@ -456,17 +514,21 @@ function buildReportForm(report) {
   saveButton.type = 'button';
   saveButton.className = 'btn btn-primary btn-save-changes';
   saveButton.innerHTML = '<i class="bi bi-save me-1"></i>Zapisz zmiany';
-  saveButton.disabled = true; // Domyślnie nieaktywny
+  saveButton.disabled = !canEdit;
   saveButton.addEventListener('click', () => handleUpdateReport(report.report_id, form));
   
   const deleteButton = document.createElement('button');
   deleteButton.type = 'button';
   deleteButton.className = 'btn btn-outline-secondary';
   deleteButton.innerHTML = '<i class="bi bi-trash me-1"></i>Usuń';
+  deleteButton.disabled = !canEdit;
   deleteButton.addEventListener('click', () => handleDeleteReport(report.report_id));
   
-  // Funkcja sprawdzająca zmiany
   const checkForChanges = () => {
+    if (!canEdit) {
+      saveButton.disabled = true;
+      return;
+    }
     const currentProject = Number(projectSelect.value);
     const currentDescription = descriptionArea.value;
     const pType = getProjectById(currentProject)?.time_type || 'constant';
@@ -492,56 +554,53 @@ function buildReportForm(report) {
     saveButton.disabled = !hasChanges;
   };
   
-  // Dodaj event listenery do wykrywania zmian
-  projectSelect.addEventListener('change', () => {
-    // Przy zmianie projektu przebuduj sekcję czasu zgodnie z time_type
-    const newProjectId = Number(projectSelect.value);
-    const rebuilt = buildReportForm({ ...report, project_id: newProjectId });
-    const newTimeGroup = rebuilt.querySelector('.time-group');
+  if (canEdit) {
+    projectSelect.addEventListener('change', () => {
+      const newProjectId = Number(projectSelect.value);
+      const rebuilt = buildReportForm({ ...report, project_id: newProjectId });
+      const newTimeGroup = rebuilt.querySelector('.time-group');
 
-    // Zastąp aktualną sekcję czasu najnowszą wersją
-    const currentTimeGroup = form.querySelector('.time-group');
-    if (newTimeGroup && currentTimeGroup && currentTimeGroup.parentNode === form) {
-      form.replaceChild(newTimeGroup, currentTimeGroup);
+      const currentTimeGroup = form.querySelector('.time-group');
+      if (newTimeGroup && currentTimeGroup && currentTimeGroup.parentNode === form) {
+        form.replaceChild(newTimeGroup, currentTimeGroup);
 
-      // Jeśli nowy projekt jest typu from_to, dołącz listenery obliczające przepracowany czas
-      const pType = (getProjectById(newProjectId)?.time_type) || 'constant';
-      if (pType === 'from_to') {
-        const tf = form.querySelector('input[name="time_from"]');
-        const tt = form.querySelector('input[name="time_to"]');
-        const calcText = form.querySelector('.time-group small.text-muted');
-        const updateCalc = () => {
-          const f = tf ? tf.value : '';
-          const t = tt ? tt.value : '';
-          if (!calcText) return;
-          if (!f || !t) { calcText.textContent = ''; return; }
-          const diff = diffHHMM(f, t);
-          if (!diff || diff.totalMinutes <= 0) {
-            calcText.textContent = 'przepracowany czas: -';
-          } else {
-            calcText.textContent = `przepracowany czas: ${diff.hours}h ${String(diff.minutes).padStart(2,'0')}min`;
-          }
-        };
-        if (tf) tf.addEventListener('input', updateCalc);
-        if (tt) tt.addEventListener('input', updateCalc);
-        // inicjalne wyliczenie (jeśli pola mają wartości)
-        updateCalc();
+        const pType = (getProjectById(newProjectId)?.time_type) || 'constant';
+        if (pType === 'from_to') {
+          const tf = form.querySelector('input[name="time_from"]');
+          const tt = form.querySelector('input[name="time_to"]');
+          const calcText = form.querySelector('.time-group small.text-muted');
+          const updateCalc = () => {
+            const f = tf ? tf.value : '';
+            const t = tt ? tt.value : '';
+            if (!calcText) return;
+            if (!f || !t) { calcText.textContent = ''; return; }
+            const diff = diffHHMM(f, t);
+            if (!diff || diff.totalMinutes <= 0) {
+              calcText.textContent = 'przepracowany czas: -';
+            } else {
+              calcText.textContent = `przepracowany czas: ${diff.hours}h ${String(diff.minutes).padStart(2,'0')}min`;
+            }
+          };
+          if (tf) tf.addEventListener('input', updateCalc);
+          if (tt) tt.addEventListener('input', updateCalc);
+          updateCalc();
+        }
       }
-    }
 
-    checkForChanges();
-  });
-  descriptionArea.addEventListener('input', checkForChanges);
-  form.addEventListener('input', (e) => {
-    if (e.target && (e.target.name === 'hours' || e.target.name === 'minutes' || e.target.name === 'time_from' || e.target.name === 'time_to')) {
       checkForChanges();
-    }
-  });
+    });
+    descriptionArea.addEventListener('input', checkForChanges);
+    form.addEventListener('input', (e) => {
+      if (e.target && (e.target.name === 'hours' || e.target.name === 'minutes' || e.target.name === 'time_from' || e.target.name === 'time_to')) {
+        checkForChanges();
+      }
+    });
+    checkForChanges();
+  }
   
   buttonGroup.appendChild(saveButton);
   buttonGroup.appendChild(deleteButton);
 
-  // Złożenie formularza
   form.appendChild(projectGroup);
   form.appendChild(descriptionGroup);
   form.appendChild(timeGroup);
@@ -986,7 +1045,8 @@ async function loadReportedDatesForMonth() {
       },
       body: JSON.stringify({
         month: calMonth + 1, // Backend expects 1-12
-        year: calYear
+        year: calYear,
+        include_all_statuses: true
       })
     });
 
@@ -1307,3 +1367,35 @@ window.getCurrentWorkDate = function() {
   }
   return null;
 };
+
+function formatDateTime(value) {
+  if (!value) {
+    return '';
+  }
+  try {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' });
+  } catch (error) {
+    return '';
+  }
+}
+
+function buildReportTimeline(report) {
+  const parts = [];
+  if (report.submitted_at) {
+    parts.push(`Wysłano: ${formatDateTime(report.submitted_at)}`);
+  }
+  if (report.approved_at) {
+    parts.push(`Zaakceptowano: ${formatDateTime(report.approved_at)}`);
+  }
+  if (report.rejected_at) {
+    parts.push(`Odrzucono: ${formatDateTime(report.rejected_at)}`);
+  }
+  if (!parts.length && report.created_at) {
+    parts.push(`Utworzono: ${formatDateTime(report.created_at)}`);
+  }
+  return parts.join(' • ') || 'Brak historii zmian';
+}

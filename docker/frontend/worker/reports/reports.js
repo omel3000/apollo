@@ -392,7 +392,7 @@ function buildReportForm(report, periodAllowsEdit = true) {
   } else if (isPending) {
     const pendingInfo = document.createElement('div');
     pendingInfo.className = 'alert alert-info mb-3';
-    pendingInfo.textContent = 'Wpis oczekuje na decyzję HR/Administratora i możesz go poprawiać do chwili akceptacji – zapis utrzyma go w kolejce.';
+    pendingInfo.textContent = 'Wpis oczekuje na decyzję. Możesz go poprawiać do chwili akceptacji.';
     form.appendChild(pendingInfo);
   } else if (statusKey === 'zablokowany') {
     const lockedInfo = document.createElement('div');
