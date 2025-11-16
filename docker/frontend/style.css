@@ -1,5 +1,14 @@
 /* style.css */
 
+:root {
+    --apollo-primary: #BF6E50;
+    --apollo-primary-dark: #261C1E;
+    --apollo-primary-muted: #736A65;
+    --apollo-accent-light: #F2EEEB;
+    --apollo-accent-mid: #D9D1CA;
+    --apollo-border: #BFB2AA;
+}
+
 /* 1. STYL DLA CAŁEJ STRONY I TEKSTU */
 
 body {
@@ -34,8 +43,8 @@ body.login-page {
 /* 2. ZMIANA KOLORÓW PRZEWODNICH BOOTSTRAPA */
 
 /* Główny kolor akcentu (dla przycisków, linków, tekstu akcentującego) */
- .text-primary{
-    color:#261C1E !important;
+.text-primary{
+    color: #261C1E !important;
 }
 
 
@@ -51,6 +60,55 @@ body.login-page {
 .btn-primary:hover {
     background-color: #736A65 !important; /* Ciemniejszy akcent po najechaniu */
     border-color: #736A65 !important;
+}
+
+.bg-primary {
+    background-color: #261C1E !important;
+    color: #F2EEEB !important;
+}
+
+.btn-outline-primary,
+.btn-outline-primary:visited {
+    color: var(--apollo-primary) !important;
+    border-color: var(--apollo-primary) !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-primary:active,
+.btn-check:checked + .btn-outline-primary,
+.btn-check:active + .btn-outline-primary {
+    color: #F2EEEB !important;
+    background-color: var(--apollo-primary) !important;
+    border-color: var(--apollo-primary) !important;
+    box-shadow: none !important;
+}
+
+.btn-outline-primary:disabled,
+.btn-outline-primary.disabled {
+    color: var(--apollo-primary-muted) !important;
+    border-color: var(--apollo-primary-muted) !important;
+    background-color: transparent !important;
+    opacity: 0.7 !important;
+}
+
+.btn-outline-secondary,
+.btn-outline-secondary:visited {
+    color: #261C1E !important;
+    border-color: #736A65 !important;
+    background-color: transparent !important;
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus,
+.btn-outline-secondary:active,
+.btn-check:checked + .btn-outline-secondary,
+.btn-check:active + .btn-outline-secondary {
+    color: #F2EEEB !important;
+    background-color: #736A65 !important;
+    border-color: #736A65 !important;
+    box-shadow: none !important;
 }
 
 /* 3. STYLIZACJA NAGŁÓWKA I NAVIGACJI */
@@ -362,6 +420,41 @@ html, body {
     background-color: #736A65 !important;
     border-color: #736A65 !important;
     color: #F2EEEB !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.form-check-input:focus {
+    border-color: var(--apollo-primary) !important;
+    box-shadow: 0 0 0 0.25rem rgba(191, 110, 80, 0.25) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--apollo-primary) !important;
+    border-color: var(--apollo-primary) !important;
+}
+
+.form-switch .form-check-input:checked {
+    background-color: var(--apollo-primary) !important;
+    border-color: var(--apollo-primary) !important;
+}
+
+.badge.bg-primary,
+.badge.bg-secondary {
+    background-color: var(--apollo-primary-dark) !important;
+    color: #F2EEEB !important;
+}
+
+.badge.bg-warning,
+.badge.bg-warning.text-dark {
+    background-color: var(--apollo-primary-muted) !important;
+    color: #F2EEEB !important;
+}
+
+.alert-info {
+    background-color: #E9DDDA !important;
+    color: #261C1E !important;
+    border-color: var(--apollo-primary) !important;
 }
 
 /* Przycisk Usuń - hover w kolorze czerwonym */
