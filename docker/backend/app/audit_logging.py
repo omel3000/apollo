@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from datetime import datetime, timezone
-from typing import Any, Dict, Optional, Set
+from typing import Any, Dict, Optional, Set, Tuple
 from urllib.parse import parse_qs
 
 from fastapi import HTTPException, Request
@@ -24,6 +24,7 @@ SENSITIVE_KEYS = {
     "token",
 }
 IGNORED_PREFIXES = {"/docs", "/openapi", "/redoc"}
+IGNORED_METHODS = {"GET", "OPTIONS", "HEAD"}
 
 
 def _mask_sensitive(payload: Any) -> Any:
@@ -55,6 +56,9 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         self.logger = logging.getLogger("apollo.audit")
 
     async def dispatch(self, request: Request, call_next):
+        method = request.method.upper()
+        if method in IGNORED_METHODS:
+            return await call_next(request)
         path = request.url.path
         if self._should_skip(path):
             return await call_next(request)
@@ -62,6 +66,7 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         started_at = datetime.now(timezone.utc)
         body_summary = await self._extract_body_summary(request)
         query_summary = request.url.query or None
+        action_group, entity_type, entity_id = self._normalize_action(request)
 
         db = SessionLocal()
         user = self._resolve_user(request, db)
@@ -93,6 +98,9 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
                         query_summary=query_summary,
                         body_summary=body_summary,
                         error_detail=error_detail,
+                        action_group=action_group,
+                        entity_type=entity_type,
+                        entity_id=entity_id,
                     )
                     db.commit()
             except Exception as log_exc:  # pylint: disable=broad-except
@@ -105,6 +113,33 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         if path in self.ignored_paths:
             return True
         return any(path.startswith(prefix) for prefix in IGNORED_PREFIXES)
+
+    def _normalize_action(self, request: Request) -> Tuple[str, Optional[str], Optional[int]]:
+        path = request.url.path
+        stripped = path.strip("/")
+        segments = [segment for segment in stripped.split("/") if segment]
+        normalized_segments: list[str] = []
+        entity_type: Optional[str] = None
+        entity_id: Optional[int] = None
+        previous_segment: Optional[str] = None
+
+        for segment in segments:
+            if segment.isdigit():
+                if entity_type is None and previous_segment:
+                    entity_type = previous_segment
+                if entity_id is None:
+                    entity_id = int(segment)
+                previous_segment = segment
+                continue
+            normalized_segments.append(segment)
+            previous_segment = segment
+
+        normalized_path = "/" + "/".join(normalized_segments) if normalized_segments else "/"
+        if path.endswith("/") and not normalized_path.endswith("/"):
+            normalized_path += "/"
+
+        action_group = f"{request.method.upper()} {normalized_path}"
+        return action_group, entity_type, entity_id
 
     async def _extract_body_summary(self, request: Request) -> Optional[str]:
         try:
@@ -157,6 +192,9 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         query_summary: Optional[str],
         body_summary: Optional[str],
         error_detail: Optional[str],
+        action_group: Optional[str],
+        entity_type: Optional[str],
+        entity_id: Optional[int],
     ) -> None:
         duration_ms = int((datetime.now(timezone.utc) - started_at).total_seconds() * 1000)
         detail_parts = []
@@ -166,6 +204,8 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             detail_parts.append(f"payload={body_summary}")
         if error_detail:
             detail_parts.append(f"blad={_truncate(error_detail)}")
+        if entity_type and entity_id is not None:
+            detail_parts.append(f"encja={entity_type}:{entity_id}")
         detail = " | ".join(detail_parts) if detail_parts else None
 
         log_entry = AuditLog(
@@ -173,11 +213,14 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             user_email=user.email if user else None,
             user_role=user.role if user else None,
             action=f"{request.method} {request.url.path}",
+            action_group=action_group,
             method=request.method,
             path=request.url.path,
             status_code=status_code,
             ip_address=request.client.host if request.client else None,
             user_agent=request.headers.get("user-agent"),
+            entity_type=entity_type,
+            entity_id=entity_id,
             detail=detail,
             duration_ms=duration_ms,
         )

@@ -778,11 +778,14 @@ class AuditLogRead(BaseModel):
     user_email: Optional[str]
     user_role: Optional[str]
     action: str
+    action_group: Optional[str]
     method: str
     path: str
     status_code: int
     ip_address: Optional[str]
     user_agent: Optional[str]
+    entity_type: Optional[str]
+    entity_id: Optional[int]
     detail: Optional[str]
     duration_ms: Optional[int]
     created_at: datetime

@@ -18,9 +18,12 @@ SortOrder = Literal["asc", "desc"]
 
 @router.get("/", response_model=AuditLogListResponse)
 def list_audit_logs_endpoint(
-    action: Optional[str] = Query(None, description="Fragment nazwy akcji, np. 'POST /users'"),
+    action: Optional[str] = Query(None, description="Fragment oryginalnej akcji"),
+    action_group: Optional[str] = Query(None, description="Znormalizowana akcja, np. 'PUT /projects/'"),
     user_id: Optional[int] = Query(None, description="Filtr po ID użytkownika"),
     user_email: Optional[str] = Query(None, description="Fragment adresu email"),
+    entity_type: Optional[str] = Query(None, description="Typ encji, np. 'projects'"),
+    entity_id: Optional[int] = Query(None, description="ID encji, np. numer projektu"),
     date_from: Optional[date] = Query(None, description="Data od (YYYY-MM-DD)"),
     date_to: Optional[date] = Query(None, description="Data do (YYYY-MM-DD)"),
     sort_by: SortField = Query("created_at"),
@@ -39,8 +42,11 @@ def list_audit_logs_endpoint(
     return crud.list_audit_logs(
         db,
         action=action_filter,
+        action_group=action_group,
         user_id=user_id,
         user_email=user_email_filter,
+        entity_type=entity_type,
+        entity_id=entity_id,
         date_from=date_from_dt,
         date_to=date_to_dt,
         sort_by=sort_by,

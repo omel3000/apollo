@@ -2139,8 +2139,11 @@ def list_audit_logs(
     db: Session,
     *,
     action: Optional[str] = None,
+    action_group: Optional[str] = None,
     user_id: Optional[int] = None,
     user_email: Optional[str] = None,
+    entity_type: Optional[str] = None,
+    entity_id: Optional[int] = None,
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     sort_by: str = "created_at",
@@ -2152,11 +2155,17 @@ def list_audit_logs(
 
     if action:
         query = query.filter(AuditLog.action.ilike(f"%{action}%"))
+    if action_group:
+        query = query.filter(AuditLog.action_group == action_group)
     if user_id is not None:
         query = query.filter(AuditLog.user_id == user_id)
     if user_email:
         lowered = user_email.strip().lower()
         query = query.filter(func.lower(AuditLog.user_email).like(f"%{lowered}%"))
+    if entity_type:
+        query = query.filter(AuditLog.entity_type == entity_type)
+    if entity_id is not None:
+        query = query.filter(AuditLog.entity_id == entity_id)
     if date_from:
         query = query.filter(AuditLog.created_at >= date_from)
     if date_to:
@@ -2169,6 +2178,7 @@ def list_audit_logs(
         "status_code": AuditLog.status_code,
         "duration_ms": AuditLog.duration_ms,
         "user_id": AuditLog.user_id,
+        "action_group": AuditLog.action_group,
     }
     sort_column = sort_map.get(sort_by, AuditLog.created_at)
     sort_column = sort_column.desc() if sort_order == "desc" else sort_column.asc()
@@ -2192,10 +2202,10 @@ def list_audit_logs(
 
 def list_audit_log_actions(db: Session) -> List[str]:
     rows = (
-        db.query(AuditLog.action)
-        .filter(AuditLog.action.isnot(None))
+        db.query(AuditLog.action_group)
+        .filter(AuditLog.action_group.isnot(None))
         .distinct()
-        .order_by(AuditLog.action.asc())
+        .order_by(AuditLog.action_group.asc())
         .all()
     )
     return [row[0] for row in rows if row[0]]

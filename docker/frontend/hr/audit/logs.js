@@ -13,6 +13,7 @@
     sortBy: 'created_at',
     sortOrder: 'desc',
     totalPages: 0,
+    entityType: null,
   };
 
   const elements = {
@@ -25,6 +26,7 @@
     actionSelect: document.getElementById('actionFilter'),
     userSelect: document.getElementById('userFilter'),
     emailInput: document.getElementById('emailFilter'),
+    entityIdInput: document.getElementById('entityIdFilter'),
     dateFromInput: document.getElementById('dateFrom'),
     dateToInput: document.getElementById('dateTo'),
     sortSelect: document.getElementById('sortSelect'),
@@ -56,7 +58,13 @@
     state.limit = 50;
     state.sortBy = 'created_at';
     state.sortOrder = 'desc';
+    state.entityType = null;
     fetchLogs();
+  });
+
+  elements.actionSelect.addEventListener('change', () => {
+    state.entityType = deriveEntityType(elements.actionSelect.value);
+    updateEntityPlaceholder();
   });
 
   elements.prevBtn.addEventListener('click', () => {
@@ -119,9 +127,15 @@
     params.set('sort_by', state.sortBy);
     params.set('sort_order', state.sortOrder);
 
-    if (elements.actionSelect.value) params.set('action', elements.actionSelect.value);
+    if (elements.actionSelect.value) {
+      params.set('action_group', elements.actionSelect.value);
+      if (state.entityType) {
+        params.set('entity_type', state.entityType);
+      }
+    }
     if (elements.userSelect.value) params.set('user_id', elements.userSelect.value);
     if (elements.emailInput.value) params.set('user_email', elements.emailInput.value.trim());
+    if (elements.entityIdInput.value) params.set('entity_id', elements.entityIdInput.value.trim());
     if (elements.dateFromInput.value) params.set('date_from', elements.dateFromInput.value);
     if (elements.dateToInput.value) params.set('date_to', elements.dateToInput.value);
 
@@ -205,7 +219,7 @@
     actionText.className = 'fw-semibold text-break';
     const detail = document.createElement('div');
     detail.className = 'small text-muted';
-    detail.textContent = log.action;
+    detail.textContent = log.action_group || log.action;
     cell.append(methodBadge, actionText, detail);
     return cell;
   }
@@ -253,6 +267,12 @@
     ua.className = 'small text-muted';
     ua.textContent = log.user_agent ? `UA: ${log.user_agent}` : 'UA: brak danych';
     cell.append(detail, ua);
+    if (log.entity_type && log.entity_id !== null && log.entity_id !== undefined) {
+      const entityInfo = document.createElement('div');
+      entityInfo.className = 'small text-muted';
+      entityInfo.textContent = `Encja: ${log.entity_type} (ID ${log.entity_id})`;
+      cell.append(entityInfo);
+    }
     return cell;
   }
 
@@ -278,6 +298,29 @@
     elements.errorBox.textContent = '';
   }
 
+  function deriveEntityType(actionGroup) {
+    if (!actionGroup) return null;
+    const parts = actionGroup.split(' ');
+    if (parts.length < 2) return null;
+    const pathSegments = parts[1]
+      .split('/')
+      .filter(Boolean);
+    if (pathSegments.length === 0) return null;
+    return pathSegments[0];
+  }
+
+  function updateEntityPlaceholder() {
+    if (!elements.entityIdInput) return;
+    if (state.entityType) {
+      elements.entityIdInput.placeholder = `ID dla ${state.entityType} (np. 42)`;
+      elements.entityIdInput.disabled = false;
+    } else {
+      elements.entityIdInput.placeholder = 'ID encji (opcjonalnie)';
+      elements.entityIdInput.disabled = false;
+    }
+  }
+
+  updateEntityPlaceholder();
   fetchActions();
   fetchUsers();
   fetchLogs();
