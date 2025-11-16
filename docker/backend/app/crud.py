@@ -1,12 +1,206 @@
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, select, and_, or_  # dodano and_, or_
-from models import User, Project, Message, WorkReport, UserProject, TimeType, Availability, Absence, Schedule
+from models import (
+    User,
+    Project,
+    Message,
+    WorkReport,
+    UserProject,
+    TimeType,
+    Availability,
+    Absence,
+    Schedule,
+    WorkReportStatus,
+    AbsenceStatus,
+    PeriodClosure,
+    PeriodStatus,
+    ApprovalLog,
+)
 from auth import hash_password
-from schemas import UserCreate, ProjectCreate, MessageCreate, WorkReportCreate, UserProjectCreate, UserUpdate, ProjectUpdate, AvailabilityCreate, AvailabilityUpdate, AbsenceCreate, AbsenceUpdate, ScheduleCreate, ScheduleUpdate
+from schemas import (
+    UserCreate,
+    ProjectCreate,
+    MessageCreate,
+    WorkReportCreate,
+    UserProjectCreate,
+    UserUpdate,
+    ProjectUpdate,
+    AvailabilityCreate,
+    AvailabilityUpdate,
+    AbsenceCreate,
+    AbsenceUpdate,
+    ScheduleCreate,
+    ScheduleUpdate,
+    WorkReportStatusEnum,
+    AbsenceStatusEnum,
+    WorkReportReviewRequest,
+    AbsenceReviewRequest,
+    WorkReportBulkFilter,
+    PeriodStatusEnum,
+    ReviewDecisionEnum,
+)
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date, time
+from calendar import monthrange
+
+
+EDITABLE_REPORT_STATUSES = {WorkReportStatus.draft, WorkReportStatus.rejected}
+SUBMITTABLE_REPORT_STATUSES = {WorkReportStatus.draft, WorkReportStatus.rejected}
+REVIEWABLE_REPORT_STATUSES = {WorkReportStatus.pending, WorkReportStatus.approved}
+
+EDITABLE_ABSENCE_STATUSES = {AbsenceStatus.draft, AbsenceStatus.rejected}
+SUBMITTABLE_ABSENCE_STATUSES = {AbsenceStatus.draft, AbsenceStatus.rejected}
+REVIEWABLE_ABSENCE_STATUSES = {AbsenceStatus.pending, AbsenceStatus.approved}
+
+PERIOD_EDITABLE_STATUSES = {PeriodStatus.open, PeriodStatus.unlocked}
+SUMMARY_REPORT_STATUSES = (WorkReportStatus.approved, WorkReportStatus.locked)
+
+
+def _get_or_create_period(db: Session, year: int, month: int) -> PeriodClosure:
+    period = (
+        db.query(PeriodClosure)
+        .filter(PeriodClosure.year == year, PeriodClosure.month == month)
+        .first()
+    )
+    if period:
+        return period
+    period = PeriodClosure(year=year, month=month, status=PeriodStatus.open)
+    db.add(period)
+    db.flush()
+    return period
+
+
+def _ensure_period_allows_edit(db: Session, target_date: date) -> PeriodClosure:
+    period = _get_or_create_period(db, target_date.year, target_date.month)
+    if period.status not in PERIOD_EDITABLE_STATUSES:
+        raise ValueError(
+            f"Okres {target_date.year}-{target_date.month:02d} ma status '{period.status.value}' i jest zablokowany do edycji."
+        )
+    return period
+
+
+def _ensure_period_range_allows_edit(db: Session, start_date: date, end_date: date):
+    current_year = start_date.year
+    current_month = start_date.month
+    while True:
+        _ensure_period_allows_edit(db, date(current_year, current_month, 1))
+        if current_year == end_date.year and current_month == end_date.month:
+            break
+        if current_month == 12:
+            current_month = 1
+            current_year += 1
+        else:
+            current_month += 1
+
+
+def _get_period_date_range(year: int, month: int):
+    last_day = monthrange(year, month)[1]
+    start_date = date(year, month, 1)
+    end_date = date(year, month, last_day)
+    return start_date, end_date
+
+
+def _log_action(
+    db: Session,
+    entity_type: str,
+    entity_id: int,
+    action: str,
+    actor_user_id: Optional[int],
+    comment: Optional[str] = None,
+):
+    log_entry = ApprovalLog(
+        entity_type=entity_type,
+        entity_id=entity_id,
+        action=action,
+        actor_user_id=actor_user_id,
+        comment=comment,
+    )
+    db.add(log_entry)
+
+
+def list_periods(db: Session, year: Optional[int] = None):
+    query = db.query(PeriodClosure)
+    if year is not None:
+        query = query.filter(PeriodClosure.year == year)
+    return query.order_by(PeriodClosure.year.desc(), PeriodClosure.month.desc()).all()
+
+
+def get_period(db: Session, year: int, month: int) -> PeriodClosure:
+    return _get_or_create_period(db, year, month)
+
+
+def set_period_status(
+    db: Session,
+    year: int,
+    month: int,
+    status: PeriodStatusEnum,
+    actor_user_id: int,
+    notes: Optional[str] = None,
+):
+    period = _get_or_create_period(db, year, month)
+    new_status = PeriodStatus(status.value)
+    current_status = period.status
+
+    if current_status == new_status and (notes is None or notes == period.notes):
+        return period
+
+    start_date, end_date = _get_period_date_range(year, month)
+
+    # Przy zamykaniu upewnij się, że nie ma raportów/nwobecności w statusach roboczych
+    if new_status == PeriodStatus.closed:
+        blocking_reports = db.query(WorkReport).filter(
+            WorkReport.work_date.between(start_date, end_date),
+            WorkReport.status.notin_(SUMMARY_REPORT_STATUSES),
+        ).count()
+        blocking_absences = db.query(Absence).filter(
+            Absence.date_from <= end_date,
+            Absence.date_to >= start_date,
+            Absence.status.notin_((AbsenceStatus.approved, AbsenceStatus.locked)),
+        ).count()
+        if blocking_reports or blocking_absences:
+            raise ValueError(
+                "Nie można zamknąć okresu. Istnieją raporty lub nieobecności wymagające akceptacji lub korekty."
+            )
+
+    now = datetime.now()
+
+    if new_status == PeriodStatus.closed:
+        db.query(WorkReport).filter(
+            WorkReport.work_date.between(start_date, end_date),
+            WorkReport.status == WorkReportStatus.approved,
+        ).update({WorkReport.status: WorkReportStatus.locked}, synchronize_session=False)
+
+        db.query(Absence).filter(
+            Absence.date_from <= end_date,
+            Absence.date_to >= start_date,
+            Absence.status == AbsenceStatus.approved,
+        ).update({Absence.status: AbsenceStatus.locked}, synchronize_session=False)
+
+        period.locked_by_user_id = actor_user_id
+        period.locked_at = now
+    elif current_status == PeriodStatus.closed and new_status in {PeriodStatus.open, PeriodStatus.unlocked}:
+        db.query(WorkReport).filter(
+            WorkReport.work_date.between(start_date, end_date),
+            WorkReport.status == WorkReportStatus.locked,
+        ).update({WorkReport.status: WorkReportStatus.approved}, synchronize_session=False)
+
+        db.query(Absence).filter(
+            Absence.date_from <= end_date,
+            Absence.date_to >= start_date,
+            Absence.status == AbsenceStatus.locked,
+        ).update({Absence.status: AbsenceStatus.approved}, synchronize_session=False)
+
+        period.unlocked_at = now
+
+    period.status = new_status
+    period.notes = notes
+
+    _log_action(db, "period", period.period_closure_id, f"status_{new_status.value}", actor_user_id, notes)
+    db.commit()
+    db.refresh(period)
+    return period
 
 def get_user_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email).first()
@@ -150,6 +344,8 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
     if user is None:
         raise ValueError(f"Użytkownik o id {user_id} nie istnieje.")
 
+    _ensure_period_allows_edit(db, report.work_date)
+
     # Sprawdź czy projekt istnieje
     project = db.query(Project).filter(Project.project_id == report.project_id).first()
     if project is None:
@@ -228,7 +424,8 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
         minutes_spent=report.minutes_spent,
         description=report.description,
         time_from=report.time_from,
-        time_to=report.time_to
+        time_to=report.time_to,
+        status=WorkReportStatus.draft
     )
     db.add(db_report)
     db.commit()
@@ -270,16 +467,28 @@ def assign_user_to_project(db: Session, assignment: UserProjectCreate):
 
 def delete_work_report(db: Session, report_id: int):
     db_report = db.query(WorkReport).filter(WorkReport.report_id == report_id).first()
-    if db_report:
-        db.delete(db_report)
-        db.commit()
-        return True
-    return False
+    if not db_report:
+        return False
+
+    if db_report.status not in EDITABLE_REPORT_STATUSES:
+        raise ValueError("Raport można usunąć tylko w statusach 'roboczy' lub 'odrzucony'.")
+
+    _ensure_period_allows_edit(db, db_report.work_date)
+
+    db.delete(db_report)
+    db.commit()
+    return True
 
 def update_work_report(db: Session, report_id: int, report_data: WorkReportCreate):
     db_report = db.query(WorkReport).filter(WorkReport.report_id == report_id).first()
     if not db_report:
         return None
+
+    if db_report.status not in EDITABLE_REPORT_STATUSES:
+        raise ValueError("Raport można edytować tylko w statusach 'roboczy' lub 'odrzucony'.")
+
+    _ensure_period_allows_edit(db, db_report.work_date)
+    _ensure_period_allows_edit(db, report_data.work_date)
     
     # Sprawdź czy projekt istnieje i pobierz jego time_type
     project = db.query(Project).filter(Project.project_id == report_data.project_id).first()
@@ -361,6 +570,85 @@ def get_work_reports(db: Session, user_id: int, work_date: Optional[date] = None
         query = query.filter(WorkReport.work_date == work_date)
     return query.all()
 
+
+def submit_work_report(db: Session, report_id: int, actor_user_id: int):
+    db_report = db.query(WorkReport).filter(WorkReport.report_id == report_id).first()
+    if not db_report:
+        raise ValueError("Raport nie istnieje")
+    if db_report.status not in SUBMITTABLE_REPORT_STATUSES:
+        raise ValueError("Raport można wysłać tylko w statusach 'roboczy' lub 'odrzucony'")
+
+    _ensure_period_allows_edit(db, db_report.work_date)
+
+    now = datetime.now()
+    db_report.status = WorkReportStatus.pending
+    db_report.submitted_at = now
+    db_report.rejected_at = None
+    db_report.reviewed_by_user_id = None
+    db_report.reviewer_comment = None
+
+    _log_action(db, "work_report", db_report.report_id, "submit", actor_user_id)
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+
+def review_work_report(db: Session, report_id: int, reviewer_id: int, review: WorkReportReviewRequest):
+    db_report = db.query(WorkReport).filter(WorkReport.report_id == report_id).first()
+    if not db_report:
+        raise ValueError("Raport nie istnieje")
+    if db_report.status not in REVIEWABLE_REPORT_STATUSES:
+        raise ValueError("Raport można zatwierdzić/odrzucić tylko w statusach 'oczekuje_na_akceptacje' lub 'zaakceptowany'")
+
+    _ensure_period_allows_edit(db, db_report.work_date)
+
+    now = datetime.now()
+    if review.decision == ReviewDecisionEnum.approve:
+        db_report.status = WorkReportStatus.approved
+        db_report.approved_at = now
+        db_report.rejected_at = None
+        action = "approve"
+    else:
+        db_report.status = WorkReportStatus.rejected
+        db_report.rejected_at = now
+        db_report.approved_at = None
+        action = "reject"
+
+    db_report.reviewed_by_user_id = reviewer_id
+    db_report.reviewer_comment = review.comment
+
+    _log_action(db, "work_report", db_report.report_id, action, reviewer_id, review.comment)
+    db.commit()
+    db.refresh(db_report)
+    return db_report
+
+
+def get_work_reports_for_review(db: Session, filters: WorkReportBulkFilter):
+    query = db.query(WorkReport)
+
+    if filters.status:
+        query = query.filter(WorkReport.status == WorkReportStatus(filters.status.value))
+    if filters.user_id:
+        query = query.filter(WorkReport.user_id == filters.user_id)
+    if filters.project_id:
+        query = query.filter(WorkReport.project_id == filters.project_id)
+    if filters.month and filters.year:
+        last_day = monthrange(filters.year, filters.month)[1]
+        start_date = date(filters.year, filters.month, 1)
+        end_date = date(filters.year, filters.month, last_day)
+        query = query.filter(WorkReport.work_date.between(start_date, end_date))
+
+    return query.order_by(WorkReport.work_date.asc()).all()
+
+
+def get_work_report_history(db: Session, report_id: int):
+    return (
+        db.query(ApprovalLog)
+        .filter(ApprovalLog.entity_type == "work_report", ApprovalLog.entity_id == report_id)
+        .order_by(ApprovalLog.created_at.asc())
+        .all()
+    )
+
 def get_assignments(db: Session, user_id: Optional[int] = None, project_id: Optional[int] = None):
     q = db.query(UserProject)
     if user_id is not None:
@@ -420,7 +708,8 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     ).filter(
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).first()
     
     total_hours_raw = total_time[0] or 0
@@ -437,7 +726,8 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     ).filter(
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).group_by(WorkReport.project_id).all()
 
     project_hours = {}
@@ -457,7 +747,8 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     ).filter(
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).group_by(WorkReport.work_date, WorkReport.project_id).all()
 
     daily_summary_dict = {}
@@ -631,7 +922,8 @@ def get_project_monthly_summary(db: Session, project_id: int, month: int, year: 
     ).filter(
         WorkReport.project_id == project_id,
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).first()
     
     total_hours_raw = total_time[0] or 0
@@ -668,7 +960,8 @@ def get_project_monthly_summary_with_users(db: Session, project_id: int, month: 
     ).filter(
         WorkReport.project_id == project_id,
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).group_by(
         WorkReport.user_id, User.first_name, User.last_name
     ).all()
@@ -736,7 +1029,8 @@ def get_user_project_detailed_report(db: Session, project_id: int, user_id: int,
         WorkReport.project_id == project_id,
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).order_by(
         WorkReport.work_date.asc()
     ).all()
@@ -779,7 +1073,11 @@ def get_users_with_time_in_month(db: Session, month: int, year: int):
             func.sum(WorkReport.minutes_spent).label("m"),
         )
         .join(User, User.user_id == WorkReport.user_id)
-        .filter(WorkReport.work_date >= start_date, WorkReport.work_date < end_date)
+        .filter(
+            WorkReport.work_date >= start_date,
+            WorkReport.work_date < end_date,
+            WorkReport.status.in_(SUMMARY_REPORT_STATUSES),
+        )
         .group_by(WorkReport.user_id, User.first_name, User.last_name)
         .having((func.coalesce(func.sum(WorkReport.hours_spent), 0) + func.coalesce(func.sum(WorkReport.minutes_spent), 0)) > 0)
         .order_by(User.last_name, User.first_name)
@@ -821,6 +1119,7 @@ def get_user_monthly_projects_summary(db: Session, user_id: int, month: int, yea
             WorkReport.user_id == user_id,
             WorkReport.work_date >= start_date,
             WorkReport.work_date < end_date,
+            WorkReport.status.in_(SUMMARY_REPORT_STATUSES),
         )
         .group_by(Project.project_id, Project.project_name)
         .having((func.coalesce(func.sum(WorkReport.hours_spent), 0) + func.coalesce(func.sum(WorkReport.minutes_spent), 0)) > 0)
@@ -875,7 +1174,8 @@ def get_hr_monthly_overview(db: Session, month: int, year: int):
         func.sum(WorkReport.minutes_spent)
     ).filter(
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).first()
     
     total_hours_raw = total_time[0] or 0
@@ -908,7 +1208,8 @@ def get_hr_monthly_overview(db: Session, month: int, year: int):
         days_worked = db.query(func.count(func.distinct(WorkReport.work_date))).filter(
             WorkReport.user_id == user_id,
             WorkReport.work_date >= start_date,
-            WorkReport.work_date < end_date
+            WorkReport.work_date < end_date,
+            WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
         ).scalar() or 0
         
         # Pobierz dane użytkownika (email, telefon)
@@ -936,7 +1237,8 @@ def get_hr_monthly_overview(db: Session, month: int, year: int):
         WorkReport, WorkReport.project_id == Project.project_id
     ).filter(
         WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date
+        WorkReport.work_date < end_date,
+        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
     ).group_by(
         Project.project_id, Project.project_name
     ).having(
@@ -964,7 +1266,8 @@ def get_hr_monthly_overview(db: Session, month: int, year: int):
         ).filter(
             WorkReport.project_id == project_id,
             WorkReport.work_date >= start_date,
-            WorkReport.work_date < end_date
+            WorkReport.work_date < end_date,
+            WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
         ).group_by(
             User.user_id, User.first_name, User.last_name
         ).order_by(
@@ -1031,7 +1334,8 @@ def get_monthly_trend(db: Session, months: int = 6):
             func.sum(WorkReport.minutes_spent)
         ).filter(
             WorkReport.work_date >= start_date,
-            WorkReport.work_date < end_date
+            WorkReport.work_date < end_date,
+            WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
         ).first()
         
         hours = total_time[0] or 0
@@ -1203,6 +1507,8 @@ def create_absence(db: Session, user_id: int, absence_data: AbsenceCreate):
     user = get_user_by_id(db, user_id)
     if not user:
         raise ValueError(f"Użytkownik o id {user_id} nie istnieje")
+
+    _ensure_period_range_allows_edit(db, absence_data.date_from, absence_data.date_to)
     
     # Sprawdź czy nie nakłada się z istniejącymi nieobecnościami użytkownika
     overlapping = db.query(Absence).filter(
@@ -1235,7 +1541,8 @@ def create_absence(db: Session, user_id: int, absence_data: AbsenceCreate):
         user_id=user_id,
         absence_type=absence_data.absence_type,
         date_from=absence_data.date_from,
-        date_to=absence_data.date_to
+        date_to=absence_data.date_to,
+        status=AbsenceStatus.draft
     )
     db.add(db_absence)
     db.commit()
@@ -1293,6 +1600,11 @@ def update_absence(db: Session, absence_id: int, absence_update: AbsenceUpdate):
     db_absence = get_absence(db, absence_id)
     if not db_absence:
         raise ValueError(f"Nieobecność o id {absence_id} nie istnieje")
+
+    if db_absence.status not in EDITABLE_ABSENCE_STATUSES:
+        raise ValueError("Nieobecność można edytować tylko w statusach 'roboczy' lub 'odrzucony'.")
+
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
     
     # Aktualizuj tylko przekazane pola
     if absence_update.absence_type is not None:
@@ -1334,6 +1646,8 @@ def update_absence(db: Session, absence_id: int, absence_update: AbsenceUpdate):
             f"Usuń najpierw dostępności z tego okresu."
         )
     
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
+
     db.commit()
     db.refresh(db_absence)
     return db_absence
@@ -1345,7 +1659,12 @@ def delete_absence(db: Session, absence_id: int):
     db_absence = get_absence(db, absence_id)
     if not db_absence:
         return False
-    
+
+    if db_absence.status not in EDITABLE_ABSENCE_STATUSES:
+        raise ValueError("Nieobecność można usunąć tylko w statusach 'roboczy' lub 'odrzucony'.")
+
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
+
     db.delete(db_absence)
     db.commit()
     return True
@@ -1370,6 +1689,11 @@ def update_absence_by_date(db: Session, user_id: int, date_param: date, absence_
     db_absence = get_absence_by_date(db, user_id, date_param)
     if not db_absence:
         raise ValueError(f"Brak nieobecności dla użytkownika {user_id} obejmującej datę {date_param}")
+
+    if db_absence.status not in EDITABLE_ABSENCE_STATUSES:
+        raise ValueError("Nieobecność można edytować tylko w statusach 'roboczy' lub 'odrzucony'.")
+
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
     
     # Aktualizuj tylko przekazane pola
     if absence_update.absence_type is not None:
@@ -1411,6 +1735,8 @@ def update_absence_by_date(db: Session, user_id: int, date_param: date, absence_
             f"Usuń najpierw dostępności z tego okresu."
         )
     
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
+
     db.commit()
     db.refresh(db_absence)
     return db_absence
@@ -1423,10 +1749,103 @@ def delete_absence_by_date(db: Session, user_id: int, date_param: date):
     db_absence = get_absence_by_date(db, user_id, date_param)
     if not db_absence:
         return False
-    
+
+    if db_absence.status not in EDITABLE_ABSENCE_STATUSES:
+        raise ValueError("Nieobecność można usunąć tylko w statusach 'roboczy' lub 'odrzucony'.")
+
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
+
     db.delete(db_absence)
     db.commit()
     return True
+
+
+def submit_absence(db: Session, absence_id: int, user_id: int):
+    db_absence = get_absence(db, absence_id)
+    if not db_absence:
+        raise ValueError("Nieobecność nie istnieje")
+    if db_absence.user_id != user_id:
+        raise ValueError("Nie można wysłać nieobecności innego użytkownika")
+    if db_absence.status not in SUBMITTABLE_ABSENCE_STATUSES:
+        raise ValueError("Nieobecność można wysłać tylko w statusach 'roboczy' lub 'odrzucony'")
+
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
+
+    now = datetime.now()
+    db_absence.status = AbsenceStatus.pending
+    db_absence.submitted_at = now
+    db_absence.rejected_at = None
+    db_absence.reviewed_by_user_id = None
+    db_absence.reviewer_comment = None
+
+    _log_action(db, "absence", db_absence.absence_id, "submit", user_id)
+    db.commit()
+    db.refresh(db_absence)
+    return db_absence
+
+
+def review_absence(db: Session, absence_id: int, reviewer_id: int, review: AbsenceReviewRequest):
+    db_absence = get_absence(db, absence_id)
+    if not db_absence:
+        raise ValueError("Nieobecność nie istnieje")
+    if db_absence.status not in REVIEWABLE_ABSENCE_STATUSES:
+        raise ValueError("Nieobecność można zatwierdzić/odrzucić tylko w statusach 'oczekuje_na_akceptacje' lub 'zaakceptowany'")
+
+    _ensure_period_range_allows_edit(db, db_absence.date_from, db_absence.date_to)
+
+    now = datetime.now()
+    if review.decision == ReviewDecisionEnum.approve:
+        db_absence.status = AbsenceStatus.approved
+        db_absence.approved_at = now
+        db_absence.rejected_at = None
+        action = "approve"
+    else:
+        db_absence.status = AbsenceStatus.rejected
+        db_absence.rejected_at = now
+        db_absence.approved_at = None
+        action = "reject"
+
+    db_absence.reviewed_by_user_id = reviewer_id
+    db_absence.reviewer_comment = review.comment
+
+    _log_action(db, "absence", db_absence.absence_id, action, reviewer_id, review.comment)
+    db.commit()
+    db.refresh(db_absence)
+    return db_absence
+
+
+def get_absences_for_review(
+    db: Session,
+    user_id: Optional[int] = None,
+    month: Optional[int] = None,
+    year: Optional[int] = None,
+    status: Optional[AbsenceStatusEnum] = None,
+):
+    query = db.query(Absence)
+
+    if status:
+        query = query.filter(Absence.status == AbsenceStatus(status.value))
+    if user_id:
+        query = query.filter(Absence.user_id == user_id)
+    if month and year:
+        last_day = monthrange(year, month)[1]
+        start_date = date(year, month, 1)
+        end_date = date(year, month, last_day)
+        query = query.filter(
+            Absence.date_from <= end_date,
+            Absence.date_to >= start_date,
+        )
+
+    return query.order_by(Absence.date_from.asc()).all()
+
+
+def get_absence_history(db: Session, absence_id: int):
+    return (
+        db.query(ApprovalLog)
+        .filter(ApprovalLog.entity_type == "absence", ApprovalLog.entity_id == absence_id)
+        .order_by(ApprovalLog.created_at.asc())
+        .all()
+    )
 
 # ============================================================================
 # SCHEDULE CRUD functions

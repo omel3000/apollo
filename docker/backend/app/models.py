@@ -1,5 +1,5 @@
 # models.py
-from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Boolean, Enum, Time
+from sqlalchemy import Column, Integer, String, Date, DateTime, ForeignKey, Boolean, Enum, Time, UniqueConstraint
 from sqlalchemy.sql import func
 from database import Base
 import enum
@@ -7,6 +7,29 @@ import enum
 class TimeType(str, enum.Enum):
     constant = "constant"
     from_to = "from_to"
+
+
+class WorkReportStatus(str, enum.Enum):
+    draft = "roboczy"
+    pending = "oczekuje_na_akceptacje"
+    approved = "zaakceptowany"
+    rejected = "odrzucony"
+    locked = "zablokowany"
+
+
+class AbsenceStatus(str, enum.Enum):
+    draft = "roboczy"
+    pending = "oczekuje_na_akceptacje"
+    approved = "zaakceptowany"
+    rejected = "odrzucony"
+    locked = "zablokowany"
+
+
+class PeriodStatus(str, enum.Enum):
+    open = "otwarty"
+    pending_close = "oczekuje_na_zamkniecie"
+    closed = "zamkniety"
+    unlocked = "odblokowany"
 
 class User(Base):
     __tablename__ = "users"
@@ -57,6 +80,12 @@ class WorkReport(Base):
     time_from = Column(Time, nullable=True)
     time_to = Column(Time, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(Enum(WorkReportStatus), nullable=False, default=WorkReportStatus.draft)
+    submitted_at = Column(DateTime(timezone=True), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    reviewer_comment = Column(String(2000), nullable=True)
 
 class UserProject(Base):
     __tablename__ = "user_projects"
@@ -90,6 +119,12 @@ class Absence(Base):
     date_from = Column(Date, nullable=False)
     date_to = Column(Date, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(Enum(AbsenceStatus), nullable=False, default=AbsenceStatus.draft)
+    submitted_at = Column(DateTime(timezone=True), nullable=True)
+    approved_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_at = Column(DateTime(timezone=True), nullable=True)
+    reviewed_by_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    reviewer_comment = Column(String(2000), nullable=True)
 
 class ShiftType(str, enum.Enum):
     normalna = "normalna"
@@ -108,4 +143,33 @@ class Schedule(Base):
     time_to = Column(Time, nullable=False)
     shift_type = Column(Enum(ShiftType), nullable=False)
     created_by_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class PeriodClosure(Base):
+    __tablename__ = "period_closures"
+
+    period_closure_id = Column(Integer, primary_key=True, index=True)
+    year = Column(Integer, nullable=False)
+    month = Column(Integer, nullable=False)
+    status = Column(Enum(PeriodStatus), nullable=False, default=PeriodStatus.open)
+    locked_by_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    locked_at = Column(DateTime(timezone=True), nullable=True)
+    unlocked_at = Column(DateTime(timezone=True), nullable=True)
+    notes = Column(String(2000), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("year", "month", name="uq_period_closures_year_month"),
+    )
+
+
+class ApprovalLog(Base):
+    __tablename__ = "approval_log"
+
+    approval_log_id = Column(Integer, primary_key=True, index=True)
+    entity_type = Column(String(50), nullable=False)  # np. work_report / absence / period
+    entity_id = Column(Integer, nullable=False)
+    action = Column(String(30), nullable=False)
+    actor_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    comment = Column(String(2000), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

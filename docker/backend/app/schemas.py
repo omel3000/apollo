@@ -8,6 +8,34 @@ class TimeTypeEnum(str, Enum):
     constant = "constant"
     from_to = "from_to"
 
+
+class WorkReportStatusEnum(str, Enum):
+    draft = "roboczy"
+    pending = "oczekuje_na_akceptacje"
+    approved = "zaakceptowany"
+    rejected = "odrzucony"
+    locked = "zablokowany"
+
+
+class AbsenceStatusEnum(str, Enum):
+    draft = "roboczy"
+    pending = "oczekuje_na_akceptacje"
+    approved = "zaakceptowany"
+    rejected = "odrzucony"
+    locked = "zablokowany"
+
+
+class PeriodStatusEnum(str, Enum):
+    open = "otwarty"
+    pending_close = "oczekuje_na_zamkniecie"
+    closed = "zamkniety"
+    unlocked = "odblokowany"
+
+
+class ReviewDecisionEnum(str, Enum):
+    approve = "approve"
+    reject = "reject"
+
 class UserBase(BaseModel):
     first_name: str
     last_name: str
@@ -174,6 +202,12 @@ class WorkReportRead(WorkReportBase):
     report_id: int
     user_id: int
     created_at: datetime
+    status: WorkReportStatusEnum
+    submitted_at: Optional[datetime]
+    approved_at: Optional[datetime]
+    rejected_at: Optional[datetime]
+    reviewer_comment: Optional[str]
+    reviewed_by_user_id: Optional[int]
 
     @field_serializer('time_from', 'time_to')
     def serialize_time(self, value: Optional[time]) -> Optional[str]:
@@ -183,6 +217,25 @@ class WorkReportRead(WorkReportBase):
         return value.strftime("%H:%M")
 
     model_config = {"from_attributes": True}
+
+
+class WorkReportReviewRequest(BaseModel):
+    decision: ReviewDecisionEnum
+    comment: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_comment(self):
+        if self.decision == ReviewDecisionEnum.reject and not self.comment:
+            raise ValueError("Komentarz jest wymagany przy odrzuceniu")
+        return self
+
+
+class WorkReportBulkFilter(BaseModel):
+    status: Optional[WorkReportStatusEnum] = None
+    month: Optional[int] = None
+    year: Optional[int] = None
+    user_id: Optional[int] = None
+    project_id: Optional[int] = None
 
 class UserProjectBase(BaseModel):
     user_id: int
@@ -517,6 +570,12 @@ class AbsenceRead(AbsenceBase):
     absence_id: int
     user_id: int
     created_at: datetime
+    status: AbsenceStatusEnum
+    submitted_at: Optional[datetime]
+    approved_at: Optional[datetime]
+    rejected_at: Optional[datetime]
+    reviewer_comment: Optional[str]
+    reviewed_by_user_id: Optional[int]
 
     model_config = {"from_attributes": True}
 
@@ -524,6 +583,24 @@ class AbsenceUpdate(BaseModel):
     absence_type: Optional[AbsenceTypeEnum] = None
     date_from: Optional[date] = None
     date_to: Optional[date] = None
+
+
+class AbsenceReviewRequest(BaseModel):
+    decision: ReviewDecisionEnum
+    comment: Optional[str] = None
+
+    @model_validator(mode="after")
+    def validate_comment(self):
+        if self.decision == ReviewDecisionEnum.reject and not self.comment:
+            raise ValueError("Komentarz jest wymagany przy odrzuceniu")
+        return self
+
+
+class AbsenceReviewFilter(BaseModel):
+    user_id: Optional[int] = None
+    month: Optional[int] = None
+    year: Optional[int] = None
+    status: Optional[AbsenceStatusEnum] = None
 
 # ============================================================================
 # Query filters for availability and absences
@@ -661,4 +738,34 @@ class UserScheduleRequest(BaseModel):
     user_id: int
     date_from: Optional[date] = None
     date_to: Optional[date] = None
+
+
+class ApprovalLogEntry(BaseModel):
+    approval_log_id: int
+    entity_type: str
+    entity_id: int
+    action: str
+    actor_user_id: Optional[int]
+    comment: Optional[str]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class PeriodClosureRead(BaseModel):
+    period_closure_id: int
+    year: int
+    month: int
+    status: PeriodStatusEnum
+    locked_by_user_id: Optional[int]
+    locked_at: Optional[datetime]
+    unlocked_at: Optional[datetime]
+    notes: Optional[str]
+
+    model_config = {"from_attributes": True}
+
+
+class PeriodStatusUpdateRequest(BaseModel):
+    status: PeriodStatusEnum
+    notes: Optional[str] = None
 

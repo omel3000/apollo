@@ -40,6 +40,10 @@
 | GET | `/work_reports` | Odczyt raportów pracy | ✅* | ✅ | ✅ | ❌ |
 | PUT | `/work_reports/{report_id}` | Aktualizacja raportu pracy | ✅* | ✅ | ✅ | ❌ |
 | DELETE | `/work_reports/{report_id}` | Usuwanie raportu pracy | ✅* | ✅ | ✅ | ❌ |
+| POST | `/work_reports/{report_id}/submit` | Zgłoszenie raportu do akceptacji | ✅* | ✅ | ✅ | ❌ |
+| POST | `/work_reports/{report_id}/review` | Akceptacja/odrzucenie raportu | ❌ | ✅ | ✅ | ❌ |
+| POST | `/work_reports/review_queue` | Kolejka raportów oczekujących na decyzję | ❌ | ✅ | ✅ | ❌ |
+| GET | `/work_reports/{report_id}/history` | Historia decyzji dla raportu | ✅* | ✅ | ✅ | ❌ |
 | POST | `/work_reports/monthly_summary` | Miesięczne podsumowanie (dla siebie) | ✅* | ✅ | ✅ | ❌ |
 | POST | `/work_reports/hr_monthly_overview` | Pełne podsumowanie miesiąca HR (wszyscy + projekty) | ❌ | ✅ | ✅ | ❌ |
 | POST | `/work_reports/monthly_trend` | Trend czasu pracy (ostatnie N miesięcy) | ❌ | ✅ | ✅ | ❌ |
@@ -64,6 +68,10 @@
 | DELETE | `/absences/my_absences/{date}` | Usunięcie własnej nieobecności dla daty | ✅ | ✅ | ✅ | ❌ |
 | GET | `/absences/` | Odczyt nieobecności wszystkich użytkowników (z filtrami) | ❌ | ✅ | ✅ | ❌ |
 | GET | `/absences/{absence_id}` | Odczyt szczegółów nieobecności użytkownika | ❌ | ✅ | ✅ | ❌ |
+| POST | `/absences/{absence_id}/submit` | Zgłoszenie nieobecności do akceptacji | ✅* | ✅* | ✅* | ❌ |
+| POST | `/absences/{absence_id}/review` | Akceptacja/odrzucenie nieobecności | ❌ | ✅ | ✅ | ❌ |
+| POST | `/absences/review_queue` | Kolejka nieobecności oczekujących na decyzję | ❌ | ✅ | ✅ | ❌ |
+| GET | `/absences/{absence_id}/history` | Historia decyzji dla nieobecności | ✅* | ✅ | ✅ | ❌ |
 | **GRAFIK** |||||||
 | GET | `/schedule/day/{date}` | Grafik dla konkretnego dnia (wszyscy użytkownicy) | ✅ | ✅ | ✅ | ❌ |
 | POST | `/schedule/month` | Grafik dla miesiąca (wszyscy użytkownicy) | ✅ | ✅ | ✅ | ❌ |
@@ -73,6 +81,10 @@
 | GET | `/schedule/{schedule_id}` | Szczegóły wpisu grafiku | ❌ | ✅ | ✅ | ❌ |
 | PUT | `/schedule/{schedule_id}` | Aktualizacja wpisu grafiku | ❌ | ✅ | ✅ | ❌ |
 | DELETE | `/schedule/{schedule_id}` | Usunięcie wpisu grafiku | ❌ | ✅ | ✅ | ❌ |
+| **OKRESY ROZLICZENIOWE** |||||||
+| GET | `/periods/` | Lista okresów rozliczeniowych (opcjonalny filtr po roku) | ❌ | ✅ | ✅ | ❌ |
+| GET | `/periods/{year}/{month}` | Szczegóły okresu rozliczeniowego | ❌ | ✅ | ✅ | ❌ |
+| POST | `/periods/{year}/{month}/status` | Zmiana statusu okresu (zamykanie/otwieranie) | ❌ | ❌ | ✅ | ❌ |
 
 ---
 
@@ -120,3 +132,11 @@
     - Wpisy zawierają informacje o użytkowniku (imię, nazwisko) i projekcie (nazwa)
     - Odpowiedzi miesięczne są pogrupowane po dniach
     - Czas w formacie HH:MM
+- Akceptacja raportów i nieobecności:
+  - Raporty pracy i nieobecności przechodzą przez statusy: `roboczy` → `oczekuje_na_akceptacje` → `zaakceptowany`/`odrzucony` → `zablokowany` (po zamknięciu okresu).
+  - Użytkownicy mogą zgłaszać swoje wpisy do akceptacji (`/submit`) tylko wtedy, gdy okres rozliczeniowy jest otwarty.
+  - HR/Admin przeglądają kolejkę oczekujących (`/review_queue`) i podejmują decyzje (`/review`). Odrzucenie wymaga komentarza.
+  - Historia decyzji jest dostępna zarówno dla raportów, jak i nieobecności (`/{id}/history`).
+- Okresy rozliczeniowe:
+  - Administrator zarządza statusem okresów (`/periods/{year}/{month}/status`) – zamykanie blokuje dalsze modyfikacje i automatycznie utrwala zaakceptowane wpisy.
+  - Odblokowanie okresu automatycznie przywraca status `zaakceptowany`, co pozwala na korekty i ponowne zgłoszenie.

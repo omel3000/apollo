@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Body
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from datetime import date
@@ -6,7 +6,16 @@ from database import get_db
 from auth import get_current_user, admin_or_hr_required
 from models import User
 import crud
-from schemas import AbsenceCreate, AbsenceRead, AbsenceUpdate, AbsenceTypeEnum
+from schemas import (
+    AbsenceCreate,
+    AbsenceRead,
+    AbsenceUpdate,
+    AbsenceTypeEnum,
+    AbsenceStatusEnum,
+    AbsenceReviewRequest,
+    AbsenceReviewFilter,
+    ApprovalLogEntry,
+)
 
 router = APIRouter()
 
@@ -91,7 +100,10 @@ def delete_my_absence(
     Worker może usunąć swoją nieobecność dla konkretnej daty.
     Usuwa nieobecność która obejmuje podaną datę.
     """
-    deleted = crud.delete_absence_by_date(db, current_user.user_id, date_param)
+    try:
+        deleted = crud.delete_absence_by_date(db, current_user.user_id, date_param)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     if not deleted:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -139,3 +151,62 @@ def get_absence_by_id(
             detail=f"Nieobecność o id {absence_id} nie istnieje"
         )
     return absence
+
+
+@router.post("/{absence_id}/submit", response_model=AbsenceRead)
+def submit_absence_endpoint(
+    absence_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    absence = crud.get_absence(db, absence_id)
+    if not absence:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nieobecność nie istnieje")
+    if absence.user_id != current_user.user_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień")
+    try:
+        return crud.submit_absence(db, absence_id, current_user.user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/{absence_id}/review", response_model=AbsenceRead)
+def review_absence_endpoint(
+    absence_id: int,
+    review_request: AbsenceReviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required),
+):
+    try:
+        return crud.review_absence(db, absence_id, current_user.user_id, review_request)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/review_queue", response_model=List[AbsenceRead])
+def get_absence_review_queue(
+    filters: AbsenceReviewFilter = Body(default=AbsenceReviewFilter(status=AbsenceStatusEnum.pending)),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required),
+):
+    return crud.get_absences_for_review(
+        db,
+        user_id=filters.user_id,
+        month=filters.month,
+        year=filters.year,
+        status=filters.status,
+    )
+
+
+@router.get("/{absence_id}/history", response_model=List[ApprovalLogEntry])
+def get_absence_history_endpoint(
+    absence_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    absence = crud.get_absence(db, absence_id)
+    if not absence:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Nieobecność nie istnieje")
+    if absence.user_id != current_user.user_id and current_user.role not in ("admin", "hr"):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Brak uprawnień")
+    return crud.get_absence_history(db, absence_id)

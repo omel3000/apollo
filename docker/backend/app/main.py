@@ -1,6 +1,6 @@
 # main.py
 from fastapi import FastAPI
-from routers import users, projects, messages, work_reports, user_projects, availability, absences, schedule  
+from routers import users, projects, messages, work_reports, user_projects, availability, absences, schedule, periods  
 from database import engine, Base
 
 app = FastAPI(title="Apollo Backend")
@@ -24,6 +24,8 @@ app.include_router(availability.router, prefix="/availability", tags=["Availabil
 app.include_router(absences.router, prefix="/absences", tags=["Absences"])
 
 app.include_router(schedule.router, prefix="/schedule", tags=["Schedule"])
+
+app.include_router(periods.router, prefix="/periods", tags=["Periods"])
 
 @app.get("/")
 def root():
