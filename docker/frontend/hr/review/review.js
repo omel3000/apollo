@@ -22,6 +22,11 @@ const ACTION_MESSAGES = {
   zablokowany: "Okres rozliczeniowy został zamknięty. Edycja decyzji nie jest możliwa."
 };
 
+const GROUPING_MODES = {
+  DAILY: "daily",
+  MONTHLY: "monthly"
+};
+
 const REVIEWABLE_STATUSES = new Set(["oczekuje_na_akceptacje", "zaakceptowany"]);
 const AUTO_REFRESH_INTERVAL = 60000; // 60 sekund
 const collator = new Intl.Collator("pl", { sensitivity: "base" });
@@ -29,6 +34,7 @@ const collator = new Intl.Collator("pl", { sensitivity: "base" });
 let authHeader = "";
 let queueData = [];
 let groupedQueue = [];
+let groupingMode = GROUPING_MODES.DAILY;
 let activeGroupId = null;
 let focusedEntryId = null;
 let autoRefreshHandle = null;
@@ -46,7 +52,7 @@ function cacheElements() {
     yearSelect: document.getElementById("filterYear"),
     userSelect: document.getElementById("filterUser"),
     projectSelect: document.getElementById("filterProject"),
-    applyFiltersBtn: document.getElementById("applyFiltersBtn"),
+    groupingRadios: Array.from(document.querySelectorAll("input[name='groupingMode']")),
     clearFiltersBtn: document.getElementById("clearFiltersBtn"),
     autoRefreshSwitch: document.getElementById("autoRefreshSwitch"),
     queueList: document.getElementById("queueList"),
@@ -202,7 +208,14 @@ function buildFiltersPayload() {
   return payload;
 }
 
-function buildGroupedQueue(reports) {
+function buildGroupedQueue(reports, mode = groupingMode) {
+  if (mode === GROUPING_MODES.MONTHLY) {
+    return buildMonthlyGroups(reports);
+  }
+  return buildDailyGroups(reports);
+}
+
+function buildDailyGroups(reports) {
   const groupsMap = new Map();
   reports.forEach(report => {
     const key = `${report.user_id}__${report.work_date}`;
@@ -212,13 +225,13 @@ function buildGroupedQueue(reports) {
         userId: report.user_id,
         workDate: report.work_date,
         entries: [],
-        totalMinutes: 0
+        totalMinutes: 0,
+        type: GROUPING_MODES.DAILY
       });
     }
     const group = groupsMap.get(key);
     group.entries.push(report);
-    const minutes = (Number(report.hours_spent) || 0) * 60 + (Number(report.minutes_spent) || 0);
-    group.totalMinutes += minutes;
+    group.totalMinutes += getReportMinutes(report);
   });
 
   const groups = Array.from(groupsMap.values());
@@ -231,7 +244,54 @@ function buildGroupedQueue(reports) {
     if (dateDiff !== 0) {
       return dateDiff;
     }
-    return collator.compare(getUserLabel(b.userId), getUserLabel(a.userId));
+    return collator.compare(getUserLabel(a.userId), getUserLabel(b.userId));
+  });
+}
+
+function buildMonthlyGroups(reports) {
+  const groupsMap = new Map();
+  reports.forEach(report => {
+    const date = new Date(report.work_date || report.created_at);
+    const year = Number.isNaN(date.getTime()) ? null : date.getFullYear();
+    const month = Number.isNaN(date.getTime()) ? null : date.getMonth() + 1;
+    const monthKey = year && month ? `${year}-${String(month).padStart(2, "0")}` : "brak-daty";
+    const key = `${report.user_id}__${monthKey}`;
+
+    if (!groupsMap.has(key)) {
+      groupsMap.set(key, {
+        groupId: key,
+        userId: report.user_id,
+        workDate: null,
+        entries: [],
+        totalMinutes: 0,
+        type: GROUPING_MODES.MONTHLY,
+        month,
+        year,
+        sortKey: year && month ? new Date(year, month - 1, 1) : new Date(report.work_date || Date.now())
+      });
+    }
+    const group = groupsMap.get(key);
+    group.entries.push(report);
+    group.totalMinutes += getReportMinutes(report);
+  });
+
+  const groups = Array.from(groupsMap.values());
+  groups.forEach(group => {
+    group.entries.sort((a, b) => {
+      const dateDiff = new Date(a.work_date || a.created_at) - new Date(b.work_date || b.created_at);
+      if (dateDiff !== 0) {
+        return dateDiff;
+      }
+      return collator.compare(getProjectLabel(a.project_id), getProjectLabel(b.project_id));
+    });
+  });
+
+  return groups.sort((a, b) => {
+    const dateDiff = (b.sortKey?.getTime() || 0) - (a.sortKey?.getTime() || 0);
+    if (dateDiff !== 0) {
+      return dateDiff;
+    }
+    return collator.compare(getUserLabel(a.userId), getUserLabel(b.userId));
   });
 }
 
@@ -278,7 +338,7 @@ async function refreshQueue(options = {}) {
     }
 
     queueData = await response.json();
-    groupedQueue = buildGroupedQueue(queueData);
+    groupedQueue = buildGroupedQueue(queueData, groupingMode);
     if (preserveSelection) {
       pruneInvalidSelections();
     }
@@ -337,7 +397,7 @@ function renderQueue(selectedGroupId = null) {
     checkbox.indeterminate = selectableCount > 0 && selectedCount > 0 && selectedCount < selectableCount;
     checkbox.disabled = selectableCount === 0 || bulkActionInProgress;
     if (selectableCount === 0) {
-      selectionWrapper.title = "Wpisy w tym dniu są w statusie, którego nie można masowo przetworzyć";
+      selectionWrapper.title = "Wpisy w tej grupie są w statusie, którego nie można masowo przetworzyć";
     }
     checkbox.addEventListener("click", (event) => event.stopPropagation());
     checkbox.addEventListener("change", (event) => {
@@ -353,7 +413,7 @@ function renderQueue(selectedGroupId = null) {
     topRow.className = "d-flex justify-content-between align-items-start flex-wrap gap-2";
 
     const title = document.createElement("div");
-    title.innerHTML = `<strong>${formatDateShort(group.workDate)}</strong><br>${escapeHtml(getUserLabel(group.userId))}`;
+    title.innerHTML = `<strong>${escapeHtml(getGroupPrimaryLabel(group))}</strong><br>${escapeHtml(getUserLabel(group.userId))}`;
 
     const statusInfo = getGroupStatusInfo(group);
     const statusBadge = document.createElement("span");
@@ -480,7 +540,7 @@ function renderGroupDetails(group) {
   selectors.detailsPanel.classList.remove("d-none");
   selectors.refreshDetailsBtn?.removeAttribute("disabled");
 
-  selectors.detailDate.textContent = formatDateLong(group.workDate);
+  selectors.detailDate.textContent = getGroupDetailLabel(group);
   selectors.detailUser.textContent = `${getUserLabel(group.userId)} • ${formatEmail(group.userId)}`;
 
   renderEntryList(group);
@@ -529,9 +589,14 @@ function renderEntryList(group) {
 
     const info = document.createElement("div");
     info.className = "flex-grow-1";
+    const subtitleParts = [];
+    if (group.type === GROUPING_MODES.MONTHLY) {
+      subtitleParts.push(formatDateShort(entry.work_date));
+    }
+    subtitleParts.push(formatTimeRange(entry));
     info.innerHTML = `
       <div><strong>${escapeHtml(getProjectLabel(entry.project_id))}</strong></div>
-      <div class="text-muted">${formatTimeRange(entry)}</div>
+      <div class="text-muted">${subtitleParts.join(" • ")}</div>
     `;
 
     left.appendChild(checkboxWrapper);
@@ -802,6 +867,19 @@ function clearSelection() {
   updateBulkControls();
 }
 
+function setGroupingMode(mode) {
+  const normalized = mode === GROUPING_MODES.MONTHLY ? GROUPING_MODES.MONTHLY : GROUPING_MODES.DAILY;
+  if (groupingMode === normalized) {
+    return;
+  }
+  groupingMode = normalized;
+  clearDetails();
+  (selectors.groupingRadios || []).forEach(radio => {
+    radio.checked = radio.value === normalized;
+  });
+  refreshQueue({ preserveSelection: true });
+}
+
 function startAutoRefresh() {
   stopAutoRefresh();
   autoRefreshHandle = window.setInterval(() => {
@@ -817,7 +895,6 @@ function stopAutoRefresh() {
 }
 
 function attachEvents() {
-  selectors.applyFiltersBtn?.addEventListener("click", () => refreshQueue());
   selectors.clearFiltersBtn?.addEventListener("click", () => {
     if (selectors.statusSelect) {
       selectors.statusSelect.value = "oczekuje_na_akceptacje";
@@ -831,6 +908,27 @@ function attachEvents() {
     initMonthYearSelects();
     refreshQueue();
   });
+
+  const autoFilterControls = [
+    selectors.statusSelect,
+    selectors.monthSelect,
+    selectors.yearSelect,
+    selectors.userSelect,
+    selectors.projectSelect
+  ];
+  autoFilterControls.forEach(control => {
+    control?.addEventListener("change", () => refreshQueue());
+  });
+
+  (selectors.groupingRadios || []).forEach(radio => {
+    radio.addEventListener("change", (event) => {
+      if (event.target.checked) {
+        const mode = event.target.value === GROUPING_MODES.MONTHLY ? GROUPING_MODES.MONTHLY : GROUPING_MODES.DAILY;
+        setGroupingMode(mode);
+      }
+    });
+  });
+
   selectors.autoRefreshSwitch?.addEventListener("change", (event) => {
     if (event.target.checked) {
       startAutoRefresh();
@@ -907,10 +1005,48 @@ function formatDateTime(iso) {
   return date.toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+function getGroupPrimaryLabel(group) {
+  if (!group) {
+    return "-";
+  }
+  if (isMonthlyGroup(group)) {
+    return formatMonthYearLong(group.year, group.month);
+  }
+  return formatDateShort(group.workDate);
+}
+
+function getGroupDetailLabel(group) {
+  if (!group) {
+    return "-";
+  }
+  if (isMonthlyGroup(group)) {
+    return formatMonthYearLong(group.year, group.month);
+  }
+  return formatDateLong(group.workDate);
+}
+
+function isMonthlyGroup(group) {
+  return group?.type === GROUPING_MODES.MONTHLY;
+}
+
+function formatMonthYearLong(year, month) {
+  if (!year || !month) {
+    return "-";
+  }
+  const date = new Date(year, month - 1, 1);
+  return date.toLocaleDateString("pl-PL", { month: "long", year: "numeric" });
+}
+
 function formatDuration(report) {
   const hours = Number(report.hours_spent) || 0;
   const minutes = Number(report.minutes_spent) || 0;
   return `${hours}h ${minutes}min`;
+}
+
+function getReportMinutes(report) {
+  const hours = Number(report.hours_spent) || 0;
+  const minutes = Number(report.minutes_spent) || 0;
+  return hours * 60 + minutes;
 }
 
 function formatTimeRange(report) {
