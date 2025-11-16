@@ -4,6 +4,10 @@ from sqlalchemy.sql import func
 from database import Base
 import enum
 
+
+def enum_values(enum_cls):
+    return [member.value for member in enum_cls]
+
 class TimeType(str, enum.Enum):
     constant = "constant"
     from_to = "from_to"
@@ -80,7 +84,11 @@ class WorkReport(Base):
     time_from = Column(Time, nullable=True)
     time_to = Column(Time, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    status = Column(Enum(WorkReportStatus), nullable=False, default=WorkReportStatus.draft)
+    status = Column(
+        Enum(WorkReportStatus, values_callable=enum_values),
+        nullable=False,
+        default=WorkReportStatus.draft,
+    )
     submitted_at = Column(DateTime(timezone=True), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     rejected_at = Column(DateTime(timezone=True), nullable=True)
@@ -119,7 +127,11 @@ class Absence(Base):
     date_from = Column(Date, nullable=False)
     date_to = Column(Date, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    status = Column(Enum(AbsenceStatus), nullable=False, default=AbsenceStatus.draft)
+    status = Column(
+        Enum(AbsenceStatus, values_callable=enum_values),
+        nullable=False,
+        default=AbsenceStatus.draft,
+    )
     submitted_at = Column(DateTime(timezone=True), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)
     rejected_at = Column(DateTime(timezone=True), nullable=True)
@@ -152,7 +164,11 @@ class PeriodClosure(Base):
     period_closure_id = Column(Integer, primary_key=True, index=True)
     year = Column(Integer, nullable=False)
     month = Column(Integer, nullable=False)
-    status = Column(Enum(PeriodStatus), nullable=False, default=PeriodStatus.open)
+    status = Column(
+        Enum(PeriodStatus, values_callable=enum_values),
+        nullable=False,
+        default=PeriodStatus.open,
+    )
     locked_by_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
     locked_at = Column(DateTime(timezone=True), nullable=True)
     unlocked_at = Column(DateTime(timezone=True), nullable=True)
