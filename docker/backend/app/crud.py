@@ -16,6 +16,7 @@ from models import (
     PeriodClosure,
     PeriodStatus,
     ApprovalLog,
+    AuditLog,
 )
 from auth import hash_password
 from schemas import (
@@ -43,6 +44,7 @@ from schemas import (
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date, time
+import math
 from calendar import monthrange
 
 
@@ -2127,4 +2129,93 @@ def delete_schedule(db: Session, schedule_id: int):
     db.delete(db_schedule)
     db.commit()
     return True
+
+
+# ============================================================================
+# Audit log helpers
+# ============================================================================
+
+def list_audit_logs(
+    db: Session,
+    *,
+    action: Optional[str] = None,
+    user_id: Optional[int] = None,
+    user_email: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    sort_by: str = "created_at",
+    sort_order: str = "desc",
+    page: int = 1,
+    limit: int = 50,
+):
+    query = db.query(AuditLog)
+
+    if action:
+        query = query.filter(AuditLog.action.ilike(f"%{action}%"))
+    if user_id is not None:
+        query = query.filter(AuditLog.user_id == user_id)
+    if user_email:
+        lowered = user_email.strip().lower()
+        query = query.filter(func.lower(AuditLog.user_email).like(f"%{lowered}%"))
+    if date_from:
+        query = query.filter(AuditLog.created_at >= date_from)
+    if date_to:
+        query = query.filter(AuditLog.created_at <= date_to)
+
+    total = query.count()
+
+    sort_map = {
+        "created_at": AuditLog.created_at,
+        "status_code": AuditLog.status_code,
+        "duration_ms": AuditLog.duration_ms,
+        "user_id": AuditLog.user_id,
+    }
+    sort_column = sort_map.get(sort_by, AuditLog.created_at)
+    sort_column = sort_column.desc() if sort_order == "desc" else sort_column.asc()
+
+    items = (
+        query.order_by(sort_column)
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
+
+    pages = math.ceil(total / limit) if total else 0
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "pages": pages,
+        "limit": limit,
+    }
+
+
+def list_audit_log_actions(db: Session) -> List[str]:
+    rows = (
+        db.query(AuditLog.action)
+        .filter(AuditLog.action.isnot(None))
+        .distinct()
+        .order_by(AuditLog.action.asc())
+        .all()
+    )
+    return [row[0] for row in rows if row[0]]
+
+
+def list_audit_log_users(db: Session) -> List[dict]:
+    rows = (
+        db.query(AuditLog.user_id, AuditLog.user_email, AuditLog.user_role)
+        .filter(AuditLog.user_id.isnot(None))
+        .distinct()
+        .order_by(AuditLog.user_email.asc(), AuditLog.user_id.asc())
+        .all()
+    )
+    return [
+        {
+            "user_id": row[0],
+            "user_email": row[1],
+            "user_role": row[2],
+        }
+        for row in rows
+        if row[0] is not None
+    ]
 

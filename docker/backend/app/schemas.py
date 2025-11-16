@@ -771,3 +771,35 @@ class PeriodStatusUpdateRequest(BaseModel):
     status: PeriodStatusEnum
     notes: Optional[str] = None
 
+
+class AuditLogRead(BaseModel):
+    log_id: int
+    user_id: Optional[int]
+    user_email: Optional[str]
+    user_role: Optional[str]
+    action: str
+    method: str
+    path: str
+    status_code: int
+    ip_address: Optional[str]
+    user_agent: Optional[str]
+    detail: Optional[str]
+    duration_ms: Optional[int]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AuditLogListResponse(BaseModel):
+    items: List[AuditLogRead]
+    total: int
+    page: int
+    pages: int
+    limit: int
+
+
+class AuditLogUserOption(BaseModel):
+    user_id: int
+    user_email: Optional[str]
+    user_role: Optional[str]
+

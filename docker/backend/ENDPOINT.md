@@ -85,6 +85,10 @@
 | GET | `/periods/` | Lista okresów rozliczeniowych (opcjonalny filtr po roku) | ❌ | ✅ | ✅ | ❌ |
 | GET | `/periods/{year}/{month}` | Szczegóły okresu rozliczeniowego | ❌ | ✅ | ✅ | ❌ |
 | POST | `/periods/{year}/{month}/status` | Zmiana statusu okresu (zamykanie/otwieranie) | ❌ | ❌ | ✅ | ❌ |
+| **LOGI AUDYTU** |||||||
+| GET | `/audit_logs/` | Lista logów audytu z filtrowaniem i paginacją | ❌ | ✅ | ✅ | ❌ |
+| GET | `/audit_logs/actions` | Lista dostępnych akcji (do filtrów na froncie) | ❌ | ✅ | ✅ | ❌ |
+| GET | `/audit_logs/users` | Lista użytkowników pojawiających się w logach | ❌ | ✅ | ✅ | ❌ |
 
 ---
 

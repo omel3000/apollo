@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dziennik zdarzeń | Apollo</title>
+    <style>
+        html { visibility: hidden; }
+    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
+    <link href="/style.css" rel="stylesheet">
+
+    <script src="/hr/auth-hr.js" defer></script>
+    <script src="/logout.js" defer></script>
+    <script src="/hr/audit/logs.js" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebarMenu');
+            const toggler = document.querySelector('.navbar-toggler');
+            if (!sidebar || !toggler) return;
+            sidebar.querySelectorAll('.nav-link').forEach(link => {
+                link.addEventListener('click', () => {
+                    sidebar.classList.remove('show');
+                    toggler.setAttribute('aria-expanded', 'false');
+                    toggler.classList.add('collapsed');
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+<header>
+    <nav class="navbar navbar-expand-md navbar-dark bg-primary shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/hr/">
+                <strong class="h4 mb-0">Apollo</strong> <span class="d-none d-md-inline">| Panel HR</span>
+            </a>
+
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebarMenu"
+                    aria-controls="sidebarMenu" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="d-flex align-items-center ms-auto me-2 me-md-0">
+                <a href="/hr/account" class="btn btn-sm btn-primary me-2">Konto</a>
+                <a href="/logout" class="btn btn-sm btn-outline-danger">Wyloguj</a>
+            </div>
+        </div>
+    </nav>
+</header>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-light sidebar collapse">
+            <div class="position-sticky pt-3 sidebar-sticky">
+                <h6 class="sidebar-heading d-flex justify-content-between align-items-center px-3 mt-4 mb-1 text-uppercase">
+                    <span>Nawigacja</span>
+                </h6>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/">
+                            <i class="bi bi-house-door-fill me-2"></i>Strona główna
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/reports/">
+                            <i class="bi bi-calendar-check me-2"></i>Rejestracja czasu pracy
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/summary/">
+                            <i class="bi bi-bar-chart-line-fill me-2"></i>Moje podsumowania
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/availability/">
+                            <i class="bi bi-calendar2-check me-2"></i>Moje deklaracje dostępności
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/review/">
+                            <i class="bi bi-shield-check me-2"></i>Akceptacja wpisów
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/monthly-summary/">
+                            <i class="bi bi-graph-up-arrow me-2"></i>Podsumowania miesięczne
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/schedule/">
+                            <i class="bi bi-calendar3 me-2"></i>Grafik pracowników
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/projects/">
+                            <i class="bi bi-folder-fill me-2"></i>Zarządzanie projektami
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/hr/users/">
+                            <i class="bi bi-people-fill me-2"></i>Zarządzanie użytkownikami
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="/hr/audit/">
+                            <i class="bi bi-activity me-2"></i>Dziennik zdarzeń
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4 py-3">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
+                <div>
+                    <h2 class="h2 mb-0">Dziennik zdarzeń systemowych</h2>
+                    <p class="text-muted mb-0">Monitoruj każdą operację wykonaną przez użytkowników</p>
+                </div>
+            </div>
+
+            <div class="alert alert-danger d-none" role="alert" id="logsError"></div>
+
+            <section class="card mb-4 shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                        <h5 class="mb-0">Filtry logów</h5>
+                        <span class="badge text-bg-light" id="logsSummary">Ładowanie danych...</span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form id="logFilters" class="row g-3 align-items-end">
+                        <div class="col-md-4">
+                            <label for="actionFilter" class="form-label">Akcja</label>
+                            <select id="actionFilter" class="form-select">
+                                <option value="">Wszystkie akcje</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="userFilter" class="form-label">Użytkownik</label>
+                            <select id="userFilter" class="form-select">
+                                <option value="">Wszyscy użytkownicy</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="emailFilter" class="form-label">Fragment adresu e-mail</label>
+                            <input type="text" class="form-control" id="emailFilter" placeholder="np. anna@firma.pl">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateFrom" class="form-label">Data od</label>
+                            <input type="date" class="form-control" id="dateFrom">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="dateTo" class="form-label">Data do</label>
+                            <input type="date" class="form-control" id="dateTo">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="sortSelect" class="form-label">Sortowanie</label>
+                            <select id="sortSelect" class="form-select">
+                                <option value="created_at:desc">Najnowsze → najstarsze</option>
+                                <option value="created_at:asc">Najstarsze → najnowsze</option>
+                                <option value="status_code:desc">Status malejąco</option>
+                                <option value="status_code:asc">Status rosnąco</option>
+                                <option value="duration_ms:desc">Czas odpowiedzi malejąco</option>
+                                <option value="duration_ms:asc">Czas odpowiedzi rosnąco</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="limitSelect" class="form-label">Na stronę</label>
+                            <select id="limitSelect" class="form-select">
+                                <option value="25">25</option>
+                                <option value="50" selected>50</option>
+                                <option value="100">100</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <button type="submit" class="btn btn-primary me-2">
+                                <i class="bi bi-filter me-1"></i>Zastosuj filtry
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" id="resetFilters">
+                                Wyczyść
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <section class="card shadow-sm">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="min-width: 170px;">Czas</th>
+                                    <th>Akcja</th>
+                                    <th>Użytkownik</th>
+                                    <th>Status</th>
+                                    <th>Parametry</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                <tr>
+                                    <td colspan="5" class="text-center py-4">Ładowanie logów...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer d-flex flex-column flex-md-row justify-content-between align-items-center gap-3">
+                    <div class="text-muted small" id="logsMeta">&nbsp;</div>
+                    <div class="btn-group" role="group" aria-label="Paginacja">
+                        <button class="btn btn-outline-secondary" id="prevPage" disabled>
+                            <i class="bi bi-arrow-left"></i> Poprzednia
+                        </button>
+                        <button class="btn btn-outline-secondary" id="nextPage" disabled>
+                            Następna <i class="bi bi-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
+</body>
+</html>

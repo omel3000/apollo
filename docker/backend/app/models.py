@@ -189,3 +189,21 @@ class ApprovalLog(Base):
     actor_user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
     comment = Column(String(2000), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    log_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    user_email = Column(String(255), nullable=True)
+    user_role = Column(String(50), nullable=True)
+    action = Column(String(255), nullable=False)
+    method = Column(String(10), nullable=False)
+    path = Column(String(500), nullable=False)
+    status_code = Column(Integer, nullable=False)
+    ip_address = Column(String(100), nullable=True)
+    user_agent = Column(String(255), nullable=True)
+    detail = Column(String(2000), nullable=True)
+    duration_ms = Column(Integer, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
