@@ -162,7 +162,7 @@
                                     </div>
                                     <div class="col-12 col-lg-2 d-grid">
                                         <button type="button" id="applyFiltersBtn" class="btn btn-primary">
-                                            <i class="bi bi-arrow-repeat me-1"></i>Odśwież
+                                            <i class="bi bi-arrow-repeat me-1"></i>Zastosuj filtry
                                         </button>
                                     </div>
                                     <div class="col-12 col-lg-2 d-grid">
@@ -185,6 +185,27 @@
                                 </div>
                             </div>
                             <div class="card-body">
+                                <div class="mb-3 p-3 border rounded bg-light">
+                                    <div class="d-flex flex-wrap align-items-center gap-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="selectAllCheckbox">
+                                            <label class="form-check-label" for="selectAllCheckbox">Zaznacz wszystkie widoczne</label>
+                                        </div>
+                                        <span class="text-muted" id="selectedCounter">0 zaznaczonych</span>
+                                        <div class="ms-auto d-flex flex-wrap gap-2">
+                                            <button type="button" id="bulkApproveBtn" class="btn btn-sm btn-success" disabled>
+                                                <i class="bi bi-check2-circle me-1"></i>Zatwierdź zaznaczone
+                                            </button>
+                                            <button type="button" id="bulkRejectBtn" class="btn btn-sm btn-outline-danger" disabled>
+                                                <i class="bi bi-x-circle me-1"></i>Odrzuć zaznaczone
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="mt-3">
+                                        <label for="bulkRejectionComment" class="form-label small mb-1">Komentarz dla masowego odrzucenia</label>
+                                        <textarea id="bulkRejectionComment" class="form-control form-control-sm" rows="2" placeholder="Wymagany tylko przy odrzuceniu"></textarea>
+                                    </div>
+                                </div>
                                 <div id="queueLoader" class="text-muted">Ładowanie danych...</div>
                                 <div id="queueEmpty" class="text-muted d-none">Brak wpisów zgodnych z filtrami.</div>
                                 <div class="list-group" id="queueList"></div>
