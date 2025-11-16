@@ -13,16 +13,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from auth import ALGORITHM, SECRET_KEY
 from database import SessionLocal
-from models import (
-    AuditLog,
-    User,
-    Project,
-    WorkReport,
-    Message,
-    Absence,
-    Schedule,
-    PeriodClosure,
-)
+from models import AuditLog, User
 
 MAX_DETAIL_LENGTH = 1800
 SENSITIVE_KEYS = {
@@ -75,14 +66,13 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         started_at = datetime.now(timezone.utc)
         body_summary = await self._extract_body_summary(request)
         query_summary = request.url.query or None
-        action_group, entity_type, entity_id, removed_numeric = self._normalize_action(request)
+        action_group, entity_type, entity_id = self._normalize_action(request)
 
         db = SessionLocal()
         user = self._resolve_user(request, db)
         status_code = 500
         response = None
         error_detail: Optional[str] = None
-        entity_label: Optional[str] = None
 
         try:
             response = await call_next(request)
@@ -99,8 +89,6 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         finally:
             try:
                 if not self._should_skip(path):
-                    if entity_type and entity_id is not None:
-                        entity_label = self._resolve_entity_label(db, entity_type, entity_id)
                     self._persist_log(
                         db=db,
                         request=request,
@@ -113,7 +101,6 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
                         action_group=action_group,
                         entity_type=entity_type,
                         entity_id=entity_id,
-                        entity_label=entity_label,
                     )
                     db.commit()
             except Exception as log_exc:  # pylint: disable=broad-except
@@ -127,7 +114,7 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             return True
         return any(path.startswith(prefix) for prefix in IGNORED_PREFIXES)
 
-    def _normalize_action(self, request: Request) -> Tuple[str, Optional[str], Optional[int], bool]:
+    def _normalize_action(self, request: Request) -> Tuple[str, Optional[str], Optional[int]]:
         path = request.url.path
         stripped = path.strip("/")
         segments = [segment for segment in stripped.split("/") if segment]
@@ -135,7 +122,6 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         entity_type: Optional[str] = None
         entity_id: Optional[int] = None
         previous_segment: Optional[str] = None
-        removed_numeric = False
 
         for segment in segments:
             if segment.isdigit():
@@ -144,17 +130,16 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
                 if entity_id is None:
                     entity_id = int(segment)
                 previous_segment = segment
-                removed_numeric = True
                 continue
             normalized_segments.append(segment)
             previous_segment = segment
 
         normalized_path = "/" + "/".join(normalized_segments) if normalized_segments else "/"
-        if (path.endswith("/") or removed_numeric) and not normalized_path.endswith("/"):
+        if path.endswith("/") and not normalized_path.endswith("/"):
             normalized_path += "/"
 
         action_group = f"{request.method.upper()} {normalized_path}"
-        return action_group, entity_type, entity_id, removed_numeric
+        return action_group, entity_type, entity_id
 
     async def _extract_body_summary(self, request: Request) -> Optional[str]:
         try:
@@ -210,7 +195,6 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         action_group: Optional[str],
         entity_type: Optional[str],
         entity_id: Optional[int],
-        entity_label: Optional[str],
     ) -> None:
         duration_ms = int((datetime.now(timezone.utc) - started_at).total_seconds() * 1000)
         detail_parts = []
@@ -237,51 +221,7 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             user_agent=request.headers.get("user-agent"),
             entity_type=entity_type,
             entity_id=entity_id,
-            entity_label=entity_label,
             detail=detail,
             duration_ms=duration_ms,
         )
         db.add(log_entry)
-
-    def _resolve_entity_label(self, db: Session, entity_type: str, entity_id: int) -> Optional[str]:
-        entity_type = (entity_type or "").lower()
-        try:
-            if entity_type == "projects":
-                result = db.query(Project.project_name).filter(Project.project_id == entity_id).scalar()
-                return result or f"Projekt #{entity_id}"
-            if entity_type == "users":
-                result = db.query(User.first_name, User.last_name).filter(User.user_id == entity_id).first()
-                if result:
-                    first, last = result
-                    full = f"{first} {last}".strip()
-                    return full or f"Użytkownik #{entity_id}"
-                return None
-            if entity_type == "work_reports":
-                result = (
-                    db.query(WorkReport.work_date)
-                    .filter(WorkReport.report_id == entity_id)
-                    .scalar()
-                )
-                if result:
-                    return f"Raport #{entity_id} ({result})"
-                return None
-            if entity_type == "messages":
-                result = db.query(Message.title).filter(Message.message_id == entity_id).scalar()
-                return result or f"Komunikat #{entity_id}"
-            if entity_type == "absences":
-                result = db.query(Absence.date_from, Absence.date_to).filter(Absence.absence_id == entity_id).first()
-                if result:
-                    return f"Nieobecność #{entity_id} ({result[0]}–{result[1]})"
-                return None
-            if entity_type == "schedule":
-                result = db.query(Schedule.work_date).filter(Schedule.schedule_id == entity_id).scalar()
-                return result and f"Grafik #{entity_id} ({result})"
-            if entity_type == "periods":
-                result = db.query(PeriodClosure.year, PeriodClosure.month).filter(PeriodClosure.period_closure_id == entity_id).first()
-                if result:
-                    year, month = result
-                    return f"Okres {year}-{month:02d}"
-                return None
-        except Exception:  # pylint: disable=broad-except
-            return None
-        return None

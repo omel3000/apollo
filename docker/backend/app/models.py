@@ -207,7 +207,6 @@ class AuditLog(Base):
     user_agent = Column(String(255), nullable=True)
     entity_type = Column(String(50), nullable=True, index=True)
     entity_id = Column(Integer, nullable=True, index=True)
-    entity_label = Column(String(255), nullable=True)
     detail = Column(String(2000), nullable=True)
     duration_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

@@ -8,7 +8,7 @@ import crud
 from auth import admin_or_hr_required
 from database import get_db
 from models import User
-from schemas import AuditLogListResponse, AuditLogUserOption, AuditLogEntityOption
+from schemas import AuditLogListResponse, AuditLogUserOption
 
 router = APIRouter()
 
@@ -73,14 +73,3 @@ def list_audit_users_endpoint(
     del current_user
     items = crud.list_audit_log_users(db)
     return [AuditLogUserOption(**item) for item in items]
-
-
-@router.get("/entity_targets", response_model=List[AuditLogEntityOption])
-def list_entity_targets_endpoint(
-    entity_type: str = Query(..., description="np. projects, users, work_reports"),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_hr_required),
-):
-    del current_user
-    items = crud.list_audit_entity_targets(db, entity_type)
-    return [AuditLogEntityOption(**item) for item in items]
