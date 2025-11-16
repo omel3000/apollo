@@ -55,7 +55,11 @@ SUBMITTABLE_REPORT_STATUSES = {
     WorkReportStatus.rejected,
     WorkReportStatus.draft,
 }
-REVIEWABLE_REPORT_STATUSES = {WorkReportStatus.pending}
+REVIEWABLE_REPORT_STATUSES = {
+    WorkReportStatus.pending,
+    WorkReportStatus.approved,
+    WorkReportStatus.rejected,
+}
 
 EDITABLE_ABSENCE_STATUSES = {AbsenceStatus.draft, AbsenceStatus.rejected}
 SUBMITTABLE_ABSENCE_STATUSES = {AbsenceStatus.draft, AbsenceStatus.rejected}
@@ -613,7 +617,9 @@ def review_work_report(db: Session, report_id: int, reviewer_id: int, review: Wo
     if not db_report:
         raise ValueError("Raport nie istnieje")
     if db_report.status not in REVIEWABLE_REPORT_STATUSES:
-        raise ValueError("Raport można zatwierdzić/odrzucić tylko w statusach 'oczekuje_na_akceptacje' lub 'zaakceptowany'")
+        raise ValueError(
+            "Raport można zatwierdzić/odrzucić tylko w statusach 'oczekuje_na_akceptacje', 'zaakceptowany' lub 'odrzucony'"
+        )
 
     _ensure_period_allows_edit(db, db_report.work_date)
 
