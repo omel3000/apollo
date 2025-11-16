@@ -2,9 +2,15 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import get_db
-from schemas import WorkReportCreate, WorkReportRead, MonthlySummary, MonthlySummaryRequest
-from crud import create_work_report, get_work_reports, delete_work_report, update_work_report, get_monthly_summary
-from auth import get_current_user, can_manage_work_report
+from schemas import (
+    WorkReportCreate, WorkReportRead, MonthlySummary, MonthlySummaryRequest,
+    HRMonthlyOverview, HRMonthlyOverviewRequest, MonthlyTrendItem, MonthlyTrendRequest
+)
+from crud import (
+    create_work_report, get_work_reports, delete_work_report, update_work_report, 
+    get_monthly_summary, get_hr_monthly_overview, get_monthly_trend
+)
+from auth import get_current_user, can_manage_work_report, admin_or_hr_required
 from models import User
 from datetime import date
 import models  
@@ -76,3 +82,29 @@ def get_monthly_summary_endpoint(
     # Zwracaj tylko podsumowanie bieżącego użytkownika
     summary = get_monthly_summary(db, current_user.user_id, request.month, request.year)
     return summary
+
+@router.post("/hr_monthly_overview", response_model=HRMonthlyOverview)
+def get_hr_monthly_overview_endpoint(
+    request: HRMonthlyOverviewRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required)
+):
+    """
+    Pełne podsumowanie miesiąca dla HR - wszystkie dane w jednym endpoincie.
+    Dostępne tylko dla admin/HR.
+    """
+    overview = get_hr_monthly_overview(db, request.month, request.year)
+    return overview
+
+@router.post("/monthly_trend", response_model=List[MonthlyTrendItem])
+def get_monthly_trend_endpoint(
+    request: MonthlyTrendRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required)
+):
+    """
+    Trend czasu pracy dla ostatnich N miesięcy.
+    Dostępne tylko dla admin/HR.
+    """
+    trend = get_monthly_trend(db, request.months)
+    return trend

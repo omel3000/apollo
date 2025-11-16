@@ -41,6 +41,8 @@
 | PUT | `/work_reports/{report_id}` | Aktualizacja raportu pracy | ✅* | ✅ | ✅ | ❌ |
 | DELETE | `/work_reports/{report_id}` | Usuwanie raportu pracy | ✅* | ✅ | ✅ | ❌ |
 | POST | `/work_reports/monthly_summary` | Miesięczne podsumowanie (dla siebie) | ✅* | ✅ | ✅ | ❌ |
+| POST | `/work_reports/hr_monthly_overview` | Pełne podsumowanie miesiąca HR (wszyscy + projekty) | ❌ | ✅ | ✅ | ❌ |
+| POST | `/work_reports/monthly_trend` | Trend czasu pracy (ostatnie N miesięcy) | ❌ | ✅ | ✅ | ❌ |
 | **PRZYDZIAŁY UŻYTKOWNIKÓW DO PROJEKTÓW** |||||||
 | POST | `/user_projects` | Przypisanie użytkownika do projektu | ❌ | ✅ | ✅ | ❌ |
 | GET | `/user_projects` | Odczyt przypisań użytkowników | ❌ | ✅ | ✅ | ❌ |

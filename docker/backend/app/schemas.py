@@ -361,6 +361,57 @@ class UserProjectMonthlySummary(BaseModel):
     total_minutes: int
 
 # ============================================================================
+# HR Monthly Overview schemas (nowa strona podsumowań)
+# ============================================================================
+
+class UserWithProjects(BaseModel):
+    """Użytkownik z projektami dla HR monthly overview"""
+    user_id: int
+    first_name: str
+    last_name: str
+    email: Optional[str] = None
+    phone_number: Optional[str] = None
+    total_hours: int
+    total_minutes: int
+    days_worked: int
+    projects: List[UserProjectMonthlySummary]
+
+class ProjectWithUsers(BaseModel):
+    """Projekt z użytkownikami dla HR monthly overview"""
+    project_id: int
+    project_name: str
+    total_hours: int
+    total_minutes: int
+    users: List[UserProjectTime]
+
+class HRMonthlyOverview(BaseModel):
+    """Pełne podsumowanie miesiąca dla HR"""
+    month: int
+    year: int
+    total_hours: int
+    total_minutes: int
+    total_users: int
+    total_projects: int
+    average_hours: int
+    average_minutes: int
+    users: List[UserWithProjects]
+    projects: List[ProjectWithUsers]
+
+class HRMonthlyOverviewRequest(BaseModel):
+    month: int  # 1-12
+    year: int
+
+class MonthlyTrendItem(BaseModel):
+    """Jedna pozycja trendu miesięcznego"""
+    month: int
+    year: int
+    total_hours: int
+    total_minutes: int
+
+class MonthlyTrendRequest(BaseModel):
+    months: int = 6  # Domyślnie ostatnie 6 miesięcy
+
+# ============================================================================
 # Availability schemas
 # ============================================================================
 

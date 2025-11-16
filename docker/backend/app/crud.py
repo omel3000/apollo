@@ -856,6 +856,199 @@ def get_projects_for_user(db: Session, user_id: int):
     return rows
 
 # ============================================================================
+# HR MONTHLY OVERVIEW CRUD functions (dla nowej strony HR)
+# ============================================================================
+
+def get_hr_monthly_overview(db: Session, month: int, year: int):
+    """
+    Zwraca pełne podsumowanie miesiąca dla HR:
+    - statystyki globalne
+    - użytkownicy z ich projektami
+    - projekty z ich użytkownikami
+    """
+    start_date = date(year, month, 1)
+    end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+    
+    # 1. Statystyki globalne
+    total_time = db.query(
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
+    ).filter(
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).first()
+    
+    total_hours_raw = total_time[0] or 0
+    total_minutes_raw = total_time[1] or 0
+    total_hours = total_hours_raw + (total_minutes_raw // 60)
+    total_minutes = total_minutes_raw % 60
+    
+    # 2. Lista użytkowników z czasem
+    users_data = get_users_with_time_in_month(db, month, year)
+    total_users = len(users_data)
+    
+    # Średnia
+    if total_users > 0:
+        avg_total_minutes = (total_hours * 60 + total_minutes) // total_users
+        average_hours = avg_total_minutes // 60
+        average_minutes = avg_total_minutes % 60
+    else:
+        average_hours = 0
+        average_minutes = 0
+    
+    # 3. Rozbuduj dane użytkowników o projekty i dni
+    users_with_projects = []
+    for user_data in users_data:
+        user_id = user_data['user_id']
+        
+        # Pobierz projekty użytkownika
+        projects = get_user_monthly_projects_summary(db, user_id, month, year)
+        
+        # Policz dni robocze
+        days_worked = db.query(func.count(func.distinct(WorkReport.work_date))).filter(
+            WorkReport.user_id == user_id,
+            WorkReport.work_date >= start_date,
+            WorkReport.work_date < end_date
+        ).scalar() or 0
+        
+        # Pobierz dane użytkownika (email, telefon)
+        user = get_user_by_id(db, user_id)
+        
+        users_with_projects.append({
+            'user_id': user_id,
+            'first_name': user_data['first_name'],
+            'last_name': user_data['last_name'],
+            'email': user.email if user else None,
+            'phone_number': user.phone_number if user else None,
+            'total_hours': user_data['total_hours'],
+            'total_minutes': user_data['total_minutes'],
+            'days_worked': days_worked,
+            'projects': projects
+        })
+    
+    # 4. Lista projektów z użytkownikami
+    projects_query = db.query(
+        Project.project_id,
+        Project.project_name,
+        func.sum(WorkReport.hours_spent).label("h"),
+        func.sum(WorkReport.minutes_spent).label("m"),
+    ).join(
+        WorkReport, WorkReport.project_id == Project.project_id
+    ).filter(
+        WorkReport.work_date >= start_date,
+        WorkReport.work_date < end_date
+    ).group_by(
+        Project.project_id, Project.project_name
+    ).having(
+        (func.coalesce(func.sum(WorkReport.hours_spent), 0) + func.coalesce(func.sum(WorkReport.minutes_spent), 0)) > 0
+    ).order_by(
+        Project.project_name.asc()
+    ).all()
+    
+    projects_with_users = []
+    for project_id, project_name, hours, minutes in projects_query:
+        hours = hours or 0
+        minutes = minutes or 0
+        proj_total_hours = hours + (minutes // 60)
+        proj_total_minutes = minutes % 60
+        
+        # Pobierz użytkowników projektu
+        users_in_project = db.query(
+            User.user_id,
+            User.first_name,
+            User.last_name,
+            func.sum(WorkReport.hours_spent).label("h"),
+            func.sum(WorkReport.minutes_spent).label("m"),
+        ).join(
+            WorkReport, WorkReport.user_id == User.user_id
+        ).filter(
+            WorkReport.project_id == project_id,
+            WorkReport.work_date >= start_date,
+            WorkReport.work_date < end_date
+        ).group_by(
+            User.user_id, User.first_name, User.last_name
+        ).order_by(
+            User.last_name, User.first_name
+        ).all()
+        
+        users_list = []
+        for user_id, first_name, last_name, u_hours, u_minutes in users_in_project:
+            u_hours = u_hours or 0
+            u_minutes = u_minutes or 0
+            u_total_hours = u_hours + (u_minutes // 60)
+            u_total_minutes = u_minutes % 60
+            users_list.append({
+                'user_id': user_id,
+                'first_name': first_name,
+                'last_name': last_name,
+                'total_hours': u_total_hours,
+                'total_minutes': u_total_minutes
+            })
+        
+        projects_with_users.append({
+            'project_id': project_id,
+            'project_name': project_name,
+            'total_hours': proj_total_hours,
+            'total_minutes': proj_total_minutes,
+            'users': users_list
+        })
+    
+    total_projects = len(projects_with_users)
+    
+    return {
+        'month': month,
+        'year': year,
+        'total_hours': total_hours,
+        'total_minutes': total_minutes,
+        'total_users': total_users,
+        'total_projects': total_projects,
+        'average_hours': average_hours,
+        'average_minutes': average_minutes,
+        'users': users_with_projects,
+        'projects': projects_with_users
+    }
+
+def get_monthly_trend(db: Session, months: int = 6):
+    """
+    Zwraca trend czasu pracy dla ostatnich N miesięcy.
+    """
+    from datetime import datetime
+    from dateutil.relativedelta import relativedelta
+    
+    today = datetime.now().date()
+    result = []
+    
+    for i in range(months - 1, -1, -1):
+        target_date = today - relativedelta(months=i)
+        month = target_date.month
+        year = target_date.year
+        
+        start_date = date(year, month, 1)
+        end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
+        
+        total_time = db.query(
+            func.sum(WorkReport.hours_spent),
+            func.sum(WorkReport.minutes_spent)
+        ).filter(
+            WorkReport.work_date >= start_date,
+            WorkReport.work_date < end_date
+        ).first()
+        
+        hours = total_time[0] or 0
+        minutes = total_time[1] or 0
+        total_hours = hours + (minutes // 60)
+        total_minutes = minutes % 60
+        
+        result.append({
+            'month': month,
+            'year': year,
+            'total_hours': total_hours,
+            'total_minutes': total_minutes
+        })
+    
+    return result
+
+# ============================================================================
 # AVAILABILITY CRUD functions
 # ============================================================================
 
