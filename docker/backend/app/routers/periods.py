@@ -2,7 +2,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
-from auth import admin_or_hr_required, admin_required, User
+from auth import admin_or_hr_required, admin_required, User, get_current_user
 from database import get_db
 from schemas import PeriodClosureRead, PeriodStatusUpdateRequest
 import crud
@@ -14,7 +14,7 @@ router = APIRouter()
 def list_periods(
     year: Optional[int] = Query(None, ge=2000, le=2100, description="Opcjonalny filtr po roku"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_hr_required),
+    current_user: User = Depends(get_current_user),
 ):
     return crud.list_periods(db, year)
 
@@ -24,7 +24,7 @@ def get_period(
     year: int = Path(..., ge=2000, le=2100, description="Rok okresu"),
     month: int = Path(..., ge=1, le=12, description="Miesiąc okresu"),
     db: Session = Depends(get_db),
-    current_user: User = Depends(admin_or_hr_required),
+    current_user: User = Depends(get_current_user),
 ):
     return crud.get_period(db, year, month)
 

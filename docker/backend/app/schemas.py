@@ -316,6 +316,7 @@ class MonthlySummary(BaseModel):
 class MonthlySummaryRequest(BaseModel):
     month: int  # Month as an integer (1-12)
     year: int   # Year as an integer
+    include_all_statuses: bool = False
 
 class ChangeEmailRequest(BaseModel):
     new_email: EmailStr

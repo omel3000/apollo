@@ -87,7 +87,7 @@ class WorkReport(Base):
     status = Column(
         Enum(WorkReportStatus, values_callable=enum_values),
         nullable=False,
-        default=WorkReportStatus.draft,
+        default=WorkReportStatus.pending,
     )
     submitted_at = Column(DateTime(timezone=True), nullable=True)
     approved_at = Column(DateTime(timezone=True), nullable=True)

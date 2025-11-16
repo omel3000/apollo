@@ -49,7 +49,7 @@ const PERIOD_STATUS_TEMPLATES = {
   }
 };
 
-const EDITABLE_REPORT_STATUSES = new Set(['roboczy', 'odrzucony']);
+const EDITABLE_REPORT_STATUSES = new Set(['roboczy', 'odrzucony', 'oczekuje_na_akceptacje']);
 const SUBMITTABLE_REPORT_STATUSES = new Set(['roboczy', 'odrzucony']);
 const PERIOD_EDITABLE_STATUSES = new Set(['otwarty', 'odblokowany']);
 
@@ -392,7 +392,7 @@ function buildReportForm(report, periodAllowsEdit = true) {
   } else if (isPending) {
     const pendingInfo = document.createElement('div');
     pendingInfo.className = 'alert alert-info mb-3';
-    pendingInfo.textContent = 'Wpis oczekuje na decyzję HR/Administratora. Nie wprowadzaj zmian, aby nie utracić kolejki.';
+    pendingInfo.textContent = 'Wpis oczekuje na decyzję HR/Administratora i możesz go poprawiać do chwili akceptacji – zapis utrzyma go w kolejce.';
     form.appendChild(pendingInfo);
   } else if (statusKey === 'zablokowany') {
     const lockedInfo = document.createElement('div');
@@ -1101,7 +1101,8 @@ async function loadReportedDatesForMonth() {
       },
       body: JSON.stringify({
         month: calMonth + 1, // Backend expects 1-12
-        year: calYear
+        year: calYear,
+        include_all_statuses: true
       })
     });
 

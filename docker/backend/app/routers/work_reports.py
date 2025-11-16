@@ -139,7 +139,13 @@ def get_monthly_summary_endpoint(
     current_user: User = Depends(get_current_user)
 ):
     # Zwracaj tylko podsumowanie bieżącego użytkownika
-    summary = get_monthly_summary(db, current_user.user_id, request.month, request.year)
+    summary = get_monthly_summary(
+        db,
+        current_user.user_id,
+        request.month,
+        request.year,
+        include_all_statuses=request.include_all_statuses,
+    )
     return summary
 
 @router.post("/hr_monthly_overview", response_model=HRMonthlyOverview)

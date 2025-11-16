@@ -46,9 +46,16 @@ from datetime import datetime, date, time
 from calendar import monthrange
 
 
-EDITABLE_REPORT_STATUSES = {WorkReportStatus.draft, WorkReportStatus.rejected}
-SUBMITTABLE_REPORT_STATUSES = {WorkReportStatus.draft, WorkReportStatus.rejected}
-REVIEWABLE_REPORT_STATUSES = {WorkReportStatus.pending, WorkReportStatus.approved}
+EDITABLE_REPORT_STATUSES = {
+    WorkReportStatus.pending,
+    WorkReportStatus.rejected,
+    WorkReportStatus.draft,
+}
+SUBMITTABLE_REPORT_STATUSES = {
+    WorkReportStatus.rejected,
+    WorkReportStatus.draft,
+}
+REVIEWABLE_REPORT_STATUSES = {WorkReportStatus.pending}
 
 EDITABLE_ABSENCE_STATUSES = {AbsenceStatus.draft, AbsenceStatus.rejected}
 SUBMITTABLE_ABSENCE_STATUSES = {AbsenceStatus.draft, AbsenceStatus.rejected}
@@ -416,6 +423,8 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
             f"Aktualnie zarejestrowano: {existing_display_hours}h {existing_display_minutes}min."
         )
 
+    now = datetime.now()
+
     db_report = WorkReport(
         user_id=user_id,
         project_id=report.project_id,
@@ -425,9 +434,13 @@ def create_work_report(db: Session, report: WorkReportCreate, user_id: int):
         description=report.description,
         time_from=report.time_from,
         time_to=report.time_to,
-        status=WorkReportStatus.draft
+        status=WorkReportStatus.pending,
+        submitted_at=now,
     )
     db.add(db_report)
+    db.flush()
+
+    _log_action(db, "work_report", db_report.report_id, "submit", user_id)
     db.commit()
     db.refresh(db_report)
     return db_report
@@ -471,7 +484,7 @@ def delete_work_report(db: Session, report_id: int):
         return False
 
     if db_report.status not in EDITABLE_REPORT_STATUSES:
-        raise ValueError("Raport można usunąć tylko w statusach 'roboczy' lub 'odrzucony'.")
+        raise ValueError("Raport można usunąć tylko w statusach 'oczekuje_na_akceptacje' lub 'odrzucony'.")
 
     _ensure_period_allows_edit(db, db_report.work_date)
 
@@ -485,7 +498,7 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
         return None
 
     if db_report.status not in EDITABLE_REPORT_STATUSES:
-        raise ValueError("Raport można edytować tylko w statusach 'roboczy' lub 'odrzucony'.")
+        raise ValueError("Raport można edytować tylko w statusach 'oczekuje_na_akceptacje' lub 'odrzucony'.")
 
     _ensure_period_allows_edit(db, db_report.work_date)
     _ensure_period_allows_edit(db, report_data.work_date)
@@ -560,6 +573,8 @@ def update_work_report(db: Session, report_id: int, report_data: WorkReportCreat
     db_report.project_id = report_data.project_id
     db_report.time_from = report_data.time_from
     db_report.time_to = report_data.time_to
+    if db_report.status == WorkReportStatus.pending:
+        db_report.submitted_at = datetime.now()
     db.commit()
     db.refresh(db_report)
     return db_report
@@ -697,20 +712,30 @@ def delete_user_project_assignment(db: Session, user_id: int, project_id: int):
         db.rollback()
         raise ValueError(f"Nie można usunąć przypisania: {str(e)}")
 
-def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
+def get_monthly_summary(
+    db: Session,
+    user_id: int,
+    month: int,
+    year: int,
+    include_all_statuses: bool = False,
+):
     start_date = date(year, month, 1)
     end_date = date(year, month + 1, 1) if month < 12 else date(year + 1, 1, 1)
 
-    # Pobierz sumę godzin i minut dla całego miesiąca
-    total_time = db.query(
-        func.sum(WorkReport.hours_spent),
-        func.sum(WorkReport.minutes_spent)
-    ).filter(
+    base_filters = [
         WorkReport.user_id == user_id,
         WorkReport.work_date >= start_date,
         WorkReport.work_date < end_date,
-        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
-    ).first()
+    ]
+    if not include_all_statuses:
+        base_filters.append(WorkReport.status.in_(SUMMARY_REPORT_STATUSES))
+
+    # Pobierz sumę godzin i minut dla całego miesiąca
+    total_time_query = db.query(
+        func.sum(WorkReport.hours_spent),
+        func.sum(WorkReport.minutes_spent)
+    ).filter(*base_filters)
+    total_time = total_time_query.first()
     
     total_hours_raw = total_time[0] or 0
     total_minutes_raw = total_time[1] or 0
@@ -719,16 +744,12 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
     total_minutes = total_minutes_raw % 60
 
     # Pobierz sumę godzin i minut dla każdego projektu
-    project_time = db.query(
+    project_time_query = db.query(
         WorkReport.project_id,
         func.sum(WorkReport.hours_spent),
         func.sum(WorkReport.minutes_spent)
-    ).filter(
-        WorkReport.user_id == user_id,
-        WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date,
-        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
-    ).group_by(WorkReport.project_id).all()
+    ).filter(*base_filters).group_by(WorkReport.project_id)
+    project_time = project_time_query.all()
 
     project_hours = {}
     for project_id, hours, minutes in project_time:
@@ -739,17 +760,14 @@ def get_monthly_summary(db: Session, user_id: int, month: int, year: int):
         project_hours[project_id] = {"hours": total_h, "minutes": total_m}
 
     # Pobierz dane dzienne z podziałem na projekty
-    daily_summaries = db.query(
+    daily_query = db.query(
         WorkReport.work_date,
         WorkReport.project_id,
         func.sum(WorkReport.hours_spent),
         func.sum(WorkReport.minutes_spent)
-    ).filter(
-        WorkReport.user_id == user_id,
-        WorkReport.work_date >= start_date,
-        WorkReport.work_date < end_date,
-        WorkReport.status.in_(SUMMARY_REPORT_STATUSES)
-    ).group_by(WorkReport.work_date, WorkReport.project_id).all()
+    ).filter(*base_filters).group_by(WorkReport.work_date, WorkReport.project_id)
+
+    daily_summaries = daily_query.all()
 
     daily_summary_dict = {}
     for work_date, project_id, hours, minutes in daily_summaries:
