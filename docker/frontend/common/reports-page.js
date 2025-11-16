@@ -802,6 +802,7 @@ function setupSaveHandler() {
 
       pendingWorkDate = workDate;
       await loadReportedDatesForMonth(); // Odśwież kalendarz
+      renderCalendar();
       refreshReportsIfReady();
     } catch (error) {
       alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
@@ -1031,6 +1032,7 @@ async function initCalendar() {
     calMonth = parseInt(monthSelect.value, 10);
     console.log('Month changed to:', calMonth);
     await loadReportedDatesForMonth();
+    renderCalendar();
     renderCalendar();
   });
   yearSelect.addEventListener('change', async () => {
@@ -1337,6 +1339,7 @@ async function handleSubmitReport(reportId) {
 
     alert('Wpis wysłany do akceptacji.');
     await loadReportedDatesForMonth();
+    renderCalendar();
     refreshReportsIfReady();
   } catch (error) {
     alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
@@ -1417,6 +1420,7 @@ async function handleUpdateReport(reportId, formElement) {
 
     alert('Wpis zaktualizowany!');
     await loadReportedDatesForMonth(); // Odśwież kalendarz
+    renderCalendar();
     refreshReportsIfReady();
   } catch (error) {
     alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
@@ -1450,6 +1454,7 @@ async function handleDeleteReport(reportId) {
 
     alert('Wpis usunięty!');
     await loadReportedDatesForMonth(); // Odśwież kalendarz
+    renderCalendar();
     refreshReportsIfReady();
   } catch (error) {
     alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
