@@ -306,6 +306,7 @@ class DailySummary(BaseModel):
     total_hours: int
     total_minutes: int
     project_hours: Dict[int, Dict[str, int]]  # Dictionary with project_id as key and dict with hours and minutes
+    has_rejected: bool = False
 
 class MonthlySummary(BaseModel):
     total_hours: int

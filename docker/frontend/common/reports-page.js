@@ -9,6 +9,7 @@ let mainProjectSelect = null;
 let calYear = null;   // 4-digit year
 let calMonth = null;  // 0-11
 let reportedDates = new Set(); // Set of 'YYYY-MM-DD' strings for days with reports
+let rejectedDates = new Set(); // Set of dates with at least one rejected raport
 const monthNamesPl = [
   'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
   'Lipiec', 'Sierpień', 'Wrzesień', 'Październik', 'Listopad', 'Grudzień'
@@ -1120,18 +1121,23 @@ async function loadReportedDatesForMonth() {
     
     // Wyczyść poprzednie daty
     reportedDates.clear();
+    rejectedDates.clear();
     
     // Dodaj daty z raportami
     if (data.daily_hours && Array.isArray(data.daily_hours)) {
       data.daily_hours.forEach(dayData => {
         if (dayData.date) {
           reportedDates.add(dayData.date);
-          console.log('Added reported date:', dayData.date);
+          if (dayData.has_rejected) {
+            rejectedDates.add(dayData.date);
+          }
+          console.log('Added reported date:', dayData.date, 'hasRejected:', !!dayData.has_rejected);
         }
       });
     }
     
     console.log('Reported dates loaded:', reportedDates.size, 'dates:', Array.from(reportedDates));
+    console.log('Rejected dates loaded:', rejectedDates.size, 'dates:', Array.from(rejectedDates));
   } catch (error) {
     console.error('Error loading reported dates:', error);
   }
@@ -1200,14 +1206,18 @@ function renderCalendar() {
         // Sprawdź czy jest raport
         const dateStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
         const hasReport = reportedDates.has(dateStr);
+        const hasRejected = rejectedDates.has(dateStr);
         
-        console.log(`Day ${day}: dateStr=${dateStr}, hasReport=${hasReport}, isWeekend=${isWeekend}, isHoliday=${isHoliday}`);
+        console.log(`Day ${day}: dateStr=${dateStr}, hasReport=${hasReport}, hasRejected=${hasRejected}, isWeekend=${isWeekend}, isHoliday=${isHoliday}`);
 
         // Priorytet kolorowania:
-        // 1. Weekend/święto z raportem -> fioletowy
-        // 2. Weekend/święto bez raportu -> jasny czerwony
-        // 3. Dzień roboczy z raportem -> pomarańczowy
-        if ((isWeekend || isHoliday) && hasReport) {
+        // 1. Dzień z odrzuconym wpisem -> intensywny czerwony
+        // 2. Weekend/święto z raportem -> fioletowy
+        // 3. Weekend/święto bez raportu -> jasny czerwony
+        // 4. Dzień roboczy z raportem -> pomarańczowy
+        if (hasRejected) {
+          btn.classList.add('rejected');
+        } else if ((isWeekend || isHoliday) && hasReport) {
           btn.classList.add('holiday-reported');
         } else if (isWeekend || isHoliday) {
           btn.classList.add('holiday');

@@ -775,6 +775,14 @@ def get_monthly_summary(
 
     daily_summaries = daily_query.all()
 
+    # Zbierz informacje o statusach dziennych
+    daily_flags = {}
+    status_rows = db.query(WorkReport.work_date, WorkReport.status).filter(*base_filters).all()
+    for work_date, status in status_rows:
+        flags = daily_flags.setdefault(work_date, {"has_rejected": False})
+        if status == WorkReportStatus.rejected:
+            flags["has_rejected"] = True
+
     daily_summary_dict = {}
     for work_date, project_id, hours, minutes in daily_summaries:
         hours = hours or 0
@@ -811,7 +819,8 @@ def get_monthly_summary(
             "date": str(work_date),
             "total_hours": summary["total_hours"],
             "total_minutes": summary["total_minutes"],
-            "project_hours": summary["project_hours"]
+            "project_hours": summary["project_hours"],
+            "has_rejected": daily_flags.get(work_date, {}).get("has_rejected", False)
         }
         for work_date, summary in sorted(daily_summary_dict.items())
     ]

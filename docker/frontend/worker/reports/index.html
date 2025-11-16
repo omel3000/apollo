@@ -23,11 +23,18 @@
             background-color: #e6ccff !important; /* Delikatny fioletowy - weekend/święto z raportem */
             color: #261C1E !important;
         }
+
+        #calGrid button[data-day].rejected {
+            background-color: #d90429 !important; /* Intensywny czerwony - dni z odrzuconym czasem */
+            color: #F2EEEB !important;
+            font-weight: 700 !important;
+        }
         
         /* Hover nadal działa */
         #calGrid button[data-day].holiday:hover,
         #calGrid button[data-day].reported:hover,
-        #calGrid button[data-day].holiday-reported:hover {
+        #calGrid button[data-day].holiday-reported:hover,
+        #calGrid button[data-day].rejected:hover {
             background-color: #BF6E50 !important;
             color: #F2EEEB !important;
             font-weight: 600 !important;
