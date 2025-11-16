@@ -26,7 +26,7 @@
     actionSelect: document.getElementById('actionFilter'),
     userSelect: document.getElementById('userFilter'),
     emailInput: document.getElementById('emailFilter'),
-    entityIdInput: document.getElementById('entityIdFilter'),
+    entitySelect: document.getElementById('entitySelect'),
     dateFromInput: document.getElementById('dateFrom'),
     dateToInput: document.getElementById('dateTo'),
     sortSelect: document.getElementById('sortSelect'),
@@ -64,7 +64,7 @@
 
   elements.actionSelect.addEventListener('change', () => {
     state.entityType = deriveEntityType(elements.actionSelect.value);
-    updateEntityPlaceholder();
+    updateEntitySelect(true);
   });
 
   elements.prevBtn.addEventListener('click', () => {
@@ -81,6 +81,8 @@
 
   async function fetchActions() {
     try {
+    state.entityType = null;
+    updateEntitySelect();
       const response = await fetch('/audit_logs/actions', { headers });
       if (!response.ok) throw new Error('Nie udało się pobrać listy akcji');
       const data = await response.json();
@@ -135,7 +137,9 @@
     }
     if (elements.userSelect.value) params.set('user_id', elements.userSelect.value);
     if (elements.emailInput.value) params.set('user_email', elements.emailInput.value.trim());
-    if (elements.entityIdInput.value) params.set('entity_id', elements.entityIdInput.value.trim());
+    if (elements.entitySelect && elements.entitySelect.value) {
+      params.set('entity_id', elements.entitySelect.value);
+    }
     if (elements.dateFromInput.value) params.set('date_from', elements.dateFromInput.value);
     if (elements.dateToInput.value) params.set('date_to', elements.dateToInput.value);
 
@@ -270,7 +274,8 @@
     if (log.entity_type && log.entity_id !== null && log.entity_id !== undefined) {
       const entityInfo = document.createElement('div');
       entityInfo.className = 'small text-muted';
-      entityInfo.textContent = `Encja: ${log.entity_type} (ID ${log.entity_id})`;
+      const label = log.entity_label ? `„${log.entity_label}”` : `ID ${log.entity_id}`;
+      entityInfo.textContent = `Encja: ${log.entity_type} (${label})`;
       cell.append(entityInfo);
     }
     return cell;
@@ -309,18 +314,47 @@
     return pathSegments[0];
   }
 
-  function updateEntityPlaceholder() {
-    if (!elements.entityIdInput) return;
-    if (state.entityType) {
-      elements.entityIdInput.placeholder = `ID dla ${state.entityType} (np. 42)`;
-      elements.entityIdInput.disabled = false;
-    } else {
-      elements.entityIdInput.placeholder = 'ID encji (opcjonalnie)';
-      elements.entityIdInput.disabled = false;
+  async function updateEntitySelect(shouldFetch = false) {
+    if (!elements.entitySelect) return;
+    if (!state.entityType) {
+      elements.entitySelect.innerHTML = '<option value="">Wszystkie encje</option>';
+      elements.entitySelect.disabled = true;
+      return;
+    }
+
+    if (!shouldFetch) {
+      elements.entitySelect.innerHTML = '<option value="">Wszystkie encje</option>';
+      elements.entitySelect.disabled = false;
+      return;
+    }
+
+    elements.entitySelect.disabled = true;
+    elements.entitySelect.innerHTML = '<option value="">Ładowanie...</option>';
+    try {
+      const response = await fetch(`/audit_logs/entity_targets?entity_type=${encodeURIComponent(state.entityType)}`, { headers });
+      if (!response.ok) throw new Error('Nie udało się pobrać listy encji');
+      const data = await response.json();
+      if (!Array.isArray(data) || data.length === 0) {
+        elements.entitySelect.innerHTML = '<option value="">Brak danych</option>';
+        elements.entitySelect.disabled = true;
+        return;
+      }
+      elements.entitySelect.innerHTML = '<option value="">Wszystkie encje</option>';
+      data.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.entity_id;
+        opt.textContent = item.label;
+        elements.entitySelect.appendChild(opt);
+      });
+      elements.entitySelect.disabled = false;
+    } catch (error) {
+      console.error(error);
+      elements.entitySelect.innerHTML = '<option value="">Brak danych</option>';
+      elements.entitySelect.disabled = true;
     }
   }
 
-  updateEntityPlaceholder();
+  updateEntitySelect();
   fetchActions();
   fetchUsers();
   fetchLogs();

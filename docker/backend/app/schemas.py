@@ -786,6 +786,7 @@ class AuditLogRead(BaseModel):
     user_agent: Optional[str]
     entity_type: Optional[str]
     entity_id: Optional[int]
+    entity_label: Optional[str]
     detail: Optional[str]
     duration_ms: Optional[int]
     created_at: datetime
@@ -805,4 +806,9 @@ class AuditLogUserOption(BaseModel):
     user_id: int
     user_email: Optional[str]
     user_role: Optional[str]
+
+
+class AuditLogEntityOption(BaseModel):
+    entity_id: int
+    label: str
 

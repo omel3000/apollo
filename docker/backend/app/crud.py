@@ -832,6 +832,7 @@ def get_monthly_summary(
         "total_minutes": total_minutes,
         "project_hours": project_hours,
         "daily_hours": daily_hours
+        "entity_label": AuditLog.entity_label,
     }
 
 def change_user_email(db: Session, user_id: int, new_email: str):
@@ -2202,10 +2203,10 @@ def list_audit_logs(
 
 def list_audit_log_actions(db: Session) -> List[str]:
     rows = (
-        db.query(AuditLog.action_group)
-        .filter(AuditLog.action_group.isnot(None))
+        db.query(func.coalesce(AuditLog.action_group, AuditLog.action))
+        .filter(AuditLog.action.isnot(None))
         .distinct()
-        .order_by(AuditLog.action_group.asc())
+        .order_by(func.coalesce(AuditLog.action_group, AuditLog.action).asc())
         .all()
     )
     return [row[0] for row in rows if row[0]]
@@ -2228,4 +2229,100 @@ def list_audit_log_users(db: Session) -> List[dict]:
         for row in rows
         if row[0] is not None
     ]
+
+
+def list_audit_entity_targets(db: Session, entity_type: str) -> List[dict]:
+    entity_type = (entity_type or "").lower()
+
+    if entity_type == "projects":
+        rows = db.query(Project.project_id, Project.project_name).order_by(Project.project_name.asc()).all()
+        return [
+            {"entity_id": row[0], "label": row[1] or f"Projekt #{row[0]}"}
+            for row in rows
+        ]
+
+    if entity_type == "users":
+        rows = (
+            db.query(User.user_id, User.first_name, User.last_name)
+            .order_by(User.last_name.asc(), User.first_name.asc())
+            .all()
+        )
+        return [
+            {
+                "entity_id": row[0],
+                "label": f"{row[1]} {row[2]}".strip() or f"Użytkownik #{row[0]}"
+            }
+            for row in rows
+        ]
+
+    if entity_type == "work_reports":
+        rows = (
+            db.query(WorkReport.report_id, WorkReport.work_date, User.first_name, User.last_name)
+            .join(User, User.user_id == WorkReport.user_id)
+            .order_by(WorkReport.work_date.desc(), WorkReport.report_id.desc())
+            .limit(500)
+            .all()
+        )
+        return [
+            {
+                "entity_id": row[0],
+                "label": f"Raport #{row[0]} ({row[1]}) - {row[2]} {row[3]}"
+            }
+            for row in rows
+        ]
+
+    if entity_type == "messages":
+        rows = db.query(Message.message_id, Message.title).order_by(Message.created_at.desc()).limit(200).all()
+        return [
+            {"entity_id": row[0], "label": row[1] or f"Komunikat #{row[0]}"}
+            for row in rows
+        ]
+
+    if entity_type == "absences":
+        rows = (
+            db.query(Absence.absence_id, Absence.date_from, Absence.date_to, User.first_name, User.last_name)
+            .join(User, User.user_id == Absence.user_id)
+            .order_by(Absence.date_from.desc())
+            .limit(200)
+            .all()
+        )
+        return [
+            {
+                "entity_id": row[0],
+                "label": f"Nieobecność #{row[0]} ({row[1]}–{row[2]}) {row[3]} {row[4]}"
+            }
+            for row in rows
+        ]
+
+    if entity_type == "schedule":
+        rows = (
+            db.query(Schedule.schedule_id, Schedule.work_date, User.first_name, User.last_name)
+            .join(User, User.user_id == Schedule.user_id)
+            .order_by(Schedule.work_date.desc())
+            .limit(200)
+            .all()
+        )
+        return [
+            {
+                "entity_id": row[0],
+                "label": f"Grafik #{row[0]} ({row[1]}) {row[2]} {row[3]}"
+            }
+            for row in rows
+        ]
+
+    if entity_type == "periods":
+        rows = (
+            db.query(PeriodClosure.period_closure_id, PeriodClosure.year, PeriodClosure.month, PeriodClosure.status)
+            .order_by(PeriodClosure.year.desc(), PeriodClosure.month.desc())
+            .all()
+        )
+        return [
+            {
+                "entity_id": row[0],
+                "label": f"Okres {row[1]}-{row[2]:02d} ({row[3].value if hasattr(row[3], 'value') else row[3]})"
+            }
+            for row in rows
+        ]
+
+    return []
 
