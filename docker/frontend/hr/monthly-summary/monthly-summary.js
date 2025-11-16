@@ -305,8 +305,8 @@ function renderProjectsChart() {
   const labels = filteredProjects.map(p => p.project_name);
   const data = filteredProjects.map(p => p.total_hours + p.total_minutes / 60);
   
-  // Generate colors using project-colors.js
-  const colors = filteredProjects.map((p, idx) => getProjectColor(p.project_id, idx));
+  // Generate colors using internal palette
+  const colors = filteredProjects.map((p, idx) => getProjectColorForChart(p.project_id, idx));
   
   projectsChart = new Chart(ctx, {
     type: 'doughnut',
@@ -897,22 +897,21 @@ function hideSpinner() {
   document.getElementById('loadingSpinner').classList.remove('show');
 }
 
-function getProjectColor(projectId, index) {
-  // Use project-colors.js if available
-  if (typeof window.getProjectColor === 'function') {
-    return window.getProjectColor(projectId, index);
-  }
-  
-  // Fallback colors
+function getProjectColorForChart(projectId, index) {
+  // Fallback colors - używamy zawsze wewnętrznej palety
   const colors = [
-    'rgba(191, 110, 80, 0.8)',
-    'rgba(115, 106, 101, 0.8)',
-    'rgba(212, 132, 92, 0.8)',
-    'rgba(242, 238, 235, 0.8)',
-    'rgba(38, 28, 30, 0.8)',
-    'rgba(100, 150, 200, 0.8)',
-    'rgba(200, 100, 150, 0.8)',
-    'rgba(150, 200, 100, 0.8)'
+    'rgba(46, 125, 50, 0.8)',    // Zielony
+    'rgba(25, 118, 210, 0.8)',   // Niebieski
+    'rgba(211, 47, 47, 0.8)',    // Czerwony
+    'rgba(245, 124, 0, 0.8)',    // Pomarańczowy
+    'rgba(123, 31, 162, 0.8)',   // Fioletowy
+    'rgba(0, 151, 167, 0.8)',    // Cyjan
+    'rgba(194, 24, 91, 0.8)',    // Różowy
+    'rgba(93, 64, 55, 0.8)',     // Brązowy
+    'rgba(97, 97, 97, 0.8)',     // Szary
+    'rgba(0, 121, 107, 0.8)',    // Morski
+    'rgba(230, 74, 25, 0.8)',    // Głęboka pomarańcza
+    'rgba(48, 63, 159, 0.8)'     // Indygo
   ];
   
   return colors[index % colors.length];
