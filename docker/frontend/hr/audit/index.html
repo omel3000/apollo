@@ -116,7 +116,7 @@
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
                 <div>
                     <h2 class="h2 mb-0">Dziennik zdarzeń systemowych</h2>
-                    <p class="text-muted mb-0">Monitoruj każdą operację wykonaną przez użytkowników</p>
+                    <p class="text-muted mb-0">Monitoruj akcje, które zmieniają dane (logowania, zapisy, akceptacje)</p>
                 </div>
             </div>
 
@@ -125,7 +125,10 @@
             <section class="card mb-4 shadow-sm">
                 <div class="card-header bg-white">
                     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
-                        <h5 class="mb-0">Filtry logów</h5>
+                        <div>
+                            <h5 class="mb-0">Filtry logów</h5>
+                            <p class="text-muted small mb-0">Rejestrowane są wyłącznie operacje modyfikujące dane oraz zdarzenia logowania.</p>
+                        </div>
                         <span class="badge text-bg-light" id="logsSummary">Ładowanie danych...</span>
                     </div>
                 </div>

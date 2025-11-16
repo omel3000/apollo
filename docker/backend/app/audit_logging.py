@@ -25,6 +25,23 @@ SENSITIVE_KEYS = {
 }
 IGNORED_PREFIXES = {"/docs", "/openapi", "/redoc"}
 IGNORED_METHODS = {"GET", "OPTIONS", "HEAD"}
+AUDITED_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
+ALWAYS_LOG_PATHS = {"/users/login"}
+# Ścieżki analityczne, które działają na POST, ale nie modyfikują danych
+READONLY_ANALYTICS_PATHS = {
+    "/work_reports/review_queue",
+    "/work_reports/monthly_summary",
+    "/work_reports/hr_monthly_overview",
+    "/work_reports/monthly_trend",
+    "/projects/monthly_summary",
+    "/projects/monthly_summary_with_users",
+    "/projects/user_detailed_report",
+    "/users/monthly_active_users",
+    "/users/monthly_projects",
+    "/users/user_project_detailed",
+    "/absences/review_queue",
+    "/schedule/month",
+}
 
 
 def _mask_sensitive(payload: Any) -> Any:
@@ -48,7 +65,7 @@ def _truncate(text: str) -> str:
 
 
 class AuditLoggingMiddleware(BaseHTTPMiddleware):
-    """Middleware zapisujący każdy request użytkownika do tabeli audit_logs."""
+    """Middleware zapisujący tylko istotne operacje użytkowników do tabeli audit_logs."""
 
     def __init__(self, app, ignored_paths: Optional[Set[str]] = None):
         super().__init__(app)
@@ -63,10 +80,19 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
         if self._should_skip(path):
             return await call_next(request)
 
+        action_group, normalized_path, entity_type, entity_id = self._normalize_action(request)
+        should_log = self._should_log_action(
+            method=method,
+            normalized_path=normalized_path,
+            manual_force=getattr(request.state, "audit_force", False),
+            manual_skip=getattr(request.state, "audit_skip", False),
+        )
+        if not should_log:
+            return await call_next(request)
+
         started_at = datetime.now(timezone.utc)
         body_summary = await self._extract_body_summary(request)
         query_summary = request.url.query or None
-        action_group, entity_type, entity_id = self._normalize_action(request)
 
         db = SessionLocal()
         user = self._resolve_user(request, db)
@@ -88,7 +114,7 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             raise
         finally:
             try:
-                if not self._should_skip(path):
+                if should_log and not self._should_skip(path):
                     self._persist_log(
                         db=db,
                         request=request,
@@ -114,7 +140,7 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             return True
         return any(path.startswith(prefix) for prefix in IGNORED_PREFIXES)
 
-    def _normalize_action(self, request: Request) -> Tuple[str, Optional[str], Optional[int]]:
+    def _normalize_action(self, request: Request) -> Tuple[str, str, Optional[str], Optional[int]]:
         path = request.url.path
         stripped = path.strip("/")
         segments = [segment for segment in stripped.split("/") if segment]
@@ -139,7 +165,40 @@ class AuditLoggingMiddleware(BaseHTTPMiddleware):
             normalized_path += "/"
 
         action_group = f"{request.method.upper()} {normalized_path}"
-        return action_group, entity_type, entity_id
+        return action_group, normalized_path, entity_type, entity_id
+
+    def _should_log_action(
+        self,
+        *,
+        method: str,
+        normalized_path: str,
+        manual_force: bool = False,
+        manual_skip: bool = False,
+    ) -> bool:
+        """Decyduje czy dane żądanie powinno trafić do logów audytu."""
+        if manual_skip:
+            return False
+        if manual_force:
+            return True
+
+        normalized_method = method.upper()
+        path_key = self._normalize_path_key(normalized_path)
+
+        if path_key in ALWAYS_LOG_PATHS:
+            return True
+        if normalized_method not in AUDITED_METHODS:
+            return False
+        if path_key in READONLY_ANALYTICS_PATHS:
+            return False
+        return True
+
+    @staticmethod
+    def _normalize_path_key(path: str) -> str:
+        """Ujednolica postać ścieżki do porównań konfiguracyjnych."""
+        lowered = path.lower()
+        if lowered == "/":
+            return "/"
+        return lowered.rstrip("/")
 
     async def _extract_body_summary(self, request: Request) -> Optional[str]:
         try:
