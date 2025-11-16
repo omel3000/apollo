@@ -31,6 +31,34 @@ const REPORT_STATUS_BADGES = {
 };
 
 const EDITABLE_REPORT_STATUSES = new Set(['roboczy', 'odrzucony', 'oczekuje_na_akceptacje']);
+const SUBMITTABLE_REPORT_STATUSES = new Set(['roboczy', 'odrzucony']);
+
+const PERIOD_STATUS_TEMPLATES = {
+  otwarty: {
+    className: 'alert-success',
+    message: 'Okres jest otwarty. Możesz swobodnie dodawać i edytować wpisy.'
+  },
+  odblokowany: {
+    className: 'alert-info',
+    message: 'Okres został ponownie odblokowany w celu wprowadzenia korekt. Pamiętaj o ponownym zgłoszeniu wpisów.'
+  },
+  oczekuje_na_zamkniecie: {
+    className: 'alert-warning',
+    message: 'Okres oczekuje na zamknięcie. Jak najszybciej wyślij wszystkie wpisy do akceptacji.'
+  },
+  zamkniety: {
+    className: 'alert-danger',
+    message: 'Okres jest zamknięty. Wpisy zostały zablokowane do korekty.'
+  }
+};
+
+const PERIOD_EDITABLE_STATUSES = new Set(['otwarty', 'odblokowany']);
+
+const periodStatusCache = new Map();
+let periodStatusAlert = null;
+let newEntryLockMessage = null;
+let currentPeriodInfo = null;
+let currentPeriodAllowsEdit = true;
 
 // Polskie święta (stałe i ruchome - przykładowe lata)
 const polishHolidays = {
@@ -121,6 +149,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   authHeader = token.toLowerCase().startsWith('bearer ') ? token : `Bearer ${token}`;
   reportsContainer = document.getElementById('existingReports');
   mainProjectSelect = document.getElementById('projektSelect');
+  periodStatusAlert = document.getElementById('periodStatusAlert');
+  newEntryLockMessage = document.getElementById('newEntryLockMessage');
   
   console.log('reports.js: Elements found - container:', !!reportsContainer, 'select:', !!mainProjectSelect);
 
@@ -225,6 +255,13 @@ async function loadReportsForDate(workDate) {
 
   setReportsContainerMessage('Ładowanie wpisów...');
 
+  let periodInfo = null;
+  try {
+    periodInfo = await syncPeriodStatus(workDate);
+  } catch (err) {
+    console.warn('Nie udało się pobrać statusu okresu:', err);
+  }
+
   try {
     const response = await fetch(`/work_reports/?work_date=${encodeURIComponent(workDate)}`, {
       headers: {
@@ -256,15 +293,16 @@ async function loadReportsForDate(workDate) {
       }
       return (a.report_id || 0) - (b.report_id || 0);
     });
-
-    renderReports(sorted);
+    const periodAllowsEdit = isPeriodEditable(periodInfo?.status);
+    renderReports(sorted, { periodAllowsEdit });
   } catch (error) {
     console.error(error);
     setReportsContainerMessage('Nie udało się pobrać wpisów.');
   }
 }
 
-function renderReports(reports) {
+function renderReports(reports, options = {}) {
+  const periodAllowsEdit = options.periodAllowsEdit !== undefined ? options.periodAllowsEdit : true;
   if (!reportsContainer) {
     return;
   }
@@ -279,7 +317,7 @@ function renderReports(reports) {
 
   const fragment = document.createDocumentFragment();
   reports.forEach(report => {
-    fragment.appendChild(buildReportForm(report));
+    fragment.appendChild(buildReportForm(report, periodAllowsEdit));
   });
   reportsContainer.appendChild(fragment);
   updateTotalTime(reports);
@@ -302,11 +340,12 @@ function updateTotalTime(reports) {
   }
 }
 
-function buildReportForm(report) {
+function buildReportForm(report, periodAllowsEdit = true) {
   const statusKey = report.status || 'roboczy';
   const statusLabel = REPORT_STATUS_LABELS[statusKey] || statusKey;
   const statusClass = REPORT_STATUS_BADGES[statusKey] || 'bg-secondary';
-  const canEdit = EDITABLE_REPORT_STATUSES.has(statusKey);
+  const canEdit = periodAllowsEdit && EDITABLE_REPORT_STATUSES.has(statusKey);
+  const canSubmit = periodAllowsEdit && SUBMITTABLE_REPORT_STATUSES.has(statusKey);
   const isPending = statusKey === 'oczekuje_na_akceptacje';
 
   const card = document.createElement('div');
@@ -338,6 +377,13 @@ function buildReportForm(report) {
   timeline.textContent = buildReportTimeline(report);
   statusRow.appendChild(timeline);
   form.appendChild(statusRow);
+
+  if (!periodAllowsEdit) {
+    const lockInfo = document.createElement('div');
+    lockInfo.className = 'alert alert-warning mb-3';
+    lockInfo.textContent = 'Okres rozliczeniowy został zablokowany – edycja tego wpisu nie jest możliwa.';
+    form.appendChild(lockInfo);
+  }
 
   if (statusKey === 'odrzucony' && report.reviewer_comment) {
     const rejectionAlert = document.createElement('div');
@@ -508,8 +554,17 @@ function buildReportForm(report) {
   }
 
   const buttonGroup = document.createElement('div');
-  buttonGroup.className = 'd-flex gap-2';
+  buttonGroup.className = 'd-flex flex-wrap gap-2';
   
+  if (canSubmit) {
+    const submitButton = document.createElement('button');
+    submitButton.type = 'button';
+    submitButton.className = 'btn btn-success';
+    submitButton.innerHTML = '<i class="bi bi-send-check me-1"></i>Wyślij do akceptacji';
+    submitButton.addEventListener('click', () => handleSubmitReport(report.report_id));
+    buttonGroup.appendChild(submitButton);
+  }
+
   const saveButton = document.createElement('button');
   saveButton.type = 'button';
   saveButton.className = 'btn btn-primary btn-save-changes';
@@ -645,6 +700,10 @@ function setupSaveHandler() {
 
   saveButton.addEventListener('click', async (event) => {
     event.preventDefault();
+    if (!currentPeriodAllowsEdit) {
+      alert('Ten okres rozliczeniowy jest zamknięty. Odblokuj go, aby dodać nowy wpis.');
+      return;
+    }
 
     const projectSelectElement = document.getElementById('projektSelect');
     const projectId = parseInt(projectSelectElement.value, 10);
@@ -1244,6 +1303,39 @@ function notifyWorkDateChange(dateObj) {
   }
 }
 
+async function handleSubmitReport(reportId) {
+  if (!currentPeriodAllowsEdit) {
+    alert('Okres rozliczeniowy jest zablokowany. Nie można wysłać wpisu do akceptacji.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/work_reports/${reportId}/submit`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return;
+    }
+
+    if (!response.ok) {
+      const message = await safeReadText(response);
+      throw new Error(message || 'Nie udało się wysłać wpisu do akceptacji');
+    }
+
+    alert('Wpis wysłany do akceptacji.');
+    await loadReportedDatesForMonth();
+    refreshReportsIfReady();
+  } catch (error) {
+    alert('Błąd: ' + (error && error.message ? error.message : 'Nieznany błąd'));
+  }
+}
+
 async function handleUpdateReport(reportId, formElement) {
   console.log('handleUpdateReport: Updating report', reportId);
   
@@ -1398,4 +1490,141 @@ function buildReportTimeline(report) {
     parts.push(`Utworzono: ${formatDateTime(report.created_at)}`);
   }
   return parts.join(' • ') || 'Brak historii zmian';
+}
+
+function parseIsoDate(isoDate) {
+  if (!isoDate || typeof isoDate !== 'string') {
+    return { year: null, month: null };
+  }
+  const [yearStr, monthStr] = isoDate.split('-');
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  if (!Number.isFinite(year) || !Number.isFinite(month)) {
+    return { year: null, month: null };
+  }
+  return { year, month };
+}
+
+function isPeriodEditable(status) {
+  if (!status) {
+    return true;
+  }
+  return PERIOD_EDITABLE_STATUSES.has(status);
+}
+
+async function syncPeriodStatus(isoDate) {
+  const { year, month } = parseIsoDate(isoDate);
+  if (!year || !month) {
+    return null;
+  }
+
+  const cacheKey = `${year}-${String(month).padStart(2, '0')}`;
+  const cached = periodStatusCache.get(cacheKey);
+  if (cached && (Date.now() - cached.fetchedAt) < 60_000) {
+    renderPeriodBanner(cached.data);
+    return cached.data;
+  }
+
+  try {
+    const response = await fetch(`/periods/${year}/${month}`, {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      handleUnauthorized();
+      return null;
+    }
+
+    if (!response.ok) {
+      throw new Error(await safeReadText(response));
+    }
+
+    const data = await response.json();
+    periodStatusCache.set(cacheKey, { data, fetchedAt: Date.now() });
+    renderPeriodBanner(data);
+    return data;
+  } catch (error) {
+    console.warn('Nie udało się zsynchronizować okresu:', error);
+    renderPeriodBanner(null);
+    return null;
+  }
+}
+
+function renderPeriodBanner(periodInfo) {
+  currentPeriodInfo = periodInfo;
+  currentPeriodAllowsEdit = isPeriodEditable(periodInfo?.status);
+  toggleNewEntryForm(currentPeriodAllowsEdit, periodInfo);
+
+  if (!periodStatusAlert) {
+    return;
+  }
+
+  if (!periodInfo) {
+    periodStatusAlert.className = 'alert d-none';
+    periodStatusAlert.textContent = '';
+    return;
+  }
+
+  const template = PERIOD_STATUS_TEMPLATES[periodInfo.status] || {
+    className: 'alert-info',
+    message: 'Status okresu został zaktualizowany.'
+  };
+  const monthName = monthNamesPl[(periodInfo.month || 1) - 1] || '';
+  periodStatusAlert.className = `alert ${template.className}`;
+  periodStatusAlert.textContent = '';
+
+  const header = document.createElement('div');
+  const strong = document.createElement('strong');
+  strong.textContent = `${monthName} ${periodInfo.year}`;
+  header.appendChild(strong);
+
+  const message = document.createElement('div');
+  message.textContent = template.message;
+
+  periodStatusAlert.replaceChildren(header, message);
+
+  if (periodInfo.notes) {
+    const note = document.createElement('div');
+    note.className = 'small text-muted mt-2';
+    note.textContent = `Notatka: ${periodInfo.notes}`;
+    periodStatusAlert.appendChild(note);
+  }
+
+  periodStatusAlert.classList.remove('d-none');
+}
+
+function toggleNewEntryForm(canEdit, periodInfo) {
+  const form = document.getElementById('reportForm');
+  if (!form) {
+    return;
+  }
+
+  const inputs = form.querySelectorAll('input, select, textarea');
+  inputs.forEach((el) => {
+    el.disabled = !canEdit;
+  });
+
+  const buttons = form.querySelectorAll('button');
+  buttons.forEach((btn) => {
+    if (btn.type === 'submit' || btn.type === 'reset') {
+      btn.disabled = !canEdit;
+    }
+  });
+
+  if (!newEntryLockMessage) {
+    return;
+  }
+
+  if (canEdit) {
+    newEntryLockMessage.classList.add('d-none');
+    newEntryLockMessage.textContent = '';
+  } else {
+    const monthName = periodInfo ? (monthNamesPl[(periodInfo.month || 1) - 1] || '') : 'Ten okres';
+    const year = periodInfo?.year ? ` ${periodInfo.year}` : '';
+    newEntryLockMessage.textContent = `${monthName}${year} jest zamknięty. Poczekaj na odblokowanie przez HR/Administratora.`;
+    newEntryLockMessage.classList.remove('d-none');
+  }
 }
