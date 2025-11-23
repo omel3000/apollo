@@ -523,5 +523,257 @@ Poniżej znajduje się lista kluczowych encji (tabel) bazy danych systemu schron
 - Pole: ID_Weterynarza (kto podał)
 
 ---
+## 5. Baza danych kod:
+
+-- (opcjonalnie) utworzenie bazy
+CREATE DATABASE IF NOT EXISTS twoj_zwierzak
+  DEFAULT CHARACTER SET utf8mb4
+  DEFAULT COLLATE utf8mb4_unicode_ci;
+
+USE twoj_zwierzak;
+
+-- 4.1 ZWIERZĘ
+CREATE TABLE zwierze (
+    id_zwierzecia INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    gatunek VARCHAR(50) NOT NULL,                   -- pies, kot, królik itd.
+    rasa VARCHAR(100) NULL,
+    imie VARCHAR(100) NULL,
+    wiek_lata TINYINT UNSIGNED NULL,
+    wiek_miesiecy TINYINT UNSIGNED NULL,
+    plec ENUM('SAMIEC','SAMICA','NIEZNANA') NOT NULL DEFAULT 'NIEZNANA',
+    waga_kg DECIMAL(5,2) NULL,
+    kolor VARCHAR(100) NULL,
+    znaki_szczegolne TEXT NULL,
+    numer_mikroczipu VARCHAR(50) NULL UNIQUE,
+    data_przyjecia DATE NOT NULL,
+    status ENUM(
+        'NOWE',
+        'NA_KWARANTANNIE',
+        'NA_OPIECE_MEDYCZNEJ',
+        'PRZYGOTOWANE_DO_ADOPCJI',
+        'NIEDOSTEPNE_DO_ADOPCJI',
+        'ZAREZERWOWANE',
+        'ADOPTOWANE',
+        'ZWROCONE',
+        'ZMARLE'
+    ) NOT NULL DEFAULT 'NOWE',
+    data_sterylizacji DATE NULL,
+    przyczyna_przyjecia ENUM('ZNALEZIONY','ODDANY','INNE') NOT NULL DEFAULT 'INNE',
+    notatki_ogolne TEXT NULL
+) ENGINE=InnoDB;
+
+-- 4.2 ADOPTANT
+CREATE TABLE adoptant (
+    id_adoptanta INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    imie VARCHAR(100) NOT NULL,
+    nazwisko VARCHAR(100) NOT NULL,
+    data_urodzenia DATE NULL,
+    typ_dokumentu VARCHAR(50) NULL,
+    numer_dokumentu VARCHAR(50) NULL,
+    adres_ulica VARCHAR(100) NULL,
+    adres_numer VARCHAR(20) NULL,
+    adres_kod VARCHAR(10) NULL,
+    adres_miasto VARCHAR(100) NULL,
+    numer_telefonu VARCHAR(30) NULL,
+    email VARCHAR(150) NULL,
+    data_rejestracji DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    liczba_poprzednich_adopcji INT UNSIGNED NOT NULL DEFAULT 0,
+    status ENUM('AKTYWNY','ZABLOKOWANY','NIEAKTYWNY') NOT NULL DEFAULT 'AKTYWNY',
+    notatki_dodatkowe TEXT NULL
+) ENGINE=InnoDB;
+
+-- 4.3 PRACOWNIK
+CREATE TABLE pracownik (
+    id_pracownika INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    imie VARCHAR(100) NOT NULL,
+    nazwisko VARCHAR(100) NOT NULL,
+    stanowisko ENUM('WETERYNARZ','PRACOWNIK_OPIEKI','BOAIP','INNE') NOT NULL,
+    data_zatrudnienia DATE NOT NULL,
+    typ_umowy VARCHAR(50) NULL,
+    kwalifikacje TEXT NULL,
+    telefon_sluzbowy VARCHAR(30) NULL,
+    email_sluzbowy VARCHAR(150) NULL
+) ENGINE=InnoDB;
+
+-- pomocnicza "perspektywa" na weterynarzy (logicznie)
+-- (fizycznie używamy tabeli pracownik + stanowisko='WETERYNARZ')
+
+-- 4.4 HISTORIA OPIEKI
+CREATE TABLE historia_opieki (
+    id_historii INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_zwierzecia INT UNSIGNED NOT NULL,
+    data_czynnosci DATETIME NOT NULL,
+    czynnosc ENUM(
+        'KARMIENIE',
+        'SPACER',
+        'ZABIEGI_HIGIENICZNE',
+        'OBSERVACJA_BEHAWIORALNA',
+        'INNE'
+    ) NOT NULL,
+    id_pracownika INT UNSIGNED NULL,
+    notatki TEXT NULL,
+    CONSTRAINT fk_historia_zwierze
+        FOREIGN KEY (id_zwierzecia)
+        REFERENCES zwierze(id_zwierzecia)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_historia_pracownik
+        FOREIGN KEY (id_pracownika)
+        REFERENCES pracownik(id_pracownika)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 4.5 WIZYTA WETERYNARZA
+CREATE TABLE wizyta_weterynarza (
+    id_wizyty INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_zwierzecia INT UNSIGNED NOT NULL,
+    data_wizyty DATETIME NOT NULL,
+    id_weterynarza INT UNSIGNED NOT NULL,
+    typ_wizyty ENUM(
+        'BADANIE_PROFILAKTYCZNE',
+        'LECZENIE',
+        'SZCZEPIENIE',
+        'STERYLIZACJA',
+        'INNE'
+    ) NOT NULL,
+    obserwacje TEXT NULL,
+    diagnoza TEXT NULL,
+    zalecenia_leczenia TEXT NULL,
+    przepisane_leki TEXT NULL,
+    CONSTRAINT fk_wizyta_zwierze
+        FOREIGN KEY (id_zwierzecia)
+        REFERENCES zwierze(id_zwierzecia)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_wizyta_weterynarz
+        FOREIGN KEY (id_weterynarza)
+        REFERENCES pracownik(id_pracownika)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 4.6 PROCES ADOPCJI
+CREATE TABLE proces_adopcji (
+    id_procesu INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_zwierzecia INT UNSIGNED NOT NULL,
+    id_adoptanta INT UNSIGNED NOT NULL,
+    data_zgloszenia DATETIME NOT NULL,
+    data_ankiety DATETIME NULL,
+    data_weryfikacji DATETIME NULL,
+    status_weryfikacji ENUM('W_TRAKCIE','ZAAKCEPTOWANY','ODRZUCONY') NOT NULL DEFAULT 'W_TRAKCIE',
+    data_adopcji DATETIME NULL,
+    dodatkowe_notatki TEXT NULL,
+    CONSTRAINT fk_proces_zwierze
+        FOREIGN KEY (id_zwierzecia)
+        REFERENCES zwierze(id_zwierzecia)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_proces_adoptant
+        FOREIGN KEY (id_adoptanta)
+        REFERENCES adoptant(id_adoptanta)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 4.7 DARCZYŃCA (pomocnicza tabela dla darowizn)
+CREATE TABLE darczynca (
+    id_darczyncy INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nazwa VARCHAR(150) NOT NULL,        -- osoba lub firma
+    typ ENUM('OSOBA_FIZYCZNA','FIRMA') NOT NULL DEFAULT 'OSOBA_FIZYCZNA',
+    numer_telefonu VARCHAR(30) NULL,
+    email VARCHAR(150) NULL,
+    adres_ulica VARCHAR(100) NULL,
+    adres_numer VARCHAR(20) NULL,
+    adres_kod VARCHAR(10) NULL,
+    adres_miasto VARCHAR(100) NULL,
+    notatki TEXT NULL
+) ENGINE=InnoDB;
+
+-- 4.7 DAROWIZNA
+CREATE TABLE darowizna (
+    id_darowizny INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_darczyncy INT UNSIGNED NULL,
+    typ_darowizny ENUM('PIENIEZNA','MATERIALNA') NOT NULL,
+    kwota DECIMAL(10,2) NULL,
+    przedmiot VARCHAR(255) NULL,
+    ilosc DECIMAL(10,2) NULL,
+    data_darowizny DATETIME NOT NULL,
+    notatki TEXT NULL,
+    CONSTRAINT fk_darowizna_darczynca
+        FOREIGN KEY (id_darczyncy)
+        REFERENCES darczynca(id_darczyncy)
+        ON DELETE SET NULL
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 4.8 ANKIETA ADOPCYJNA
+CREATE TABLE ankieta_adopcyjna (
+    id_ankiety INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_adoptanta INT UNSIGNED NOT NULL,
+    id_zwierzecia INT UNSIGNED NOT NULL,
+    data_wypelnienia DATETIME NOT NULL,
+    odp_doswiadczenie TEXT NULL,
+    odp_warunki_mieszkaniowe TEXT NULL,
+    odp_styl_zycia TEXT NULL,
+    odp_przeznaczenie TEXT NULL,
+    odp_inne TEXT NULL,
+    notatki_pracownika TEXT NULL,
+    CONSTRAINT fk_ankieta_adoptant
+        FOREIGN KEY (id_adoptanta)
+        REFERENCES adoptant(id_adoptanta)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_ankieta_zwierze
+        FOREIGN KEY (id_zwierzecia)
+        REFERENCES zwierze(id_zwierzecia)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 4.9 UMOWA ADOPCJI
+CREATE TABLE umowa_adopcji (
+    id_umowy INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_zwierzecia INT UNSIGNED NOT NULL,
+    id_adoptanta INT UNSIGNED NOT NULL,
+    data_podpisania DATETIME NOT NULL,
+    numer_umowy VARCHAR(50) NOT NULL UNIQUE,
+    -- w realnym systemie skan PDF raczej trzymamy poza DB; tu symbolicznie:
+    sciezka_pliku_pdf VARCHAR(255) NULL,
+    CONSTRAINT fk_umowa_zwierze
+        FOREIGN KEY (id_zwierzecia)
+        REFERENCES zwierze(id_zwierzecia)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_umowa_adoptant
+        FOREIGN KEY (id_adoptanta)
+        REFERENCES adoptant(id_adoptanta)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- 4.10 SZCZEPIENIA
+CREATE TABLE szczepienie (
+    id_szczepienia INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    id_zwierzecia INT UNSIGNED NOT NULL,
+    data_szczepienia DATE NOT NULL,
+    typ_szczepienia VARCHAR(100) NOT NULL,
+    producent VARCHAR(100) NULL,
+    numer_serii VARCHAR(50) NULL,
+    data_waznosci DATE NULL,
+    id_weterynarza INT UNSIGNED NOT NULL,
+    CONSTRAINT fk_szczepienie_zwierze
+        FOREIGN KEY (id_zwierzecia)
+        REFERENCES zwierze(id_zwierzecia)
+        ON DELETE CASCADE
+        ON UPDATE CASCADE,
+    CONSTRAINT fk_szczepienie_weterynarz
+        FOREIGN KEY (id_weterynarza)
+        REFERENCES pracownik(id_pracownika)
+        ON DELETE RESTRICT
+        ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+
 
 ## Koniec Sprawozdania
