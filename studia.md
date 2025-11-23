@@ -42,18 +42,31 @@ Pragnąc osiągnąć najwyższą jakość wykonywanych usług i wspierać wszyst
 #### Ścieżka procesu:
 
 2.1.1. Zwierzę zgłaszane jest do schroniska osobiście przez osobę znalazcę lub poprzedniego właściciela, bądź telefonicznie przez osobę trzecią
+
 2.1.2. Pracownik BOAiP rejestruje podstawowe informacje o zgłaszającym (imię, nazwisko, kontakt, powód przekazania zwierzęcia)
+
 2.1.3. Pracownik BOAiP gromadzi wstępne informacje o zwierzęciu (gatunek, przybliżony wiek, płeć, kolor, szczególne znaki)
+
 2.1.4. Pracownik BOAiP dokonuje wstępnej oceny stanu zdrowotnego zwierzęcia (widoczne urazy, proszę, ogólny wygląd)
+
 2.1.5. W przypadku natychmiastowego zagrożenia życia zwierzęcia (poważne urazy, trudności oddychania, szok), pracownik BOAiP organizuje niezwłoczny transport do kliniki weterynaryjnej partnerskiej lub wzywa pogotowie weterynarne
+
 2.1.6. W przypadku zwykłych przyjęć pracownik BOAiP przydzieluje zwierzęciu unikatowy numer identyfikacyjny w systemie
+
 2.1.7. Pracownik BOAiP wypisuje Zgłoszenie Przyjęcia zawierające wszystkie zebrane dane
+
 2.1.8. Jeśli zwierzę nie posiada mikroczipu, pracownik BOAiP przygotowuje wniosek o implantację mikroczipu i rejestrację w Krajowej Ewidencji
+
 2.1.9. Pracownik BOAiP tworzy Kartę Zwierzęcia w systemie informatycznym i uzupełnia ją wstępnymi danymi
+
 2.1.10. Pracownik BOAiP planuje wstępne badanie weterynaryjne i wpisuje termin do kalendarza
+
 2.1.11. Zwierzę jest transportowane do przydzielonego terenu schroniska (kwarantanna dla nowych przyjęć lub oddział główny)
+
 2.1.12. Pracownik opieki przyjmuje zwierzę, dokumentuje warunki przyjęcia i przystępuje do wstępnej oprawy
+
 2.1.13. Pracownik BOAiP przekazuje Kartę Zwierzęcia oddziałowi opieki
+
 
 #### Dokumenty wytwarzane:
 - Zgłoszenie Przyjęcia
@@ -70,25 +83,45 @@ Pragnąc osiągnąć najwyższą jakość wykonywanych usług i wspierać wszyst
 #### Ścieżka procesu:
 
 2.2.1. Weterynarz schroniska przeprowadza kompleksowe badanie kliniczne nowego przychodzącego zwierzęcia
+
 2.2.2. Weterynarz dokumentuje wyniki badania: temperatura ciała, kondycja, stanu serca, oddychania, uzębienia, stan skóry, obserwacje behawioralne
+
 2.2.3. Weterynarz dokonuje diagnozy wstępnej i określa zakres koniecznych badań diagnostycznych (badania laboratoryjne, USG, rentgen, testy na pasożyty)
+
 2.2.4. Laborant schroniska (lub laboratorium partnerskie) wykonuje zlecone badania diagnostyczne
+
 2.2.5. Weterynarz analizuje wyniki badań i postawia ostateczną diagnozę lub listę podejrzeń
+
 2.2.6. Weterynarz ustala kompleksowy plan leczenia i opieki dla zwierzęcia, uwzględniając jego stan zdrowotny, wiek, typ oraz wymagania behawioralne
+
 2.2.7. Weterynarz dokumentuje plan leczenia w Karcie Zwierzęcia oraz wypisuje zlecenia dla personelu opiekuńczego
+
 2.2.8. Pracownicy opieki wykonują zlecone procedury medyczne: podawanie lekarstw, zabiegi pielęgnacyjne, zmianę opatrunku
+
 2.2.9. Pracownicy opieki przeprowadzają zaplanowane zabiegi premedyczne: szczepienia, odrobaczanie, leczenie ectoparazytów
+
 2.2.10. Jeśli wymagana jest sterylizacja/kastracja, weterynarz planuje zabieg, przygotowuje dokumentację i dokonuje procedury chirurgicznej
+
 2.2.11. W okresie pooperacyjnym pracownicy opieki monitorują gojenie się ran i zapobiegają powikłaniom
+
 2.2.12. Pracownicy opieki zapewniają codzienną opiekę: karmienie według ustalonej diety, podawanie wody, spacery (dla psów i kotów), zajęcia edukacyjne
+
 2.2.13. Pracownicy opieki dbają o higienę: czyszczenie klatek/wybiegów, zabiegi higieniczne zwierząt, zmiana pościeli
+
 2.2.14. Pracownicy opieki monitorują zachowanie zwierzęcia, stawiają wstępne diagnozy behawioralne, obserwują interakcje ze zwierzętami i ludźmi
+
 2.2.15. Pracownicy opieki przeprowadzają wstępną socjalizację i treningi podstawowe (zwłaszcza dla psów): przyzwyczajanie do smyczy, podstawowe komendy, przyzwyczajanie do obsługi
+
 2.2.16. Weterynarz przeprowadza przeglądy periodyczne każdego zwierzęcia, monitoruje skuteczność leczenia, koryguje plany opieki w razie potrzeby
+
 2.2.17. Pracownicy opieki aktualizują Kartę Zwierzęcia codziennie: notatki o zachowaniu, pojawiających się objawach, skuteczności leczenia
+
 2.2.18. Po osiągnięciu przez zwierzę stanu zdrowotnego i psychicznego pozwalającego na adopcję, weterynarz wydaje opinię o gotowości do adopcji
+
 2.2.19. Zwierzę jest klasyfikowane jako „Przygotowane do Adopcji" i wpisane do katalogu dostępnych zwierząt
+
 2.2.20. Karta Zwierzęcia jest uzupełniana podsumowaniem: rekomendacje dla przyszłego właściciela, lista zawartych szczepień, data sterylizacji
+
 
 #### Dokumenty wytwarzane:
 - Raport badania wstępnego
@@ -108,26 +141,47 @@ Pragnąc osiągnąć najwyższą jakość wykonywanych usług i wspierać wszyst
 #### Ścieżka procesu:
 
 2.3.1. Potencjalny adoptant zgłasza się do BOAiP osobiście, telefonicznie lub poprzez formularz internetowy
+
 2.3.2. Pracownik BOAiP gromadzi wstępne informacje: imię i nazwisko, wiek, typ mieszkania, doświadczenie ze zwierzętami
+
 2.3.3. Pracownik BOAiP przeprowadza wstępną rozmowę kwalifikacyjną, wyjaśniając wymagania schroniska i procedury adopcji
+
 2.3.4. Pracownik BOAiP przedstawia dostępne zwierzęta pasujące do profilu adoptanta oraz rekomenduje najbardziej odpowiednie zwierzęta
+
 2.3.5. Jeśli adoptant jest zainteresowany konkretnym zwierzęciem, pracownik BOAiP wyznacza wizytę poznawczą
+
 2.3.6. Adopant przybywa do schroniska w umówionej godzinie i jest zapoznawany ze zwierzęciem w kontrolowanym środowisku
+
 2.3.7. Pracownik BOAiP obserwuje interakcje między adoptantem a zwierzęciem i ocenia kompatybilność
+
 2.3.8. Po pozytywnym pierwszym spotkaniu adopant otrzymuje formalną Ankietę Adopcyjną do wypełnienia
+
 2.3.9. Ankieta zawiera pytania o: warunki mieszkaniowe, historię doświadczenia ze zwierzętami, przyczyny adopcji, plany na przyszłość, gotowość na zobowiązanie
+
 2.3.10. Pracownik BOAiP weryfikuje zebrane informacje - może kontaktować się z referencjami podanymi przez adoptanta
+
 2.3.11. W przypadku wątpliwości pracownik BOAiP organizuje wizytę domową u potencjalnego adoptanta, aby ocenić warunki mieszkaniowe i gotowość do przyjęcia zwierzęcia
+
 2.3.12. Na podstawie rozmów, Ankiety i wizyt pracownik BOAiP podejmuje decyzję: Akceptacja lub Odrzucenie wniosku
+
 2.3.13. W przypadku akceptacji, jeśli adoptant jest „pierwszorazowy" w systemie, pracownik BOAiP tworzy Kartę Adoptanta zawierającą pełne dane kontaktowe i identyfikacyjne
+
 2.3.14. Pracownik BOAiP informuje adoptanta o decyzji pozytywnej i umawia termin ostatecznej adopcji
+
 2.3.15. Przed przyjściem adoptanta, pracownik BOAiP przygotowuje wszystkie dokumenty: Umowę Adopcji, Zaświadczenie o Adopcji, kopie szczepień zwierzęcia, rekomendacje opieki
+
 2.3.16. Adoptant przybywa w umówioną datę do BOAiP z dokumentem tożsamości
+
 2.3.17. Pracownik BOAiP przeprowadza podsumowanie procedury adopcji, wyjaśnia warunki umowy, odpowiada na ostatnie pytania
+
 2.3.18. Adopant i pracownik BOAiP (w imieniu schroniska) podpisują Umowę Adopcji w trzech egzemplarzach (jeden dla adoptanta, jeden dla schroniska, jeden dla zwierzęcia)
+
 2.3.19. Pracownik BOAiP wystawia i podpisuje Zaświadczenie o Adopcji
+
 2.3.20. Pracownik BOAiP wpisuje dane adoptanta na Kartę Zwierzęcia oraz aktualizuje status zwierzęcia na „Adoptowane"
+
 2.3.21. Pracownik BOAiP przygotowuje „Paczkę Adoptanta" zawierającą: kopię szczepień, instrukcje opieki, kontakt do schroniska na wypadek pytań, informacje o ubezpieczeniu zwierzęcia (jeśli dostępne)
+
 2.3.22. Adopant otrzymuje zwierzę i opuszcza schronisko z pełną dokumentacją
 
 #### Dokumenty wytwarzane:
@@ -147,23 +201,41 @@ Pragnąc osiągnąć najwyższą jakość wykonywanych usług i wspierać wszyst
 #### Ścieżka procesu:
 
 2.4.1. Po upływie 1 tygodnia od adopcji, pracownik BOAiP kontaktuje się z adoptantem w celu wstępnej weryfikacji
+
 2.4.2. Pracownik BOAiP pyta o warunki adaptacji zwierzęcia, ewentualne problemy zdrowotne lub behawioralne
+
 2.4.3. Pracownik BOAiP dokumentuje raport z rozmowy w systemie
+
 2.4.4. Po upływie 1 miesiąca od adopcji, pracownik BOAiP ponownie kontaktuje się z adoptantem - wizyta kontrolna lub rozmowa
+
 2.4.5. Jeśli adopant zgłasza problemy behawioralne, pracownik BOAiP oferuje poradnictwo lub konsultacje behawiorystyczne
+
 2.4.6. Jeśli adopant zgłasza problemy zdrowotne, pracownik BOAiP informuje weterynarza i oferuje kontakt do lekarza weterynarii partnerskiego
+
 2.4.7. Pracownik BOAiP regularnie (co 3 miesiące) nawiązuje kontakt z adoptantem w celu monitorowania dobrostanu zwierzęcia
+
 2.4.8. Pracownik BOAiP zbiera opinię adoptanta na temat zadowolenia z adopcji i możliwości poprawy procedur
+
 2.4.9. Schronisko oferuje adoptantom dostęp do bezpłatnych lub zniżkowych badań weterynaryjnych organizowanych periodycznie
+
 2.4.10. Schronisko oferuje adoptantom udział w warsztatach: obchodzenie się ze zwierzęciem, podstawy tresury, nutrition, pierwsze pomocy
+
 2.4.11. Schronisko prowadzi newsletter z informacjami o akcjach, zmianach procedur, nowych dostępnych zwierzętach
+
 2.4.12. Adoptant ma prawo kontaktu z schroniskiem w razie zaistnienia nieprzewidzianych okoliczności (przeprowadzka, choroba, utrata pracy)
+
 2.4.13. W przypadku zagrożenia dobrostanem zwierzęcia, adoptant jest zobowiązany natychmiast poinformować schronisko
+
 2.4.14. Jeśli adopant chce zwrócić zwierzę, pracownik BOAiP bezwarunkowo przyjmuje zwierzę z powrotem do schroniska bez żadnych kar dla adoptanta
+
 2.4.15. W przypadku powrotu zwierzęcia do schroniska, pracownik BOAiP przeprowadza badanie zwierzęcia, ocenia jego stan zdrowotny i psychiczny
+
 2.4.16. Zwierzę zwrócone jest poddawane ponownie procesom leczenia i socjalizacji (jeśli wymagane) oraz wpisane do katalogu dostępnych zwierząt
+
 2.4.17. Karta Zwierzęcia jest aktualizowana informacją o zwróceniu oraz powodami powrotu
+
 2.4.18. Pracownik BOAiP dokumentuje historię zwrotu i uczy się z niej dla przyszłych adopcji
+
 2.4.19. Pracownik BOAiP archiwizuje wszystkie dokumenty związane z daną adopcją w rejestrze historycznym
 
 #### Dokumenty wytwarzane:
