@@ -102,35 +102,7 @@
             <div id="scheduleError" class="alert alert-danger d-none" role="alert"></div>
 
             <div class="row g-4">
-                <div class="col-xl-8">
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
-                                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Nawigacja po miesiącach</h5>
-                                <span id="schedulePeriodLabel" class="fw-semibold"></span>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="schedule-toolbar">
-                                <div class="schedule-toolbar__nav">
-                                    <button type="button" id="schedulePrevMonth" class="btn btn-outline-secondary btn-sm" title="Poprzedni miesiąc">
-                                        <i class="bi bi-chevron-left"></i>
-                                    </button>
-                                    <button type="button" id="scheduleCurrentMonth" class="btn btn-primary btn-sm">
-                                        Bieżący miesiąc
-                                    </button>
-                                    <button type="button" id="scheduleNextMonth" class="btn btn-outline-secondary btn-sm" title="Następny miesiąc">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </button>
-                                </div>
-                                <div class="schedule-toolbar__selects">
-                                    <select id="scheduleMonthSelect" class="form-select form-select-sm" aria-label="Wybierz miesiąc"></select>
-                                    <select id="scheduleYearSelect" class="form-select form-select-sm" aria-label="Wybierz rok"></select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                <div class="col-xxl-5 col-xl-6">
                     <div class="card shadow-sm mb-4 schedule-filters">
                         <div class="card-header">
                             <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtry</h5>
@@ -176,18 +148,6 @@
                     </div>
 
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Kalendarz grafiku</h5>
-                        </div>
-                        <div class="card-body">
-                            <div id="scheduleLoader" class="schedule-loader text-muted"></div>
-                            <div id="scheduleCalendarGrid" class="schedule-grid"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xl-4">
-                    <div class="card shadow-sm mb-4">
                         <div class="card-header bg-primary text-white">
                             <h5 class="mb-0"><i class="bi bi-clipboard2-check me-2"></i>Szczegóły dnia</h5>
                         </div>
@@ -204,17 +164,60 @@
                             <p class="text-muted mb-0">Brak danych do podsumowania.</p>
                         </div>
                     </div>
+                </div>
+
+                <div class="col-xxl-7 col-xl-6">
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Nawigacja po miesiącach</h5>
+                                <span id="schedulePeriodLabel" class="fw-semibold"></span>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="schedule-toolbar">
+                                <div class="schedule-toolbar__nav">
+                                    <button type="button" id="schedulePrevMonth" class="btn btn-outline-secondary btn-sm" title="Poprzedni miesiąc">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </button>
+                                    <button type="button" id="scheduleCurrentMonth" class="btn btn-primary btn-sm">
+                                        Bieżący miesiąc
+                                    </button>
+                                    <button type="button" id="scheduleNextMonth" class="btn btn-outline-secondary btn-sm" title="Następny miesiąc">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </button>
+                                </div>
+                                <div class="schedule-toolbar__selects">
+                                    <select id="scheduleMonthSelect" class="form-select form-select-sm" aria-label="Wybierz miesiąc"></select>
+                                    <select id="scheduleYearSelect" class="form-select form-select-sm" aria-label="Wybierz rok"></select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Kalendarz grafiku</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="scheduleLoader" class="schedule-loader text-muted"></div>
+                            <div class="schedule-mini-calendar">
+                                <div id="scheduleCalendarWeekdays" class="schedule-mini-calendar__weekdays"></div>
+                                <div id="scheduleCalendarGrid" class="schedule-mini-calendar__days"></div>
+                            </div>
+                        </div>
+                    </div>
 
                     <div class="card shadow-sm">
                         <div class="card-header">
                             <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Legenda</h5>
                         </div>
                         <div class="card-body schedule-legend">
-                            <div class="mb-2"><span><span class="schedule-legend__box" style="background-color:rgba(191,110,80,0.12);border:1px solid rgba(191,110,80,0.55);"></span>Dzień z widocznymi wpisami</span></div>
-                            <div class="mb-2"><span><span class="schedule-legend__box" style="background-color:#e0d7cf;"></span>Brak wpisów po filtrach</span></div>
-                            <div class="mb-2"><span><span class="schedule-legend__box" style="background-color:#f2eeeb;border:1px solid #d9d1ca;"></span>Brak grafiku</span></div>
-                            <div class="mb-2"><span><span class="schedule-legend__box" style="background-color:#bf6e50;"></span>Zaznaczony dzień</span></div>
-                            <div class="mb-0"><span><span class="schedule-legend__box" style="background-color:#0d6efd;"></span>Dzisiaj</span></div>
+                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#c8e6c9;"></span>Dzień z widocznymi wpisami</div>
+                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#fff9c4;"></span>Wpisy ukryte przez filtr</div>
+                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#f2eeeb;"></span>Brak grafiku</div>
+                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#bf6e50;"></span>Zaznaczony dzień</div>
+                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#0d6efd;"></span>Dzisiaj</div>
                         </div>
                     </div>
                 </div>
