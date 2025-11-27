@@ -400,12 +400,16 @@
     button.className = 'schedule-day';
     button.setAttribute('data-date', iso);
 
-    if (filteredEntries.length > 0) {
-      button.classList.add('schedule-day--busy');
-    } else if (entries.length > 0) {
-      button.classList.add('schedule-day--no-match');
-    } else {
-      button.classList.add('schedule-day--empty');
+    const styleConfig = resolveDayStyle(entries, filteredEntries);
+    button.classList.add(`schedule-day--${styleConfig.state}`);
+    if (styleConfig.background) {
+      button.style.setProperty('--schedule-day-bg', styleConfig.background);
+    }
+    if (styleConfig.border) {
+      button.style.setProperty('--schedule-day-border', styleConfig.border);
+    }
+    if (styleConfig.text) {
+      button.style.setProperty('--schedule-day-text', styleConfig.text);
     }
 
     if (iso === state.selectedDate) {
@@ -417,20 +421,22 @@
     }
 
     const dateEl = document.createElement('span');
-    dateEl.className = 'schedule-day__date';
+    dateEl.className = 'schedule-day__number';
     dateEl.textContent = dayNumber;
     button.appendChild(dateEl);
 
-    if (filteredEntries.length > 0) {
+    if (filteredEntries.length > 1) {
       const badge = document.createElement('span');
       badge.className = 'schedule-day__badge';
       badge.textContent = filteredEntries.length;
       badge.title = formatEntryCount(filteredEntries.length);
       button.appendChild(badge);
-    } else if (entries.length > 0) {
+    }
+
+    if (filteredEntries.length === 0 && entries.length > 0) {
       const hint = document.createElement('span');
       hint.className = 'schedule-day__hint';
-      hint.textContent = 'ukryte';
+      hint.textContent = 'filtry';
       hint.title = 'Brak wpisów po filtrach';
       button.appendChild(hint);
     }
@@ -438,6 +444,38 @@
     button.title = buildDayTooltip(entries, filteredEntries);
 
     return button;
+  }
+
+  function resolveDayStyle(entries, filteredEntries) {
+    if (filteredEntries.length === 0) {
+      if (entries.length === 0) {
+        return {
+          state: 'empty',
+          background: '#f9f6f3',
+          border: '#e3dad3',
+          text: '#b3a9a3'
+        };
+      }
+      return {
+        state: 'no-match',
+        background: '#ede5df',
+        border: '#d0c5be',
+        text: '#6f635d'
+      };
+    }
+
+    const reference = pickHighlightEntry(filteredEntries);
+    const baseColor = getEntryColor(reference);
+    return {
+      state: 'busy',
+      background: tintColor(baseColor, 0.78),
+      border: baseColor,
+      text: '#2b1f1b'
+    };
+  }
+
+  function pickHighlightEntry(entries) {
+    return entries.find(entry => entry.shift_type && entry.shift_type !== 'normalna') || entries[0];
   }
 
   function highlightSelectedDay() {
@@ -745,6 +783,38 @@
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
     return `${hours}h ${minutes}min`;
+  }
+
+  function tintColor(hex, amount = 0.8) {
+    const rgb = hexToRgb(hex);
+    if (!rgb) {
+      return '#f4ede7';
+    }
+    const ratio = Math.min(Math.max(amount, 0), 1);
+    const r = Math.round(rgb.r + (255 - rgb.r) * ratio);
+    const g = Math.round(rgb.g + (255 - rgb.g) * ratio);
+    const b = Math.round(rgb.b + (255 - rgb.b) * ratio);
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  function hexToRgb(hex) {
+    if (!hex) {
+      return null;
+    }
+    let value = hex.replace('#', '').trim();
+    if (value.length === 3) {
+      value = value.split('').map(char => char + char).join('');
+    }
+    if (value.length !== 6) {
+      return null;
+    }
+    const r = parseInt(value.slice(0, 2), 16);
+    const g = parseInt(value.slice(2, 4), 16);
+    const b = parseInt(value.slice(4, 6), 16);
+    if ([r, g, b].some(Number.isNaN)) {
+      return null;
+    }
+    return { r, g, b };
   }
 
   function getEntryColor(entry) {
