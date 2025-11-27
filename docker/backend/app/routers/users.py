@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+from fastapi import APIRouter, Depends, HTTPException, status, Header
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from fastapi.security import OAuth2PasswordRequestForm
 from database import get_db
-from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest, UserUpdate, AdminSetPasswordRequest
+from schemas import UserCreate, UserRead, ChangeEmailRequest, ChangePasswordRequest, UserUpdate, AdminSetPasswordRequest, EmergencyPasswordResetRequest
 from crud import (
     create_user, get_user_by_email, get_user_by_id, delete_user,
     change_user_email, change_user_password, update_user,
@@ -151,6 +152,29 @@ def admin_set_password(
     try:
         change_user_password(db, user_id, request.new_password)
         return {"message": "Hasło zostało zresetowane"}
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+
+@router.post("/emergency/reset-password")
+def emergency_reset_password(
+    payload: EmergencyPasswordResetRequest,
+    db: Session = Depends(get_db),
+    emergency_token: Optional[str] = Header(default=None, alias="X-Emergency-Token")
+):
+    expected_token = os.getenv("EMERGENCY_PASSWORD_RESET_TOKEN")
+    if not expected_token:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Endpoint awaryjny jest wyłączony")
+    if not emergency_token or emergency_token != expected_token:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Nieprawidłowy token autoryzujący reset hasła")
+
+    target = get_user_by_id(db, payload.user_id)
+    if not target:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Użytkownik nie istnieje")
+
+    try:
+        change_user_password(db, payload.user_id, payload.new_password)
+        return {"message": "Hasło zostało zresetowane przez awaryjny endpoint"}
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
