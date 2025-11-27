@@ -337,7 +337,6 @@
       renderDayDetails(state.selectedDate);
     }
     updateStats(visibleEntries, visibleUsers.size);
-    updateMonthSummary();
   }
 
   function renderCalendar() {
@@ -347,69 +346,34 @@
     }
     grid.innerHTML = '';
 
-    const table = document.createElement('table');
-    table.className = 'schedule-calendar__table';
-
-    const thead = document.createElement('thead');
-    const headRow = document.createElement('tr');
-    const weekDays = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
-    weekDays.forEach(name => {
-      const th = document.createElement('th');
-      th.textContent = name;
-      headRow.appendChild(th);
-    });
-    thead.appendChild(headRow);
-    table.appendChild(thead);
-
-    const tbody = document.createElement('tbody');
-    const firstOfMonth = new Date(state.currentYear, state.currentMonth, 1);
-    const offset = (firstOfMonth.getDay() + 6) % 7; // Monday-first
     const daysInMonth = getDaysInMonth(state.currentYear, state.currentMonth);
-    const totalCells = Math.ceil((daysInMonth + offset) / 7) * 7;
+    const fragment = document.createDocumentFragment();
 
-    let currentDay = 1;
-    let row;
-    for (let cell = 0; cell < totalCells; cell += 1) {
-      if (cell % 7 === 0) {
-        row = document.createElement('tr');
-        tbody.appendChild(row);
-      }
-      const td = document.createElement('td');
-      if (cell >= offset && currentDay <= daysInMonth) {
-        const iso = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
-        const entries = state.dataByDate.get(iso) || [];
-        const filteredEntries = state.filteredByDate.get(iso) || [];
-        const button = createDayCard(currentDay, iso, entries, filteredEntries);
-        td.appendChild(button);
-        currentDay += 1;
-      } else {
-        td.classList.add('schedule-calendar__placeholder');
-        td.innerHTML = '&nbsp;';
-      }
-      row.appendChild(td);
+    for (let day = 1; day <= daysInMonth; day += 1) {
+      const iso = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      const entries = state.dataByDate.get(iso) || [];
+      const filteredEntries = state.filteredByDate.get(iso) || [];
+      const card = createDayCard(day, iso, entries, filteredEntries);
+      fragment.appendChild(card);
     }
 
-    table.appendChild(tbody);
-    grid.appendChild(table);
+    if (fragment.childNodes.length === 0) {
+      grid.innerHTML = '<p class="text-muted">Brak danych dla tego miesiąca.</p>';
+      return;
+    }
+
+    grid.appendChild(fragment);
     highlightSelectedDay();
   }
 
   function createDayCard(dayNumber, iso, entries, filteredEntries) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'schedule-day';
+    button.className = 'schedule-day btn btn-light text-start';
     button.setAttribute('data-date', iso);
 
-    const styleConfig = resolveDayStyle(entries, filteredEntries);
-    button.classList.add(`schedule-day--${styleConfig.state}`);
-    if (styleConfig.background) {
-      button.style.setProperty('--schedule-day-bg', styleConfig.background);
-    }
-    if (styleConfig.border) {
-      button.style.setProperty('--schedule-day-border', styleConfig.border);
-    }
-    if (styleConfig.text) {
-      button.style.setProperty('--schedule-day-text', styleConfig.text);
+    if (entries.length > 0) {
+      button.classList.add('schedule-day--busy');
     }
 
     if (iso === state.selectedDate) {
@@ -420,62 +384,53 @@
       button.classList.add('schedule-day--today');
     }
 
-    const dateEl = document.createElement('span');
-    dateEl.className = 'schedule-day__number';
-    dateEl.textContent = dayNumber;
-    button.appendChild(dateEl);
+    const date = new Date(iso);
+    const header = document.createElement('div');
+    header.className = 'schedule-day__header';
+    header.innerHTML = `
+      <span class="schedule-day__date">${dayNumber}</span>
+      <span class="schedule-day__weekday">${weekdayShort[date.getDay()]}</span>
+    `;
+    button.appendChild(header);
 
-    if (filteredEntries.length > 1) {
-      const badge = document.createElement('span');
-      badge.className = 'schedule-day__badge';
-      badge.textContent = filteredEntries.length;
-      badge.title = formatEntryCount(filteredEntries.length);
-      button.appendChild(badge);
+    if (filteredEntries.length === 0) {
+      const emptyMsg = document.createElement('div');
+      emptyMsg.className = 'schedule-day__empty';
+      emptyMsg.textContent = entries.length > 0 ? 'Brak wpisów po filtrach' : 'Brak wpisów';
+      button.appendChild(emptyMsg);
+      return button;
     }
 
-    if (filteredEntries.length === 0 && entries.length > 0) {
-      const hint = document.createElement('span');
-      hint.className = 'schedule-day__hint';
-      hint.textContent = 'filtry';
-      hint.title = 'Brak wpisów po filtrach';
-      button.appendChild(hint);
+    const chipsContainer = document.createElement('div');
+    chipsContainer.className = 'schedule-day__chips';
+
+    const topEntries = filteredEntries.slice(0, 3);
+    topEntries.forEach(entry => {
+      const chip = document.createElement('span');
+      chip.className = 'schedule-chip';
+      if (entry.project_id === null || entry.shift_type !== 'normalna') {
+        chip.classList.add('schedule-chip--absence');
+      }
+      chip.style.backgroundColor = getEntryColor(entry);
+      chip.textContent = chipLabel(entry);
+      chipsContainer.appendChild(chip);
+    });
+
+    if (filteredEntries.length > topEntries.length) {
+      const moreChip = document.createElement('span');
+      moreChip.className = 'schedule-chip schedule-chip--muted';
+      moreChip.textContent = `+${filteredEntries.length - topEntries.length}`;
+      chipsContainer.appendChild(moreChip);
     }
 
-    button.title = buildDayTooltip(entries, filteredEntries);
+    button.appendChild(chipsContainer);
+
+    const count = document.createElement('div');
+    count.className = 'schedule-day__count';
+    count.textContent = formatEntryCount(filteredEntries.length);
+    button.appendChild(count);
 
     return button;
-  }
-
-  function resolveDayStyle(entries, filteredEntries) {
-    if (filteredEntries.length === 0) {
-      if (entries.length === 0) {
-        return {
-          state: 'empty',
-          background: '#f9f6f3',
-          border: '#e3dad3',
-          text: '#b3a9a3'
-        };
-      }
-      return {
-        state: 'no-match',
-        background: '#ede5df',
-        border: '#d0c5be',
-        text: '#6f635d'
-      };
-    }
-
-    const reference = pickHighlightEntry(filteredEntries);
-    const baseColor = getEntryColor(reference);
-    return {
-      state: 'busy',
-      background: tintColor(baseColor, 0.78),
-      border: baseColor,
-      text: '#2b1f1b'
-    };
-  }
-
-  function pickHighlightEntry(entries) {
-    return entries.find(entry => entry.shift_type && entry.shift_type !== 'normalna') || entries[0];
   }
 
   function highlightSelectedDay() {
@@ -563,64 +518,6 @@
     label.textContent = `${monthNames[state.currentMonth]} ${state.currentYear}`;
   }
 
-  function updateMonthSummary() {
-    const container = document.getElementById('scheduleMonthSummary');
-    if (!container || !state.currentUser) {
-      return;
-    }
-
-    let totalMinutes = 0;
-    const perProject = new Map();
-
-    state.dataByDate.forEach(entries => {
-      entries.forEach(entry => {
-        if (entry.user_id !== state.currentUser.user_id) {
-          return;
-        }
-        const duration = getDurationInMinutes(entry.time_from, entry.time_to);
-        totalMinutes += duration;
-        const key = entry.project_id === null ? `shift-${entry.shift_type}` : `project-${entry.project_id}`;
-        const label = entry.project_name || labelForShift(entry.shift_type);
-        if (!perProject.has(key)) {
-          perProject.set(key, { label, minutes: 0 });
-        }
-        perProject.get(key).minutes += duration;
-      });
-    });
-
-    container.innerHTML = '';
-
-    if (totalMinutes === 0) {
-      container.innerHTML = '<p class="text-muted mb-0">Brak wpisów w tym miesiącu.</p>';
-      return;
-    }
-
-    const totalBox = document.createElement('div');
-    totalBox.className = 'schedule-summary__total';
-    totalBox.innerHTML = `
-      <small class="text-muted d-block mb-1">Łącznie w miesiącu</small>
-      <strong>${formatDuration(totalMinutes)}</strong>
-    `;
-    container.appendChild(totalBox);
-
-    const list = document.createElement('ul');
-    list.className = 'schedule-summary__list';
-
-    Array.from(perProject.values())
-      .sort((a, b) => b.minutes - a.minutes)
-      .forEach(item => {
-        const li = document.createElement('li');
-        li.className = 'schedule-summary__item';
-        li.innerHTML = `
-          <span>${item.label}</span>
-          <span>${formatDuration(item.minutes)}</span>
-        `;
-        list.appendChild(li);
-      });
-
-    container.appendChild(list);
-  }
-
   function updateStats(entriesCount, usersCount) {
     const summary = document.getElementById('scheduleStats');
     if (!summary) {
@@ -692,21 +589,6 @@
     return labelForShift(entry.shift_type);
   }
 
-  function buildDayTooltip(entries, filteredEntries) {
-    if (filteredEntries.length > 0) {
-      return filteredEntries
-        .map(entry => {
-          const label = entry.project_name || entry.project_code || labelForShift(entry.shift_type);
-          return `${entry.user_full_name || entry.short_name}: ${label}`;
-        })
-        .join('\n');
-    }
-    if (entries.length > 0) {
-      return `Brak wpisów po filtrach (łącznie ${formatEntryCount(entries.length)})`;
-    }
-    return 'Brak wpisów';
-  }
-
   function renderCheckboxList(containerId, items, options) {
     const container = document.getElementById(containerId);
     if (!container) {
@@ -765,56 +647,6 @@
       return forms[1];
     }
     return forms[2];
-  }
-
-  function getDurationInMinutes(from, to) {
-    return timeStringToMinutes(to) - timeStringToMinutes(from);
-  }
-
-  function timeStringToMinutes(value) {
-    if (!value) {
-      return 0;
-    }
-    const [hours, minutes] = value.split(':').map(Number);
-    return (hours || 0) * 60 + (minutes || 0);
-  }
-
-  function formatDuration(totalMinutes) {
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${hours}h ${minutes}min`;
-  }
-
-  function tintColor(hex, amount = 0.8) {
-    const rgb = hexToRgb(hex);
-    if (!rgb) {
-      return '#f4ede7';
-    }
-    const ratio = Math.min(Math.max(amount, 0), 1);
-    const r = Math.round(rgb.r + (255 - rgb.r) * ratio);
-    const g = Math.round(rgb.g + (255 - rgb.g) * ratio);
-    const b = Math.round(rgb.b + (255 - rgb.b) * ratio);
-    return `rgb(${r}, ${g}, ${b})`;
-  }
-
-  function hexToRgb(hex) {
-    if (!hex) {
-      return null;
-    }
-    let value = hex.replace('#', '').trim();
-    if (value.length === 3) {
-      value = value.split('').map(char => char + char).join('');
-    }
-    if (value.length !== 6) {
-      return null;
-    }
-    const r = parseInt(value.slice(0, 2), 16);
-    const g = parseInt(value.slice(2, 4), 16);
-    const b = parseInt(value.slice(4, 6), 16);
-    if ([r, g, b].some(Number.isNaN)) {
-      return null;
-    }
-    return { r, g, b };
   }
 
   function getEntryColor(entry) {
