@@ -105,22 +105,32 @@
   align-items: center;
 }
 
+.schedule-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
 .schedule-toolbar__nav {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .schedule-toolbar__selects {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  justify-content: center;
 }
 
-.schedule-filters__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1rem;
+.schedule-toolbar__selects select {
+  min-width: 140px;
 }
 
 .schedule-filters__group {
@@ -309,5 +319,22 @@
 @media (max-width: 991px) {
   .schedule-mini-calendar__day {
     min-height: 48px;
+  }
+}
+
+@media (max-width: 576px) {
+  .schedule-toolbar__nav {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .schedule-toolbar__selects {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .schedule-toolbar__selects select {
+    flex: 1 1 100%;
+    min-width: 0;
   }
 }
