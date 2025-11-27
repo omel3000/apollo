@@ -337,6 +337,7 @@
       renderDayDetails(state.selectedDate);
     }
     updateStats(visibleEntries, visibleUsers.size);
+    updateMonthSummary();
   }
 
   function renderCalendar() {
@@ -372,8 +373,12 @@
     button.className = 'schedule-day btn btn-light text-start';
     button.setAttribute('data-date', iso);
 
-    if (entries.length > 0) {
+    if (filteredEntries.length > 0) {
       button.classList.add('schedule-day--busy');
+    } else if (entries.length > 0) {
+      button.classList.add('schedule-day--no-match');
+    } else {
+      button.classList.add('schedule-day--empty');
     }
 
     if (iso === state.selectedDate) {
@@ -518,6 +523,64 @@
     label.textContent = `${monthNames[state.currentMonth]} ${state.currentYear}`;
   }
 
+  function updateMonthSummary() {
+    const container = document.getElementById('scheduleMonthSummary');
+    if (!container || !state.currentUser) {
+      return;
+    }
+
+    let totalMinutes = 0;
+    const perProject = new Map();
+
+    state.dataByDate.forEach(entries => {
+      entries.forEach(entry => {
+        if (entry.user_id !== state.currentUser.user_id) {
+          return;
+        }
+        const duration = getDurationInMinutes(entry.time_from, entry.time_to);
+        totalMinutes += duration;
+        const key = entry.project_id === null ? `shift-${entry.shift_type}` : `project-${entry.project_id}`;
+        const label = entry.project_name || labelForShift(entry.shift_type);
+        if (!perProject.has(key)) {
+          perProject.set(key, { label, minutes: 0 });
+        }
+        perProject.get(key).minutes += duration;
+      });
+    });
+
+    container.innerHTML = '';
+
+    if (totalMinutes === 0) {
+      container.innerHTML = '<p class="text-muted mb-0">Brak wpisów w tym miesiącu.</p>';
+      return;
+    }
+
+    const totalBox = document.createElement('div');
+    totalBox.className = 'schedule-summary__total';
+    totalBox.innerHTML = `
+      <small class="text-muted d-block mb-1">Łącznie w miesiącu</small>
+      <strong>${formatDuration(totalMinutes)}</strong>
+    `;
+    container.appendChild(totalBox);
+
+    const list = document.createElement('ul');
+    list.className = 'schedule-summary__list';
+
+    Array.from(perProject.values())
+      .sort((a, b) => b.minutes - a.minutes)
+      .forEach(item => {
+        const li = document.createElement('li');
+        li.className = 'schedule-summary__item';
+        li.innerHTML = `
+          <span>${item.label}</span>
+          <span>${formatDuration(item.minutes)}</span>
+        `;
+        list.appendChild(li);
+      });
+
+    container.appendChild(list);
+  }
+
   function updateStats(entriesCount, usersCount) {
     const summary = document.getElementById('scheduleStats');
     if (!summary) {
@@ -647,6 +710,24 @@
       return forms[1];
     }
     return forms[2];
+  }
+
+  function getDurationInMinutes(from, to) {
+    return timeStringToMinutes(to) - timeStringToMinutes(from);
+  }
+
+  function timeStringToMinutes(value) {
+    if (!value) {
+      return 0;
+    }
+    const [hours, minutes] = value.split(':').map(Number);
+    return (hours || 0) * 60 + (minutes || 0);
+  }
+
+  function formatDuration(totalMinutes) {
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${minutes}min`;
   }
 
   function getEntryColor(entry) {
