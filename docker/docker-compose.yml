@@ -22,7 +22,6 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-apollo}:${POSTGRES_PASSWORD:-apollo123}@postgres-db:5432/${POSTGRES_DB:-apollo_test_db}
-      - EMERGENCY_PASSWORD_RESET_TOKEN=super-tajny-token
     depends_on:
       - postgres-db
 

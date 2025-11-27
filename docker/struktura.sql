@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict Vp6NPFT3dbsa8wwIWUkx2O3YCJa3gHAof8TyeChakhgxMTwydRihpQ1NdtR7OTl
+\restrict 9iMBHOtSV7gjvKl7Qg9dvvhQoVSJ8lYFco5RDziZ0v5gxZdEsbJjRuCOKx0KKhE
 
 -- Dumped from database version 16.10
 -- Dumped by pg_dump version 16.10
@@ -19,36 +19,6 @@ SET client_min_messages = warning;
 SET row_security = off;
 
 --
--- Name: absence_status; Type: TYPE; Schema: public; Owner: apollo
---
-
-CREATE TYPE public.absence_status AS ENUM (
-    'roboczy',
-    'oczekuje_na_akceptacje',
-    'zaakceptowany',
-    'odrzucony',
-    'zablokowany'
-);
-
-
-ALTER TYPE public.absence_status OWNER TO apollo;
-
---
--- Name: absencestatus; Type: TYPE; Schema: public; Owner: apollo
---
-
-CREATE TYPE public.absencestatus AS ENUM (
-    'draft',
-    'pending',
-    'approved',
-    'rejected',
-    'locked'
-);
-
-
-ALTER TYPE public.absencestatus OWNER TO apollo;
-
---
 -- Name: absencetype; Type: TYPE; Schema: public; Owner: apollo
 --
 
@@ -60,49 +30,6 @@ CREATE TYPE public.absencetype AS ENUM (
 
 
 ALTER TYPE public.absencetype OWNER TO apollo;
-
---
--- Name: period_status; Type: TYPE; Schema: public; Owner: apollo
---
-
-CREATE TYPE public.period_status AS ENUM (
-    'otwarty',
-    'oczekuje_na_zamkniecie',
-    'zamkniety',
-    'odblokowany'
-);
-
-
-ALTER TYPE public.period_status OWNER TO apollo;
-
---
--- Name: periodstatus; Type: TYPE; Schema: public; Owner: apollo
---
-
-CREATE TYPE public.periodstatus AS ENUM (
-    'open',
-    'pending_close',
-    'closed',
-    'unlocked'
-);
-
-
-ALTER TYPE public.periodstatus OWNER TO apollo;
-
---
--- Name: report_status; Type: TYPE; Schema: public; Owner: apollo
---
-
-CREATE TYPE public.report_status AS ENUM (
-    'roboczy',
-    'oczekuje_na_akceptacje',
-    'zaakceptowany',
-    'odrzucony',
-    'zablokowany'
-);
-
-
-ALTER TYPE public.report_status OWNER TO apollo;
 
 --
 -- Name: shifttype; Type: TYPE; Schema: public; Owner: apollo
@@ -130,21 +57,6 @@ CREATE TYPE public.timetype AS ENUM (
 
 ALTER TYPE public.timetype OWNER TO apollo;
 
---
--- Name: workreportstatus; Type: TYPE; Schema: public; Owner: apollo
---
-
-CREATE TYPE public.workreportstatus AS ENUM (
-    'draft',
-    'pending',
-    'approved',
-    'rejected',
-    'locked'
-);
-
-
-ALTER TYPE public.workreportstatus OWNER TO apollo;
-
 SET default_tablespace = '';
 
 SET default_table_access_method = heap;
@@ -160,12 +72,6 @@ CREATE TABLE public.absences (
     date_from date NOT NULL,
     date_to date NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    status public.absence_status DEFAULT 'roboczy'::public.absence_status NOT NULL,
-    submitted_at timestamp with time zone,
-    approved_at timestamp with time zone,
-    rejected_at timestamp with time zone,
-    reviewed_by_user_id integer,
-    reviewer_comment character varying(2000),
     CONSTRAINT absences_absence_type_check CHECK (((absence_type)::text = ANY ((ARRAY['urlop'::character varying, 'L4'::character varying, 'inne'::character varying])::text[])))
 );
 
@@ -192,93 +98,6 @@ ALTER SEQUENCE public.absences_absence_id_seq OWNER TO apollo;
 --
 
 ALTER SEQUENCE public.absences_absence_id_seq OWNED BY public.absences.absence_id;
-
-
---
--- Name: approval_log; Type: TABLE; Schema: public; Owner: apollo
---
-
-CREATE TABLE public.approval_log (
-    approval_log_id integer NOT NULL,
-    entity_type character varying(50) NOT NULL,
-    entity_id integer NOT NULL,
-    action character varying(30) NOT NULL,
-    actor_user_id integer,
-    comment character varying(2000),
-    created_at timestamp with time zone DEFAULT now()
-);
-
-
-ALTER TABLE public.approval_log OWNER TO apollo;
-
---
--- Name: approval_log_approval_log_id_seq; Type: SEQUENCE; Schema: public; Owner: apollo
---
-
-CREATE SEQUENCE public.approval_log_approval_log_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.approval_log_approval_log_id_seq OWNER TO apollo;
-
---
--- Name: approval_log_approval_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: apollo
---
-
-ALTER SEQUENCE public.approval_log_approval_log_id_seq OWNED BY public.approval_log.approval_log_id;
-
-
---
--- Name: audit_logs; Type: TABLE; Schema: public; Owner: apollo
---
-
-CREATE TABLE public.audit_logs (
-    log_id integer NOT NULL,
-    user_id integer,
-    user_email character varying(255),
-    user_role character varying(50),
-    action character varying(255) NOT NULL,
-    method character varying(10) NOT NULL,
-    path character varying(500) NOT NULL,
-    status_code integer NOT NULL,
-    ip_address character varying(100),
-    user_agent character varying(255),
-    detail character varying(2000),
-    duration_ms integer,
-    created_at timestamp with time zone DEFAULT now() NOT NULL,
-    action_group character varying(255),
-    entity_type character varying(50),
-    entity_id integer
-);
-
-
-ALTER TABLE public.audit_logs OWNER TO apollo;
-
---
--- Name: audit_logs_log_id_seq; Type: SEQUENCE; Schema: public; Owner: apollo
---
-
-CREATE SEQUENCE public.audit_logs_log_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.audit_logs_log_id_seq OWNER TO apollo;
-
---
--- Name: audit_logs_log_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: apollo
---
-
-ALTER SEQUENCE public.audit_logs_log_id_seq OWNED BY public.audit_logs.log_id;
 
 
 --
@@ -332,46 +151,6 @@ ALTER SEQUENCE public.messages_message_id_seq OWNER TO apollo;
 --
 
 ALTER SEQUENCE public.messages_message_id_seq OWNED BY public.messages.message_id;
-
-
---
--- Name: period_closures; Type: TABLE; Schema: public; Owner: apollo
---
-
-CREATE TABLE public.period_closures (
-    period_closure_id integer NOT NULL,
-    year integer NOT NULL,
-    month integer NOT NULL,
-    status public.period_status DEFAULT 'otwarty'::public.period_status NOT NULL,
-    locked_by_user_id integer,
-    locked_at timestamp with time zone,
-    unlocked_at timestamp with time zone,
-    notes character varying(2000)
-);
-
-
-ALTER TABLE public.period_closures OWNER TO apollo;
-
---
--- Name: period_closures_period_closure_id_seq; Type: SEQUENCE; Schema: public; Owner: apollo
---
-
-CREATE SEQUENCE public.period_closures_period_closure_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER SEQUENCE public.period_closures_period_closure_id_seq OWNER TO apollo;
-
---
--- Name: period_closures_period_closure_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: apollo
---
-
-ALTER SEQUENCE public.period_closures_period_closure_id_seq OWNED BY public.period_closures.period_closure_id;
 
 
 --
@@ -550,13 +329,7 @@ CREATE TABLE public.work_reports (
     minutes_spent integer DEFAULT 0 NOT NULL,
     description text,
     time_from time without time zone,
-    time_to time without time zone,
-    status public.report_status DEFAULT 'roboczy'::public.report_status NOT NULL,
-    submitted_at timestamp with time zone,
-    approved_at timestamp with time zone,
-    rejected_at timestamp with time zone,
-    reviewed_by_user_id integer,
-    reviewer_comment character varying(2000)
+    time_to time without time zone
 );
 
 
@@ -592,31 +365,10 @@ ALTER TABLE ONLY public.absences ALTER COLUMN absence_id SET DEFAULT nextval('pu
 
 
 --
--- Name: approval_log approval_log_id; Type: DEFAULT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.approval_log ALTER COLUMN approval_log_id SET DEFAULT nextval('public.approval_log_approval_log_id_seq'::regclass);
-
-
---
--- Name: audit_logs log_id; Type: DEFAULT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.audit_logs ALTER COLUMN log_id SET DEFAULT nextval('public.audit_logs_log_id_seq'::regclass);
-
-
---
 -- Name: messages message_id; Type: DEFAULT; Schema: public; Owner: apollo
 --
 
 ALTER TABLE ONLY public.messages ALTER COLUMN message_id SET DEFAULT nextval('public.messages_message_id_seq'::regclass);
-
-
---
--- Name: period_closures period_closure_id; Type: DEFAULT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.period_closures ALTER COLUMN period_closure_id SET DEFAULT nextval('public.period_closures_period_closure_id_seq'::regclass);
 
 
 --
@@ -663,22 +415,6 @@ ALTER TABLE ONLY public.absences
 
 
 --
--- Name: approval_log approval_log_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.approval_log
-    ADD CONSTRAINT approval_log_pkey PRIMARY KEY (approval_log_id);
-
-
---
--- Name: audit_logs audit_logs_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.audit_logs
-    ADD CONSTRAINT audit_logs_pkey PRIMARY KEY (log_id);
-
-
---
 -- Name: availability availability_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
 --
 
@@ -692,22 +428,6 @@ ALTER TABLE ONLY public.availability
 
 ALTER TABLE ONLY public.messages
     ADD CONSTRAINT messages_pkey PRIMARY KEY (message_id);
-
-
---
--- Name: period_closures period_closures_pkey; Type: CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.period_closures
-    ADD CONSTRAINT period_closures_pkey PRIMARY KEY (period_closure_id);
-
-
---
--- Name: period_closures period_closures_year_month_key; Type: CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.period_closures
-    ADD CONSTRAINT period_closures_year_month_key UNIQUE (year, month);
 
 
 --
@@ -767,105 +487,11 @@ ALTER TABLE ONLY public.work_reports
 
 
 --
--- Name: idx_absences_date_status; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_absences_date_status ON public.absences USING btree (date_from, status);
-
-
---
--- Name: idx_absences_status; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_absences_status ON public.absences USING btree (status);
-
-
---
--- Name: idx_approval_log_entity; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_approval_log_entity ON public.approval_log USING btree (entity_type, entity_id);
-
-
---
--- Name: idx_audit_logs_action; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_audit_logs_action ON public.audit_logs USING btree (action);
-
-
---
--- Name: idx_audit_logs_action_group; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_audit_logs_action_group ON public.audit_logs USING btree (action_group);
-
-
---
--- Name: idx_audit_logs_created_at; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_audit_logs_created_at ON public.audit_logs USING btree (created_at DESC);
-
-
---
--- Name: idx_audit_logs_entity; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_audit_logs_entity ON public.audit_logs USING btree (entity_type, entity_id);
-
-
---
--- Name: idx_audit_logs_user_id; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_audit_logs_user_id ON public.audit_logs USING btree (user_id);
-
-
---
--- Name: idx_work_reports_status; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_work_reports_status ON public.work_reports USING btree (status);
-
-
---
--- Name: idx_work_reports_work_date_status; Type: INDEX; Schema: public; Owner: apollo
---
-
-CREATE INDEX idx_work_reports_work_date_status ON public.work_reports USING btree (work_date, status);
-
-
---
--- Name: absences absences_reviewed_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.absences
-    ADD CONSTRAINT absences_reviewed_by_user_id_fkey FOREIGN KEY (reviewed_by_user_id) REFERENCES public.users(user_id);
-
-
---
 -- Name: absences absences_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
 --
 
 ALTER TABLE ONLY public.absences
     ADD CONSTRAINT absences_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE CASCADE;
-
-
---
--- Name: approval_log approval_log_actor_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.approval_log
-    ADD CONSTRAINT approval_log_actor_user_id_fkey FOREIGN KEY (actor_user_id) REFERENCES public.users(user_id);
-
-
---
--- Name: audit_logs audit_logs_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.audit_logs
-    ADD CONSTRAINT audit_logs_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(user_id) ON DELETE SET NULL;
 
 
 --
@@ -925,14 +551,6 @@ ALTER TABLE ONLY public.user_projects
 
 
 --
--- Name: period_closures period_closures_locked_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.period_closures
-    ADD CONSTRAINT period_closures_locked_by_user_id_fkey FOREIGN KEY (locked_by_user_id) REFERENCES public.users(user_id);
-
-
---
 -- Name: schedule schedule_created_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
 --
 
@@ -957,16 +575,8 @@ ALTER TABLE ONLY public.schedule
 
 
 --
--- Name: work_reports work_reports_reviewed_by_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: apollo
---
-
-ALTER TABLE ONLY public.work_reports
-    ADD CONSTRAINT work_reports_reviewed_by_user_id_fkey FOREIGN KEY (reviewed_by_user_id) REFERENCES public.users(user_id);
-
-
---
 -- PostgreSQL database dump complete
 --
 
-\unrestrict Vp6NPFT3dbsa8wwIWUkx2O3YCJa3gHAof8TyeChakhgxMTwydRihpQ1NdtR7OTl
+\unrestrict 9iMBHOtSV7gjvKl7Qg9dvvhQoVSJ8lYFco5RDziZ0v5gxZdEsbJjRuCOKx0KKhE
 
