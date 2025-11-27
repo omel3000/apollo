@@ -18,13 +18,13 @@ RESTART IDENTITY CASCADE;
 -- Użytkownicy (rola administracyjna, HR i zespół operacyjny)
 INSERT INTO public.users (user_id, first_name, last_name, email, phone_number, password_hash, role, registration_date, account_status, password_reset_token, birth_date, address)
 VALUES
-    (1, 'Agnieszka', 'Maj', 'agnieszka.maj@apollo-catering.pl', '+48 600 111 222', '$2b$12$u0QWSrK9ZB8zpzM9GTexSOw5J/l1sUPhQ0UxZl8vGeuX1iG.yUp9y', 'admin', '2023-08-14 09:15:00', 'aktywny', NULL, '1985-04-18', 'ul. Dolna 12, Warszawa'), -- hasło: Ap0llo!Admin
-    (2, 'Bartek', 'Radwan', 'bartek.radwan@apollo-catering.pl', '+48 600 333 111', '$2b$12$u0QWSrK9ZB8zpzM9GTexSOw5J/l1sUPhQ0UxZl8vGeuX1iG.yUp9y', 'hr', '2023-09-02 08:45:00', 'aktywny', NULL, '1988-11-02', 'ul. Górnośląska 5, Warszawa'), -- hasło: Ap0llo!HR
-    (3, 'Celina', 'Wróbel', 'celina.wrobel@apollo-catering.pl', '+48 601 444 555', '$2b$12$u0QWSrK9ZB8zpzM9GTexSOw5J/l1sUPhQ0UxZl8vGeuX1iG.yUp9y', 'user', '2024-01-10 07:55:00', 'aktywny', NULL, '1990-02-21', 'ul. Różana 22, Warszawa'), -- hasło: Ap0llo!Chef1
-    (4, 'Damian', 'Lis', 'damian.lis@apollo-catering.pl', '+48 602 999 101', '$2b$12$u0QWSrK9ZB8zpzM9GTexSOw5J/l1sUPhQ0UxZl8vGeuX1iG.yUp9y', 'user', '2024-03-04 06:40:00', 'aktywny', NULL, '1992-07-12', 'ul. Pileckiego 3, Warszawa'), -- hasło: Ap0llo!Chef2
-    (5, 'Ewa', 'Kaczor', 'ewa.kaczor@apollo-catering.pl', '+48 603 210 310', '$2b$12$u0QWSrK9ZB8zpzM9GTexSOw5J/l1sUPhQ0UxZl8vGeuX1iG.yUp9y', 'user', '2024-05-15 08:10:00', 'aktywny', NULL, '1994-05-06', 'ul. Woronicza 18, Warszawa'), -- hasło: Ap0llo!Pastry
-    (6, 'Filip', 'Nowak', 'filip.nowak@apollo-catering.pl', '+48 604 630 730', '$2b$12$u0QWSrK9ZB8zpzM9GTexSOw5J/l1sUPhQ0UxZl8vGeuX1iG.yUp9y', 'user', '2024-06-01 07:20:00', 'aktywny', NULL, '1991-12-01', 'ul. Jana III Sobieskiego 102, Warszawa'), -- hasło: Ap0llo!Logistyka
-    (7, 'Gabriela', 'Sowa', 'gabriela.sowa@apollo-catering.pl', '+48 605 880 990', '$2b$12$u0QWSrK9ZB8zpzM9GTexSOw5J/l1sUPhQ0UxZl8vGeuX1iG.yUp9y', 'user', '2024-07-22 09:05:00', 'aktywny', NULL, '1996-09-30', 'ul. Puławska 44, Warszawa'); -- hasło: Ap0llo!Serwis
+    (1, 'Agnieszka', 'Maj', 'agnieszka.maj@apollo-catering.pl', '+48 600 111 222', '$2a$12$uLvQDJ5yiyFmCoH.rHZYi.7lbVsEnYJ/H5CoLG.hOujWIISKIEmlq', 'admin', '2023-08-14 09:15:00', 'aktywny', NULL, '1985-04-18', 'ul. Dolna 12, Warszawa'), -- hasło: Ap0llo!Admin
+    (2, 'Bartek', 'Radwan', 'bartek.radwan@apollo-catering.pl', '+48 600 333 111', '$2a$12$85Csvn.pAmmXKHyTIwGdKed5hzrE47YaD8j3AXHKzd0CfN8cknj.m', 'hr', '2023-09-02 08:45:00', 'aktywny', NULL, '1988-11-02', 'ul. Górnośląska 5, Warszawa'), -- hasło: Ap0llo!HR
+    (3, 'Celina', 'Wróbel', 'celina.wrobel@apollo-catering.pl', '+48 601 444 555', '$2a$12$nkfEiUWCAaLsylBJyis1t.6dVZlEO40uSHKt9UMB6qfK5b7dNPfwO', 'worker', '2024-01-10 07:55:00', 'aktywny', NULL, '1990-02-21', 'ul. Różana 22, Warszawa'), -- hasło: Ap0llo!Chef1
+    (4, 'Damian', 'Lis', 'damian.lis@apollo-catering.pl', '+48 602 999 101', '$2a$12$cSiBNqMDMxJo9hk52p6zeOixguTDeYpKl3L7htckU59FCFWtm4QFa', 'worker', '2024-03-04 06:40:00', 'aktywny', NULL, '1992-07-12', 'ul. Pileckiego 3, Warszawa'), -- hasło: Ap0llo!Chef2
+    (5, 'Ewa', 'Kaczor', 'ewa.kaczor@apollo-catering.pl', '+48 603 210 310', '$2a$12$vYgVW/YRMwWo.vgwRMeluOTR8jD6ubl9mV6MwrIpG2AEckvKQR86i', 'worker', '2024-05-15 08:10:00', 'aktywny', NULL, '1994-05-06', 'ul. Woronicza 18, Warszawa'), -- hasło: Ap0llo!Pastry
+    (6, 'Filip', 'Nowak', 'filip.nowak@apollo-catering.pl', '+48 604 630 730', '$2a$12$34b2oCOUAe.lGDhie.nFeebpSvAu4Ch//i4u3VObjYvJ3jD1y6Yqi', 'worker', '2024-06-01 07:20:00', 'aktywny', NULL, '1991-12-01', 'ul. Jana III Sobieskiego 102, Warszawa'), -- hasło: Ap0llo!Logistyka
+    (7, 'Gabriela', 'Sowa', 'gabriela.sowa@apollo-catering.pl', '+48 605 880 990', '$2a$12$oeX68aVmkqGbWCMRj4ny2.e/CKGHStWShmZdQrDZ4WjvC.7mQkGTO', 'worker', '2024-07-22 09:05:00', 'aktywny', NULL, '1996-09-30', 'ul. Puławska 44, Warszawa'); -- hasło: Ap0llo!Serwis
 
 -- Projekty (ciągłe kontrakty gastronomiczne)
 INSERT INTO public.projects (project_id, project_name, description, owner_user_id, status, created_by_user_id, created_at, time_type)
