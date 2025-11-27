@@ -224,6 +224,35 @@
   letter-spacing: 0.03em;
 }
 
+.schedule-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: flex-end;
+}
+
+.schedule-calendar-card {
+  width: 100%;
+  max-width: 440px;
+  margin-left: auto;
+}
+
+.schedule-calendar-card .card-body {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 1400px) {
+  .schedule-sidebar {
+    align-items: stretch;
+  }
+
+  .schedule-calendar-card {
+    max-width: 100%;
+    margin-left: 0;
+  }
+}
+
 @media (max-width: 576px) {
   .schedule-calendar__table {
     border-spacing: 0.2rem 0.3rem;
