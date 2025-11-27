@@ -70,8 +70,8 @@
     const prevBtn = document.getElementById('schedulePrevMonth');
     const nextBtn = document.getElementById('scheduleNextMonth');
     const todayBtn = document.getElementById('scheduleCurrentMonth');
-    const projectsSelect = document.getElementById('scheduleProjectFilter');
-    const usersSelect = document.getElementById('scheduleUserFilter');
+    const projectContainer = document.getElementById('scheduleProjectFilter');
+    const userContainer = document.getElementById('scheduleUserFilter');
     const onlyMeToggle = document.getElementById('scheduleOnlyMe');
     const resetBtn = document.getElementById('scheduleResetFilters');
 
@@ -130,20 +130,6 @@
       });
     }
 
-    if (projectsSelect) {
-      projectsSelect.addEventListener('change', () => {
-        syncMultiSelectToSet(projectsSelect, state.filters.projects, { preserveString: true });
-        applyFilters();
-      });
-    }
-
-    if (usersSelect) {
-      usersSelect.addEventListener('change', () => {
-        syncMultiSelectToSet(usersSelect, state.filters.users);
-        applyFilters();
-      });
-    }
-
     if (onlyMeToggle) {
       onlyMeToggle.addEventListener('change', () => {
         state.filters.onlyMe = onlyMeToggle.checked;
@@ -156,12 +142,14 @@
         state.filters.projects.clear();
         state.filters.users.clear();
         state.filters.onlyMe = false;
-        if (projectsSelect) {
-          Array.from(projectsSelect.options).forEach(opt => { opt.selected = false; });
-        }
-        if (usersSelect) {
-          Array.from(usersSelect.options).forEach(opt => { opt.selected = false; });
-        }
+        [projectContainer, userContainer].forEach(container => {
+          if (!container) {
+            return;
+          }
+          container.querySelectorAll('input[type="checkbox"]').forEach(input => {
+            input.checked = false;
+          });
+        });
         if (onlyMeToggle) {
           onlyMeToggle.checked = false;
         }
@@ -278,37 +266,25 @@
   }
 
   function populateFilterOptions() {
-    const projectsSelect = document.getElementById('scheduleProjectFilter');
-    const usersSelect = document.getElementById('scheduleUserFilter');
+    renderCheckboxList(
+      'scheduleProjectFilter',
+      Array.from(state.collections.projects.values()).sort((a, b) => a.label.localeCompare(b.label, 'pl')),
+      {
+        key: project => (project.id === null ? 'absence' : String(project.id)),
+        label: project => project.label,
+        targetSet: state.filters.projects
+      }
+    );
 
-    if (projectsSelect) {
-      const previous = new Set(Array.from(projectsSelect.selectedOptions).map(opt => opt.value));
-      projectsSelect.innerHTML = '';
-      const sortedProjects = Array.from(state.collections.projects.values()).sort((a, b) => a.label.localeCompare(b.label, 'pl'));
-      sortedProjects.forEach(project => {
-        const option = document.createElement('option');
-        const projectKey = project.id === null ? 'absence' : String(project.id);
-        option.value = projectKey;
-        option.textContent = project.label;
-        option.selected = previous.has(projectKey) || state.filters.projects.has(projectKey);
-        projectsSelect.appendChild(option);
-      });
-      syncMultiSelectToSet(projectsSelect, state.filters.projects, { preserveString: true });
-    }
-
-    if (usersSelect) {
-      const previous = new Set(Array.from(usersSelect.selectedOptions).map(opt => Number(opt.value)));
-      usersSelect.innerHTML = '';
-      const sortedUsers = Array.from(state.collections.users.values()).sort((a, b) => a.label.localeCompare(b.label, 'pl'));
-      sortedUsers.forEach(user => {
-        const option = document.createElement('option');
-        option.value = user.id;
-        option.textContent = user.label;
-        option.selected = previous.has(user.id) || state.filters.users.has(user.id);
-        usersSelect.appendChild(option);
-      });
-      syncMultiSelectToSet(usersSelect, state.filters.users);
-    }
+    renderCheckboxList(
+      'scheduleUserFilter',
+      Array.from(state.collections.users.values()).sort((a, b) => a.label.localeCompare(b.label, 'pl')),
+      {
+        key: user => user.id,
+        label: user => user.label,
+        targetSet: state.filters.users
+      }
+    );
   }
 
   function pickDefaultDay() {
@@ -575,20 +551,6 @@
     }
   }
 
-  function syncMultiSelectToSet(selectEl, targetSet, options = {}) {
-    const preserveString = Boolean(options.preserveString);
-    targetSet.clear();
-    Array.from(selectEl.selectedOptions).forEach(opt => {
-      if (opt.value) {
-        if (preserveString) {
-          targetSet.add(opt.value);
-        } else {
-          targetSet.add(Number(opt.value));
-        }
-      }
-    });
-  }
-
   function getDaysInMonth(year, monthIndex) {
     return new Date(year, monthIndex + 1, 0).getDate();
   }
@@ -625,6 +587,46 @@
       return entry.project_name.slice(0, 20);
     }
     return labelForShift(entry.shift_type);
+  }
+
+  function renderCheckboxList(containerId, items, options) {
+    const container = document.getElementById(containerId);
+    if (!container) {
+      return;
+    }
+    container.innerHTML = '';
+
+    if (!items.length) {
+      container.innerHTML = '<p class="text-muted small mb-0">Brak dostępnych opcji.</p>';
+      return;
+    }
+
+    items.forEach(item => {
+      const value = options.key(item);
+      const labelText = options.label(item);
+      const wrapper = document.createElement('label');
+      wrapper.className = 'schedule-checkbox';
+
+      const input = document.createElement('input');
+      input.type = 'checkbox';
+      input.checked = options.targetSet.has(value);
+
+      input.addEventListener('change', () => {
+        if (input.checked) {
+          options.targetSet.add(value);
+        } else {
+          options.targetSet.delete(value);
+        }
+        applyFilters();
+      });
+
+      const text = document.createElement('span');
+      text.textContent = labelText;
+
+      wrapper.appendChild(input);
+      wrapper.appendChild(text);
+      container.appendChild(wrapper);
+    });
   }
 
   function formatEntryCount(quantity) {
