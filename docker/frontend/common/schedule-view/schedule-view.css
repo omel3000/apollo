@@ -117,8 +117,8 @@
 }
 
 .schedule-day--busy {
-  background-color: #fff7f1;
-  border-color: #f1c7a1;
+  background-color: rgba(191, 110, 80, 0.12);
+  border-color: rgba(191, 110, 80, 0.55);
 }
 
 .schedule-day--selected {
@@ -129,6 +129,16 @@
 
 .schedule-day--today {
   border-color: #0d6efd;
+}
+
+.schedule-day--no-match {
+  background-color: #e0d7cf;
+  border-color: #c3b7ae;
+}
+
+.schedule-day--empty {
+  background-color: #f2eeeb;
+  border-color: #d9d1ca;
 }
 
 .schedule-day__header {
@@ -257,6 +267,39 @@
   width: 18px;
   height: 18px;
   border-radius: 4px;
+}
+
+.schedule-summary__total {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.schedule-summary__total strong {
+  font-size: 1.375rem;
+  color: var(--apollo-primary-dark);
+}
+
+.schedule-summary__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.schedule-summary__item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background-color: rgba(115, 106, 101, 0.08);
+  font-weight: 600;
+}
+
+.schedule-summary__item span:last-child {
+  color: var(--apollo-primary);
 }
 
 .schedule-loader {
