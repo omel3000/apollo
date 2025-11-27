@@ -347,30 +347,57 @@
     }
     grid.innerHTML = '';
 
+    const table = document.createElement('table');
+    table.className = 'schedule-calendar__table';
+
+    const thead = document.createElement('thead');
+    const headRow = document.createElement('tr');
+    const weekDays = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So', 'Nd'];
+    weekDays.forEach(name => {
+      const th = document.createElement('th');
+      th.textContent = name;
+      headRow.appendChild(th);
+    });
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    const firstOfMonth = new Date(state.currentYear, state.currentMonth, 1);
+    const offset = (firstOfMonth.getDay() + 6) % 7; // Monday-first
     const daysInMonth = getDaysInMonth(state.currentYear, state.currentMonth);
-    const fragment = document.createDocumentFragment();
+    const totalCells = Math.ceil((daysInMonth + offset) / 7) * 7;
 
-    for (let day = 1; day <= daysInMonth; day += 1) {
-      const iso = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const entries = state.dataByDate.get(iso) || [];
-      const filteredEntries = state.filteredByDate.get(iso) || [];
-      const card = createDayCard(day, iso, entries, filteredEntries);
-      fragment.appendChild(card);
+    let currentDay = 1;
+    let row;
+    for (let cell = 0; cell < totalCells; cell += 1) {
+      if (cell % 7 === 0) {
+        row = document.createElement('tr');
+        tbody.appendChild(row);
+      }
+      const td = document.createElement('td');
+      if (cell >= offset && currentDay <= daysInMonth) {
+        const iso = `${state.currentYear}-${String(state.currentMonth + 1).padStart(2, '0')}-${String(currentDay).padStart(2, '0')}`;
+        const entries = state.dataByDate.get(iso) || [];
+        const filteredEntries = state.filteredByDate.get(iso) || [];
+        const button = createDayCard(currentDay, iso, entries, filteredEntries);
+        td.appendChild(button);
+        currentDay += 1;
+      } else {
+        td.classList.add('schedule-calendar__placeholder');
+        td.innerHTML = '&nbsp;';
+      }
+      row.appendChild(td);
     }
 
-    if (fragment.childNodes.length === 0) {
-      grid.innerHTML = '<p class="text-muted">Brak danych dla tego miesiąca.</p>';
-      return;
-    }
-
-    grid.appendChild(fragment);
+    table.appendChild(tbody);
+    grid.appendChild(table);
     highlightSelectedDay();
   }
 
   function createDayCard(dayNumber, iso, entries, filteredEntries) {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'schedule-day btn btn-light text-start';
+    button.className = 'schedule-day';
     button.setAttribute('data-date', iso);
 
     if (filteredEntries.length > 0) {
@@ -389,51 +416,26 @@
       button.classList.add('schedule-day--today');
     }
 
-    const date = new Date(iso);
-    const header = document.createElement('div');
-    header.className = 'schedule-day__header';
-    header.innerHTML = `
-      <span class="schedule-day__date">${dayNumber}</span>
-      <span class="schedule-day__weekday">${weekdayShort[date.getDay()]}</span>
-    `;
-    button.appendChild(header);
+    const dateEl = document.createElement('span');
+    dateEl.className = 'schedule-day__date';
+    dateEl.textContent = dayNumber;
+    button.appendChild(dateEl);
 
-    if (filteredEntries.length === 0) {
-      const emptyMsg = document.createElement('div');
-      emptyMsg.className = 'schedule-day__empty';
-      emptyMsg.textContent = entries.length > 0 ? 'Brak wpisów po filtrach' : 'Brak wpisów';
-      button.appendChild(emptyMsg);
-      return button;
+    if (filteredEntries.length > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'schedule-day__badge';
+      badge.textContent = filteredEntries.length;
+      badge.title = formatEntryCount(filteredEntries.length);
+      button.appendChild(badge);
+    } else if (entries.length > 0) {
+      const hint = document.createElement('span');
+      hint.className = 'schedule-day__hint';
+      hint.textContent = 'ukryte';
+      hint.title = 'Brak wpisów po filtrach';
+      button.appendChild(hint);
     }
 
-    const chipsContainer = document.createElement('div');
-    chipsContainer.className = 'schedule-day__chips';
-
-    const topEntries = filteredEntries.slice(0, 3);
-    topEntries.forEach(entry => {
-      const chip = document.createElement('span');
-      chip.className = 'schedule-chip';
-      if (entry.project_id === null || entry.shift_type !== 'normalna') {
-        chip.classList.add('schedule-chip--absence');
-      }
-      chip.style.backgroundColor = getEntryColor(entry);
-      chip.textContent = chipLabel(entry);
-      chipsContainer.appendChild(chip);
-    });
-
-    if (filteredEntries.length > topEntries.length) {
-      const moreChip = document.createElement('span');
-      moreChip.className = 'schedule-chip schedule-chip--muted';
-      moreChip.textContent = `+${filteredEntries.length - topEntries.length}`;
-      chipsContainer.appendChild(moreChip);
-    }
-
-    button.appendChild(chipsContainer);
-
-    const count = document.createElement('div');
-    count.className = 'schedule-day__count';
-    count.textContent = formatEntryCount(filteredEntries.length);
-    button.appendChild(count);
+    button.title = buildDayTooltip(entries, filteredEntries);
 
     return button;
   }
@@ -650,6 +652,21 @@
       return entry.project_name.slice(0, 20);
     }
     return labelForShift(entry.shift_type);
+  }
+
+  function buildDayTooltip(entries, filteredEntries) {
+    if (filteredEntries.length > 0) {
+      return filteredEntries
+        .map(entry => {
+          const label = entry.project_name || entry.project_code || labelForShift(entry.shift_type);
+          return `${entry.user_full_name || entry.short_name}: ${label}`;
+        })
+        .join('\n');
+    }
+    if (entries.length > 0) {
+      return `Brak wpisów po filtrach (łącznie ${formatEntryCount(entries.length)})`;
+    }
+    return 'Brak wpisów';
   }
 
   function renderCheckboxList(containerId, items, options) {
