@@ -151,6 +151,7 @@
     const resetBtn = document.getElementById('scheduleResetFilters');
 
     renderWeekdayHeader();
+    setupFilterToggleButtons();
 
 
 
@@ -1401,6 +1402,53 @@
     const minutes = totalMinutes % 60;
 
     return `${hours}h ${minutes}min`;
+
+  }
+
+
+  function setupFilterToggleButtons() {
+
+    const buttons = document.querySelectorAll('[data-filter-toggle]');
+
+    buttons.forEach(button => {
+
+      const targetSelector = button.getAttribute('data-bs-target');
+
+      if (!targetSelector) {
+
+        return;
+
+      }
+
+      const target = document.querySelector(targetSelector);
+
+      if (!target) {
+
+        return;
+
+      }
+
+      const updateLabel = () => {
+
+        const expandedText = button.getAttribute('data-expanded-text') || 'Zwiń';
+
+        const collapsedText = button.getAttribute('data-collapsed-text') || 'Pokaż';
+
+        const isShown = target.classList.contains('show');
+
+        button.textContent = isShown ? expandedText : collapsedText;
+
+      };
+
+      updateLabel();
+
+      ['shown.bs.collapse', 'hidden.bs.collapse'].forEach(eventName => {
+
+        target.addEventListener(eventName, updateLabel);
+
+      });
+
+    });
 
   }
 

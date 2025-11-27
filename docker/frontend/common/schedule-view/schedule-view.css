@@ -206,6 +206,16 @@
   padding: 0.75rem 0.25rem 0.75rem 0.75rem;
 }
 
+.schedule-quick-options {
+  border-top: 1px dashed var(--apollo-border);
+  padding-top: 0.75rem;
+}
+
+.schedule-quick-options .form-check-input {
+  width: 1rem;
+  height: 1rem;
+}
+
 .schedule-filters__actions {
   text-align: center;
   margin-top: 1rem;

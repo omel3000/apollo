@@ -104,9 +104,13 @@
             <div class="row g-4">
                 <div class="col-xxl-7 col-xl-7">
                     <div class="card shadow-sm mb-4 schedule-filters">
-                        <div class="card-header">
+                        <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtry</h5>
+                            <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#workerFiltersCollapse" aria-expanded="true" aria-controls="workerFiltersCollapse" data-filter-toggle data-expanded-text="Zwiń" data-collapsed-text="Pokaż">
+                                Zwiń
+                            </button>
                         </div>
+                        <div id="workerFiltersCollapse" class="collapse show">
                         <div class="card-body">
                             <div class="accordion accordion-flush" id="scheduleFiltersAccordion">
                                 <div class="accordion-item">
@@ -137,28 +141,21 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="accordion-item">
-                                    <h6 class="accordion-header" id="scheduleQuickHeading">
-                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#scheduleQuickCollapse" aria-expanded="false" aria-controls="scheduleQuickCollapse">
-                                            <i class="bi bi-magic me-2"></i>Szybkie opcje
-                                        </button>
-                                    </h6>
-                                    <div id="scheduleQuickCollapse" class="accordion-collapse collapse" aria-labelledby="scheduleQuickHeading">
-                                        <div class="accordion-body">
-                                            <div class="form-check mb-3">
-                                                <input class="form-check-input" type="checkbox" id="scheduleOnlyMe">
-                                                <label class="form-check-label" for="scheduleOnlyMe">Pokaż tylko mój grafik</label>
-                                            </div>
-                                            <button type="button" id="scheduleResetFilters" class="btn btn-outline-secondary btn-sm w-100">
-                                                Wyczyść filtry
-                                            </button>
-                                        </div>
-                                    </div>
+                            </div>
+                            <div class="schedule-quick-options mt-3">
+                                <h6 class="small text-uppercase text-muted mb-2">Szybkie opcje</h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="scheduleOnlyMe">
+                                    <label class="form-check-label" for="scheduleOnlyMe">Pokaż tylko mój grafik</label>
                                 </div>
+                                <button type="button" id="scheduleResetFilters" class="btn btn-outline-secondary btn-sm w-100">
+                                    Wyczyść filtry
+                                </button>
                             </div>
                             <div class="schedule-filters__actions w-100 mt-3 text-center">
                                 <p id="scheduleStats" class="text-muted small mb-0">Widoczne 0 wpisów.</p>
                             </div>
+                        </div>
                         </div>
                     </div>
 
