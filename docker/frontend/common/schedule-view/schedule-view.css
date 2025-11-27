@@ -98,6 +98,12 @@
   color: #6c757d;
 }
 
+.schedule-calendar__toolbar {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
 .schedule-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -183,6 +189,21 @@
 .schedule-checkbox:hover {
   border-color: var(--apollo-primary);
   background-color: rgba(191, 110, 80, 0.08);
+}
+
+.schedule-filters .accordion-button {
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--apollo-primary-dark);
+}
+
+.schedule-filters .accordion-button:not(.collapsed) {
+  background-color: rgba(191, 110, 80, 0.08);
+  color: #bf6e50;
+}
+
+.schedule-filters .accordion-body {
+  padding: 0.75rem 0.25rem 0.75rem 0.75rem;
 }
 
 .schedule-filters__actions {

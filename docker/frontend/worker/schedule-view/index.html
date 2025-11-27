@@ -108,41 +108,56 @@
                             <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtry</h5>
                         </div>
                         <div class="card-body">
-                            <div class="schedule-filters__grid">
-                                <section class="schedule-filters__group">
-                                    <div class="schedule-filters__title">
-                                        <i class="bi bi-diagram-3"></i>
-                                        <span>Projekty</span>
+                            <div class="accordion accordion-flush" id="scheduleFiltersAccordion">
+                                <div class="accordion-item">
+                                    <h6 class="accordion-header" id="scheduleProjectsHeading">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#scheduleProjectsCollapse" aria-expanded="false" aria-controls="scheduleProjectsCollapse">
+                                            <i class="bi bi-diagram-3 me-2"></i>Projekty
+                                        </button>
+                                    </h6>
+                                    <div id="scheduleProjectsCollapse" class="accordion-collapse collapse" aria-labelledby="scheduleProjectsHeading">
+                                        <div class="accordion-body">
+                                            <div id="scheduleProjectFilter" class="schedule-checkbox-list">
+                                                <p class="text-muted small mb-0">Brak danych do wyświetlenia.</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div id="scheduleProjectFilter" class="schedule-checkbox-list">
-                                        <p class="text-muted small mb-0">Brak danych do wyświetlenia.</p>
+                                </div>
+                                <div class="accordion-item">
+                                    <h6 class="accordion-header" id="scheduleUsersHeading">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#scheduleUsersCollapse" aria-expanded="false" aria-controls="scheduleUsersCollapse">
+                                            <i class="bi bi-people me-2"></i>Pracownicy
+                                        </button>
+                                    </h6>
+                                    <div id="scheduleUsersCollapse" class="accordion-collapse collapse" aria-labelledby="scheduleUsersHeading">
+                                        <div class="accordion-body">
+                                            <div id="scheduleUserFilter" class="schedule-checkbox-list">
+                                                <p class="text-muted small mb-0">Brak danych do wyświetlenia.</p>
+                                            </div>
+                                        </div>
                                     </div>
-                                </section>
-                                <section class="schedule-filters__group">
-                                    <div class="schedule-filters__title">
-                                        <i class="bi bi-people"></i>
-                                        <span>Pracownicy</span>
+                                </div>
+                                <div class="accordion-item">
+                                    <h6 class="accordion-header" id="scheduleQuickHeading">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#scheduleQuickCollapse" aria-expanded="false" aria-controls="scheduleQuickCollapse">
+                                            <i class="bi bi-magic me-2"></i>Szybkie opcje
+                                        </button>
+                                    </h6>
+                                    <div id="scheduleQuickCollapse" class="accordion-collapse collapse" aria-labelledby="scheduleQuickHeading">
+                                        <div class="accordion-body">
+                                            <div class="form-check mb-3">
+                                                <input class="form-check-input" type="checkbox" id="scheduleOnlyMe">
+                                                <label class="form-check-label" for="scheduleOnlyMe">Pokaż tylko mój grafik</label>
+                                            </div>
+                                            <button type="button" id="scheduleResetFilters" class="btn btn-outline-secondary btn-sm w-100">
+                                                Wyczyść filtry
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div id="scheduleUserFilter" class="schedule-checkbox-list">
-                                        <p class="text-muted small mb-0">Brak danych do wyświetlenia.</p>
-                                    </div>
-                                </section>
-                                <section class="schedule-filters__group">
-                                    <div class="schedule-filters__title">
-                                        <i class="bi bi-magic"></i>
-                                        <span>Szybkie opcje</span>
-                                    </div>
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="scheduleOnlyMe">
-                                        <label class="form-check-label" for="scheduleOnlyMe">Pokaż tylko mój grafik</label>
-                                    </div>
-                                    <button type="button" id="scheduleResetFilters" class="btn btn-outline-secondary btn-sm w-100">
-                                        Wyczyść filtry
-                                    </button>
-                                    <div class="schedule-filters__actions w-100">
-                                        <p id="scheduleStats" class="text-muted small mb-0">Widoczne 0 wpisów.</p>
-                                    </div>
-                                </section>
+                                </div>
+                            </div>
+                            <div class="schedule-filters__actions w-100 mt-3 text-center">
+                                <p id="scheduleStats" class="text-muted small mb-0">Widoczne 0 wpisów.</p>
                             </div>
                         </div>
                     </div>
@@ -168,38 +183,32 @@
 
                 <div class="col-xxl-5 col-xl-5">
                     <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
-                                <h5 class="mb-0"><i class="bi bi-calendar3 me-2"></i>Nawigacja po miesiącach</h5>
-                                <span id="schedulePeriodLabel" class="fw-semibold"></span>
-                            </div>
-                        </div>
-                        <div class="card-body">
-                            <div class="schedule-toolbar">
-                                <div class="schedule-toolbar__nav">
-                                    <button type="button" id="schedulePrevMonth" class="btn btn-outline-secondary btn-sm" title="Poprzedni miesiąc">
-                                        <i class="bi bi-chevron-left"></i>
-                                    </button>
-                                    <button type="button" id="scheduleCurrentMonth" class="btn btn-primary btn-sm">
-                                        Bieżący miesiąc
-                                    </button>
-                                    <button type="button" id="scheduleNextMonth" class="btn btn-outline-secondary btn-sm" title="Następny miesiąc">
-                                        <i class="bi bi-chevron-right"></i>
-                                    </button>
-                                </div>
-                                <div class="schedule-toolbar__selects">
-                                    <select id="scheduleMonthSelect" class="form-select form-select-sm" aria-label="Wybierz miesiąc"></select>
-                                    <select id="scheduleYearSelect" class="form-select form-select-sm" aria-label="Wybierz rok"></select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="card shadow-sm mb-4">
                         <div class="card-header bg-light">
-                            <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Kalendarz grafiku</h5>
+                            <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
+                                <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Kalendarz grafiku</h5>
+                                <span id="schedulePeriodLabel" class="fw-semibold text-primary"></span>
+                            </div>
                         </div>
                         <div class="card-body">
+                            <div class="schedule-calendar__toolbar mb-3">
+                                <div class="schedule-toolbar">
+                                    <div class="schedule-toolbar__nav">
+                                        <button type="button" id="schedulePrevMonth" class="btn btn-outline-secondary btn-sm" title="Poprzedni miesiąc">
+                                            <i class="bi bi-chevron-left"></i>
+                                        </button>
+                                        <button type="button" id="scheduleCurrentMonth" class="btn btn-primary btn-sm">
+                                            Bieżący miesiąc
+                                        </button>
+                                        <button type="button" id="scheduleNextMonth" class="btn btn-outline-secondary btn-sm" title="Następny miesiąc">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </button>
+                                    </div>
+                                    <div class="schedule-toolbar__selects">
+                                        <select id="scheduleMonthSelect" class="form-select form-select-sm" aria-label="Wybierz miesiąc"></select>
+                                        <select id="scheduleYearSelect" class="form-select form-select-sm" aria-label="Wybierz rok"></select>
+                                    </div>
+                                </div>
+                            </div>
                             <div id="scheduleLoader" class="schedule-loader text-muted"></div>
                             <div class="schedule-mini-calendar">
                                 <div id="scheduleCalendarWeekdays" class="schedule-mini-calendar__weekdays"></div>
