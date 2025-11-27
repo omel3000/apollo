@@ -101,9 +101,9 @@
 
             <div id="scheduleError" class="alert alert-danger d-none" role="alert"></div>
 
-            <div class="row g-4">
-                <div class="col-xxl-7 col-xl-7">
-                    <div class="card shadow-sm mb-4 schedule-filters">
+            <div class="schedule-layout">
+                <section class="schedule-section schedule-section--filters">
+                    <div class="card shadow-sm schedule-filters">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="mb-0"><i class="bi bi-funnel me-2"></i>Filtry</h5>
                             <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#workerFiltersCollapse" aria-expanded="true" aria-controls="workerFiltersCollapse" data-filter-toggle data-expanded-text="Zwiń" data-collapsed-text="Pokaż">
@@ -159,27 +159,10 @@
                         </div>
                     </div>
 
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-clipboard2-check me-2"></i>Szczegóły dnia</h5>
-                        </div>
-                        <div class="card-body" id="scheduleDayDetails">
-                            <p class="text-muted mb-0">Wybierz dzień w kalendarzu, aby zobaczyć szczegóły.</p>
-                        </div>
-                    </div>
+                </section>
 
-                    <div class="card shadow-sm mb-4">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Szczegóły miesiąca</h5>
-                        </div>
-                        <div class="card-body" id="scheduleMonthSummary">
-                            <p class="text-muted mb-0">Brak danych do podsumowania.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-xxl-5 col-xl-5">
-                    <div class="card shadow-sm mb-4">
+                <section class="schedule-section schedule-section--calendar">
+                    <div class="card shadow-sm">
                         <div class="card-header bg-light">
                             <div class="d-flex justify-content-between flex-wrap gap-2 align-items-center">
                                 <h5 class="mb-0"><i class="bi bi-grid-3x3-gap me-2"></i>Kalendarz grafiku</h5>
@@ -211,22 +194,39 @@
                                 <div id="scheduleCalendarWeekdays" class="schedule-mini-calendar__weekdays"></div>
                                 <div id="scheduleCalendarGrid" class="schedule-mini-calendar__days"></div>
                             </div>
+                            <div class="schedule-legend mt-3">
+                                <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#c8e6c9;"></span>Dzień z widocznymi wpisami</div>
+                                <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#fff9c4;"></span>Wpisy ukryte przez filtr</div>
+                                <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#f2eeeb;"></span>Brak grafiku</div>
+                                <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#bf6e50;"></span>Zaznaczony dzień</div>
+                                <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#0d6efd;"></span>Dzisiaj</div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="schedule-section schedule-section--day">
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-clipboard2-check me-2"></i>Szczegóły dnia</h5>
+                        </div>
+                        <div class="card-body" id="scheduleDayDetails">
+                            <p class="text-muted mb-0">Wybierz dzień w kalendarzu, aby zobaczyć szczegóły.</p>
                         </div>
                     </div>
 
+                </section>
+
+                <section class="schedule-section schedule-section--month">
                     <div class="card shadow-sm">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="bi bi-info-circle me-2"></i>Legenda</h5>
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Szczegóły miesiąca</h5>
                         </div>
-                        <div class="card-body schedule-legend">
-                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#c8e6c9;"></span>Dzień z widocznymi wpisami</div>
-                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#fff9c4;"></span>Wpisy ukryte przez filtr</div>
-                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#f2eeeb;"></span>Brak grafiku</div>
-                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#bf6e50;"></span>Zaznaczony dzień</div>
-                            <div class="schedule-legend__item"><span class="schedule-legend__box" style="background-color:#0d6efd;"></span>Dzisiaj</div>
+                        <div class="card-body" id="scheduleMonthSummary">
+                            <p class="text-muted mb-0">Brak danych do podsumowania.</p>
                         </div>
                     </div>
-                </div>
+                </section>
             </div>
         </main>
     </div>

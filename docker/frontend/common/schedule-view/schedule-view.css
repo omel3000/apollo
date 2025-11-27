@@ -11,6 +11,24 @@
   gap: 0.5rem;
 }
 
+.schedule-layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.schedule-section {
+  min-width: 0;
+}
+
+.schedule-section--filters,
+.schedule-section--calendar,
+.schedule-section--day,
+.schedule-section--month {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 .schedule-mini-calendar__weekdays {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
@@ -345,6 +363,29 @@
 
 .schedule-loader.active {
   display: block;
+}
+
+@media (min-width: 1200px) {
+  .schedule-layout {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+
+  .schedule-section--filters {
+    grid-column: span 7;
+  }
+
+  .schedule-section--day {
+    grid-column: span 7;
+  }
+
+  .schedule-section--calendar {
+    grid-column: span 5;
+    grid-row: span 2;
+  }
+
+  .schedule-section--month {
+    grid-column: span 5;
+  }
 }
 
 @media (max-width: 991px) {
