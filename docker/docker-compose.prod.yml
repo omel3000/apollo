@@ -1,0 +1,22 @@
+# Docker Compose - Konfiguracja PRODUKCYJNA
+# Użycie: docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  backend:
+    # Użyje CMD z Dockerfile (bez --reload, z log-level warning)
+    command: null  # Usuwa development override
+    volumes: []  # Usuwa volume mount (brak hot-reload)
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres-db:5432/${POSTGRES_DB}
+      - SECRET_KEY=${SECRET_KEY}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      - ENVIRONMENT=production
+      - LOG_LEVEL=warning
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+    
+  nginx-proxy:
+    # Na produkcji dodasz port 443 dla HTTPS
+    # ports:
+    #   - "443:443"
+    environment:
+      - ENVIRONMENT=production

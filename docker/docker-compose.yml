@@ -20,12 +20,18 @@ services:
     container_name: backend
     restart: always
     working_dir: /app
+    # Development override - włącz hot-reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     volumes:
       - ./backend/app:/app
-    ports:
-      - "8000:8000"
+    # Port 8000 USUNIĘTY - backend dostępny tylko przez Nginx w sieci Docker
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-apollo}:${POSTGRES_PASSWORD:-apollo123}@postgres-db:5432/${POSTGRES_DB:-apollo_test_db}
+      - SECRET_KEY=${SECRET_KEY:-supersekretnykluczdojwt}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES:-60}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost}
     depends_on:
       - postgres-db
     dns:

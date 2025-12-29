@@ -1,0 +1,40 @@
+# Apollo - ignorowane pliki
+
+# Wrażliwe dane
+.env
+.env.local
+.env.production
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Docker
+postgres_data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logi
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Tymczasowe
+*.tmp
+*.bak
+.cache/
