@@ -13,6 +13,7 @@ services:
       - ENVIRONMENT=production
       - LOG_LEVEL=warning
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
+      - ENABLE_DOCS=${ENABLE_DOCS:-false}  # Na produkcji domyślnie wyłączony (możesz zmienić na true)
     
   nginx-proxy:
     # Na produkcji dodasz port 443 dla HTTPS

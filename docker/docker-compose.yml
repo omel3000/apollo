@@ -32,6 +32,7 @@ services:
       - ENVIRONMENT=${ENVIRONMENT:-development}
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost}
+      - ENABLE_DOCS=${ENABLE_DOCS:-true}
     depends_on:
       - postgres-db
     dns:

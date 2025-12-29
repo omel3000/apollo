@@ -19,14 +19,16 @@ if os.getenv("ENVIRONMENT") == "production":
     logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
     logging.getLogger("passlib").setLevel(logging.WARNING)
 
-# Sprawdź czy jesteśmy w trybie produkcyjnym
-is_production = os.getenv("ENVIRONMENT") == "production"
+# Kontrola dostępności Swagger UI - osobna zmienna (niezależna od ENVIRONMENT)
+enable_docs = os.getenv("ENABLE_DOCS", "true").lower() in ("true", "1", "yes")
 
-# FastAPI app - wyłącz docs na produkcji
+# FastAPI app - kontrola docs przez zmienną ENABLE_DOCS
 app = FastAPI(
     title="Apollo Backend",
-    docs_url=None if is_production else "/docs",
-    redoc_url=None if is_production else "/redoc",
+    docs_url="/docs" if enable_docs else None,
+    redoc_url="/redoc" if enable_docs else None,
+    description="API systemu Apollo - zarządzanie czasem pracy",
+    version="1.0.0",
 )
 
 # === CORS CONFIGURATION ===
