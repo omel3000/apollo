@@ -162,9 +162,9 @@ async function loadAllData() {
 
 const PERIOD_STATUS_LABELS = {
   otwarty: 'Otwarty',
+  zamkniety: 'Zamknięty',
   odblokowany: 'Odblokowany',
-  oczekuje_na_zamkniecie: 'Oczekuje na zamknięcie',
-  zamkniety: 'Zamknięty'
+  oczekuje_na_zamkniecie: 'Oczekuje na zamknięcie'
 };
 
 const PERIOD_STATUS_ALERTS = {
@@ -176,18 +176,35 @@ const PERIOD_STATUS_ALERTS = {
 
 function setupPeriodPanel() {
   const btnCreate = document.getElementById('btnCreatePeriod');
-  const btnPending = document.getElementById('btnPendingClose');
   const btnClose = document.getElementById('btnClosePeriod');
   const btnOpen = document.getElementById('btnOpenPeriod');
-  const btnUnlock = document.getElementById('btnUnlockPeriod');
-  const btnDelete = document.getElementById('btnDeletePeriod');
 
   if (btnCreate) btnCreate.addEventListener('click', () => handleCreatePeriod());
-  if (btnPending) btnPending.addEventListener('click', () => handleUpdatePeriodStatus('oczekuje_na_zamkniecie'));
   if (btnClose) btnClose.addEventListener('click', () => handleUpdatePeriodStatus('zamkniety'));
   if (btnOpen) btnOpen.addEventListener('click', () => handleUpdatePeriodStatus('otwarty'));
-  if (btnUnlock) btnUnlock.addEventListener('click', () => handleUpdatePeriodStatus('odblokowany'));
-  if (btnDelete) btnDelete.addEventListener('click', () => handleDeletePeriod());
+}
+
+function setPeriodPanelMessage(kind, message) {
+  const alertBox = document.getElementById('periodAlert');
+  if (!alertBox) {
+    return;
+  }
+
+  if (!message) {
+    alertBox.className = 'alert d-none';
+    alertBox.textContent = '';
+    return;
+  }
+
+  const className = kind === 'error'
+    ? 'alert alert-danger'
+    : kind === 'success'
+      ? 'alert alert-success'
+      : 'alert alert-info';
+
+  alertBox.className = className;
+  alertBox.textContent = message;
+  alertBox.classList.remove('d-none');
 }
 
 function formatDateTime(value) {
@@ -206,14 +223,10 @@ function renderPeriodPanel() {
   const label = document.getElementById('periodStatusLabel');
   const lockedAt = document.getElementById('periodLockedAt');
   const unlockedAt = document.getElementById('periodUnlockedAt');
-  const alertBox = document.getElementById('periodAlert');
 
   const btnCreate = document.getElementById('btnCreatePeriod');
-  const btnPending = document.getElementById('btnPendingClose');
   const btnClose = document.getElementById('btnClosePeriod');
   const btnOpen = document.getElementById('btnOpenPeriod');
-  const btnUnlock = document.getElementById('btnUnlockPeriod');
-  const btnDelete = document.getElementById('btnDeletePeriod');
 
   const notesInput = document.getElementById('periodNotes');
 
@@ -227,17 +240,10 @@ function renderPeriodPanel() {
     if (label) label.textContent = '—';
     if (lockedAt) lockedAt.textContent = '—';
     if (unlockedAt) unlockedAt.textContent = '—';
-    if (alertBox) {
-      alertBox.className = 'alert alert-secondary';
-      alertBox.textContent = 'Okres rozliczeniowy nie został utworzony. Możesz go utworzyć przyciskiem „Utwórz okres”.';
-      alertBox.classList.remove('d-none');
-    }
+    setPeriodPanelMessage('info', 'Okres rozliczeniowy nie został utworzony. Możesz go utworzyć przyciskiem „Utwórz okres”.');
     if (btnCreate) btnCreate.disabled = false;
-    if (btnPending) btnPending.disabled = true;
     if (btnClose) btnClose.disabled = true;
     if (btnOpen) btnOpen.disabled = true;
-    if (btnUnlock) btnUnlock.disabled = true;
-    if (btnDelete) btnDelete.disabled = true;
     return;
   }
 
@@ -259,20 +265,13 @@ function renderPeriodPanel() {
   if (label) label.textContent = statusLabel;
   if (lockedAt) lockedAt.textContent = formatDateTime(periodInfo.locked_at);
   if (unlockedAt) unlockedAt.textContent = formatDateTime(periodInfo.unlocked_at);
-  if (alertBox) {
-    alertBox.className = `alert ${template.className}`;
-    alertBox.textContent = template.message;
-    alertBox.classList.remove('d-none');
-  }
+  setPeriodPanelMessage('info', template.message);
 
   // Akcje
   if (btnCreate) btnCreate.disabled = true;
-  if (btnDelete) btnDelete.disabled = false;
 
   if (btnClose) btnClose.disabled = (status === 'zamkniety');
   if (btnOpen) btnOpen.disabled = (status === 'otwarty');
-  if (btnUnlock) btnUnlock.disabled = (status === 'odblokowany');
-  if (btnPending) btnPending.disabled = (status === 'oczekuje_na_zamkniecie');
 }
 
 async function loadPeriodInfo() {
@@ -343,9 +342,10 @@ async function handleCreatePeriod() {
     }
 
     periodInfo = await response.json();
+    setPeriodPanelMessage('success', 'Okres rozliczeniowy został utworzony.');
     renderPeriodPanel();
   } catch (error) {
-    alert('Błąd: ' + error.message);
+    setPeriodPanelMessage('error', 'Błąd tworzenia okresu: ' + error.message);
   }
 }
 
@@ -354,7 +354,7 @@ async function handleUpdatePeriodStatus(status) {
   const year = currentYear;
 
   if (!periodInfo) {
-    alert('Najpierw utwórz okres rozliczeniowy.');
+    setPeriodPanelMessage('error', 'Najpierw utwórz okres rozliczeniowy.');
     return;
   }
 
@@ -383,49 +383,10 @@ async function handleUpdatePeriodStatus(status) {
     }
 
     periodInfo = await response.json();
+    setPeriodPanelMessage('success', 'Status okresu został zaktualizowany.');
     renderPeriodPanel();
   } catch (error) {
-    alert('Błąd: ' + error.message);
-  }
-}
-
-async function handleDeletePeriod() {
-  const month = currentMonth + 1;
-  const year = currentYear;
-
-  if (!periodInfo) {
-    alert('Okres nie istnieje.');
-    return;
-  }
-
-  const confirmed = window.confirm('Czy na pewno chcesz usunąć ten okres rozliczeniowy? Operacja jest dozwolona tylko, jeśli brak danych w miesiącu.');
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-    const response = await fetch(`/periods/${year}/${month}`, {
-      method: 'DELETE',
-      headers: {
-        'Authorization': authHeader,
-        'Accept': 'application/json'
-      }
-    });
-
-    if (response.status === 401) {
-      window.location.replace('/');
-      return;
-    }
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(text || 'Nie udało się usunąć okresu');
-    }
-
-    periodInfo = null;
-    renderPeriodPanel();
-  } catch (error) {
-    alert('Błąd: ' + error.message);
+    setPeriodPanelMessage('error', 'Błąd zmiany statusu: ' + error.message);
   }
 }
 
