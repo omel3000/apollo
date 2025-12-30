@@ -56,6 +56,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   
   // Load data
   await loadAllData();
+  
+  console.log('monthly-summary.js: Initialization complete');
 });
 
 // ============================================================================
@@ -178,10 +180,17 @@ function setupPeriodPanel() {
   const btnCreate = document.getElementById('btnCreatePeriod');
   const btnClose = document.getElementById('btnClosePeriod');
   const btnOpen = document.getElementById('btnOpenPeriod');
+  const btnDelete = document.getElementById('btnDeletePeriod');
+
+  console.log('setupPeriodPanel: found buttons', { btnCreate: !!btnCreate, btnClose: !!btnClose, btnOpen: !!btnOpen, btnDelete: !!btnDelete });
 
   if (btnCreate) btnCreate.addEventListener('click', () => handleCreatePeriod());
   if (btnClose) btnClose.addEventListener('click', () => handleUpdatePeriodStatus('zamkniety'));
   if (btnOpen) btnOpen.addEventListener('click', () => handleUpdatePeriodStatus('otwarty'));
+  if (btnDelete) btnDelete.addEventListener('click', () => handleDeletePeriod());
+  
+  // Renderuj od razu stan początkowy
+  renderPeriodPanel();
 }
 
 function setPeriodPanelMessage(kind, message) {
@@ -227,6 +236,7 @@ function renderPeriodPanel() {
   const btnCreate = document.getElementById('btnCreatePeriod');
   const btnClose = document.getElementById('btnClosePeriod');
   const btnOpen = document.getElementById('btnOpenPeriod');
+  const btnDelete = document.getElementById('btnDeletePeriod');
 
   const notesInput = document.getElementById('periodNotes');
 
@@ -244,6 +254,7 @@ function renderPeriodPanel() {
     if (btnCreate) btnCreate.disabled = false;
     if (btnClose) btnClose.disabled = true;
     if (btnOpen) btnOpen.disabled = true;
+    if (btnDelete) btnDelete.disabled = true;
     return;
   }
 
@@ -269,6 +280,7 @@ function renderPeriodPanel() {
 
   // Akcje
   if (btnCreate) btnCreate.disabled = true;
+  if (btnDelete) btnDelete.disabled = false;
 
   if (btnClose) btnClose.disabled = (status === 'zamkniety');
   if (btnOpen) btnOpen.disabled = (status === 'otwarty');
@@ -387,6 +399,47 @@ async function handleUpdatePeriodStatus(status) {
     renderPeriodPanel();
   } catch (error) {
     setPeriodPanelMessage('error', 'Błąd zmiany statusu: ' + error.message);
+  }
+}
+
+async function handleDeletePeriod() {
+  const month = currentMonth + 1;
+  const year = currentYear;
+
+  if (!periodInfo) {
+    setPeriodPanelMessage('error', 'Okres nie istnieje.');
+    return;
+  }
+
+  const confirmed = window.confirm(`Czy na pewno chcesz usunąć okres rozliczeniowy ${monthNamesPl[currentMonth]} ${year}?\n\nOperacja jest dozwolona tylko, jeśli w miesiącu nie ma żadnych danych (raporty, nieobecności, grafik, dostępność).`);
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/periods/${year}/${month}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      window.location.replace('/');
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Nie udało się usunąć okresu');
+    }
+
+    periodInfo = null;
+    setPeriodPanelMessage('success', 'Okres rozliczeniowy został usunięty.');
+    renderPeriodPanel();
+  } catch (error) {
+    setPeriodPanelMessage('error', 'Błąd usuwania okresu: ' + error.message);
   }
 }
 
