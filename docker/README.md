@@ -13,7 +13,7 @@
 | `docker exec -it`         | Uruchamia interaktywną powłokę lub polecenie wewnątrz działającego kontenera              |
 | `docker-compose up -d`    | Uruchamia kontenery według pliku `docker-compose.yml` w tle (detached mode)               |
 | `docker-compose down`     | Zatrzymuje i usuwa kontenery zdefiniowane w `docker-compose.yml`                         |
-
+|`docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d` |	Komenda do uruchomienia produkcyjnego środowiska ze zwiększonym bezpieczeństwem|
 ---
 
 # Postgres
