@@ -212,6 +212,7 @@ function setPeriodPanelMessage(kind, message) {
       : 'alert alert-info';
 
   alertBox.className = className;
+  alertBox.style.whiteSpace = 'pre-line'; // Zachowaj łamanie linii
   alertBox.textContent = message;
   alertBox.classList.remove('d-none');
 }

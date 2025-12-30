@@ -227,49 +227,48 @@ def set_period_status(
 
     start_date, end_date = _get_period_date_range(year, month)
 
-    # Przy zamykaniu upewnij się, że nie ma raportów/nwobecności w statusach roboczych
+    # Przy zamykaniu upewnij się, że nie ma raportów wymagających akceptacji lub w statusie roboczym
     if new_status == PeriodStatus.closed:
-        blocking_reports = db.query(WorkReport).filter(
+        # Sprawdzamy tylko raporty oczekujące na akceptację i robocze (nie odrzucone)
+        draft_reports = db.query(WorkReport).filter(
             WorkReport.work_date.between(start_date, end_date),
-            WorkReport.status.notin_(SUMMARY_REPORT_STATUSES),
+            WorkReport.status == WorkReportStatus.draft,
         ).count()
-        blocking_absences = db.query(Absence).filter(
-            Absence.date_from <= end_date,
-            Absence.date_to >= start_date,
-            Absence.status.notin_((AbsenceStatus.approved, AbsenceStatus.locked)),
+        
+        pending_reports = db.query(WorkReport).filter(
+            WorkReport.work_date.between(start_date, end_date),
+            WorkReport.status == WorkReportStatus.pending,
         ).count()
-        if blocking_reports or blocking_absences:
-            raise ValueError(
-                "Nie można zamknąć okresu. Istnieją raporty lub nieobecności wymagające akceptacji lub korekty."
-            )
+        
+        blocking_issues = []
+        if draft_reports > 0:
+            blocking_issues.append(f"{draft_reports} raport{'y' if draft_reports > 1 else ''} w statusie roboczym")
+        if pending_reports > 0:
+            blocking_issues.append(f"{pending_reports} raport{'y' if pending_reports > 1 else ''} oczekujący{'ch' if pending_reports > 1 else ''} na akceptację")
+        
+        if blocking_issues:
+            message = "Nie można zamknąć okresu rozliczeniowego.\n\n"
+            message += "Znaleziono:\n• " + "\n• ".join(blocking_issues)
+            message += "\n\nWpisy odrzucone nie blokują zamknięcia okresu."
+            raise ValueError(message)
 
     now = datetime.now()
 
     if new_status == PeriodStatus.closed:
+        # Zamykamy tylko raporty pracy (nie nieobecności)
         db.query(WorkReport).filter(
             WorkReport.work_date.between(start_date, end_date),
             WorkReport.status == WorkReportStatus.approved,
         ).update({WorkReport.status: WorkReportStatus.locked}, synchronize_session=False)
 
-        db.query(Absence).filter(
-            Absence.date_from <= end_date,
-            Absence.date_to >= start_date,
-            Absence.status == AbsenceStatus.approved,
-        ).update({Absence.status: AbsenceStatus.locked}, synchronize_session=False)
-
         period.locked_by_user_id = actor_user_id
         period.locked_at = now
     elif current_status == PeriodStatus.closed and new_status in {PeriodStatus.open, PeriodStatus.unlocked}:
+        # Odblokowujemy tylko raporty pracy (nie nieobecności)
         db.query(WorkReport).filter(
             WorkReport.work_date.between(start_date, end_date),
             WorkReport.status == WorkReportStatus.locked,
         ).update({WorkReport.status: WorkReportStatus.approved}, synchronize_session=False)
-
-        db.query(Absence).filter(
-            Absence.date_from <= end_date,
-            Absence.date_to >= start_date,
-            Absence.status == AbsenceStatus.locked,
-        ).update({Absence.status: AbsenceStatus.approved}, synchronize_session=False)
 
         period.unlocked_at = now
 
