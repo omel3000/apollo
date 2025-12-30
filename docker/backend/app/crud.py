@@ -141,7 +141,73 @@ def list_periods(db: Session, year: Optional[int] = None):
 
 
 def get_period(db: Session, year: int, month: int) -> PeriodClosure:
-    return _get_or_create_period(db, year, month)
+    return (
+        db.query(PeriodClosure)
+        .filter(PeriodClosure.year == year, PeriodClosure.month == month)
+        .first()
+    )
+
+
+def create_period(db: Session, year: int, month: int) -> PeriodClosure:
+    existing = (
+        db.query(PeriodClosure)
+        .filter(PeriodClosure.year == year, PeriodClosure.month == month)
+        .first()
+    )
+    if existing:
+        return existing
+
+    period = PeriodClosure(year=year, month=month, status=PeriodStatus.open)
+    db.add(period)
+    db.commit()
+    db.refresh(period)
+    return period
+
+
+def delete_period(db: Session, year: int, month: int) -> bool:
+    period = (
+        db.query(PeriodClosure)
+        .filter(PeriodClosure.year == year, PeriodClosure.month == month)
+        .first()
+    )
+    if not period:
+        return False
+
+    start_date, end_date = _get_period_date_range(year, month)
+
+    has_work_reports = (
+        db.query(WorkReport)
+        .filter(WorkReport.work_date.between(start_date, end_date))
+        .first()
+        is not None
+    )
+    has_schedule = (
+        db.query(Schedule)
+        .filter(Schedule.work_date.between(start_date, end_date))
+        .first()
+        is not None
+    )
+    has_availability = (
+        db.query(Availability)
+        .filter(Availability.date.between(start_date, end_date))
+        .first()
+        is not None
+    )
+    has_absences = (
+        db.query(Absence)
+        .filter(Absence.date_from <= end_date, Absence.date_to >= start_date)
+        .first()
+        is not None
+    )
+
+    if has_work_reports or has_absences or has_schedule or has_availability:
+        raise ValueError(
+            "Nie można usunąć okresu: w danym miesiącu istnieją dane (raporty, nieobecności, grafik lub dostępność)."
+        )
+
+    db.delete(period)
+    db.commit()
+    return True
 
 
 def set_period_status(

@@ -10,6 +10,9 @@ let trendData = null;
 let filteredUsers = [];
 let filteredProjects = [];
 
+// Okresy rozliczeniowe
+let periodInfo = null;
+
 // Wykresy
 let usersChart = null;
 let projectsChart = null;
@@ -49,6 +52,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupMonthYearSelects();
   setupNavigation();
   setupEventListeners();
+  setupPeriodPanel();
   
   // Load data
   await loadAllData();
@@ -141,13 +145,287 @@ async function loadAllData() {
   try {
     await Promise.all([
       loadMonthlyOverview(),
-      loadMonthlyTrend()
+      loadMonthlyTrend(),
+      loadPeriodInfo()
     ]);
   } catch (error) {
     console.error('Error loading data:', error);
     alert('Błąd ładowania danych: ' + error.message);
   } finally {
     hideSpinner();
+  }
+}
+
+// ============================================================================
+// OKRESY ROZLICZENIOWE
+// ============================================================================
+
+const PERIOD_STATUS_LABELS = {
+  otwarty: 'Otwarty',
+  odblokowany: 'Odblokowany',
+  oczekuje_na_zamkniecie: 'Oczekuje na zamknięcie',
+  zamkniety: 'Zamknięty'
+};
+
+const PERIOD_STATUS_ALERTS = {
+  otwarty: { className: 'alert-success', message: 'Okres jest otwarty. Wpisy mogą być dodawane i edytowane.' },
+  odblokowany: { className: 'alert-info', message: 'Okres został odblokowany w celu korekt. Pamiętaj o ponownym zgłoszeniu wpisów.' },
+  oczekuje_na_zamkniecie: { className: 'alert-warning', message: 'Okres oczekuje na zamknięcie. Upewnij się, że wszystkie wpisy są zaakceptowane.' },
+  zamkniety: { className: 'alert-danger', message: 'Okres jest zamknięty. Edycja wpisów jest zablokowana.' }
+};
+
+function setupPeriodPanel() {
+  const btnCreate = document.getElementById('btnCreatePeriod');
+  const btnPending = document.getElementById('btnPendingClose');
+  const btnClose = document.getElementById('btnClosePeriod');
+  const btnOpen = document.getElementById('btnOpenPeriod');
+  const btnUnlock = document.getElementById('btnUnlockPeriod');
+  const btnDelete = document.getElementById('btnDeletePeriod');
+
+  if (btnCreate) btnCreate.addEventListener('click', () => handleCreatePeriod());
+  if (btnPending) btnPending.addEventListener('click', () => handleUpdatePeriodStatus('oczekuje_na_zamkniecie'));
+  if (btnClose) btnClose.addEventListener('click', () => handleUpdatePeriodStatus('zamkniety'));
+  if (btnOpen) btnOpen.addEventListener('click', () => handleUpdatePeriodStatus('otwarty'));
+  if (btnUnlock) btnUnlock.addEventListener('click', () => handleUpdatePeriodStatus('odblokowany'));
+  if (btnDelete) btnDelete.addEventListener('click', () => handleDeletePeriod());
+}
+
+function formatDateTime(value) {
+  try {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    return date.toLocaleString('pl-PL', { dateStyle: 'short', timeStyle: 'short' });
+  } catch {
+    return '—';
+  }
+}
+
+function renderPeriodPanel() {
+  const badge = document.getElementById('periodStatusBadge');
+  const label = document.getElementById('periodStatusLabel');
+  const lockedAt = document.getElementById('periodLockedAt');
+  const unlockedAt = document.getElementById('periodUnlockedAt');
+  const alertBox = document.getElementById('periodAlert');
+
+  const btnCreate = document.getElementById('btnCreatePeriod');
+  const btnPending = document.getElementById('btnPendingClose');
+  const btnClose = document.getElementById('btnClosePeriod');
+  const btnOpen = document.getElementById('btnOpenPeriod');
+  const btnUnlock = document.getElementById('btnUnlockPeriod');
+  const btnDelete = document.getElementById('btnDeletePeriod');
+
+  const notesInput = document.getElementById('periodNotes');
+
+  if (periodInfo && notesInput && (notesInput.value || '') === '') {
+    // jeśli backend ma notatkę, pokaż ją w polu (użytkownik może zmienić)
+    notesInput.value = periodInfo.notes || '';
+  }
+
+  if (!periodInfo) {
+    if (badge) { badge.className = 'badge text-bg-secondary'; badge.textContent = 'Nieutworzony'; }
+    if (label) label.textContent = '—';
+    if (lockedAt) lockedAt.textContent = '—';
+    if (unlockedAt) unlockedAt.textContent = '—';
+    if (alertBox) {
+      alertBox.className = 'alert alert-secondary';
+      alertBox.textContent = 'Okres rozliczeniowy nie został utworzony. Możesz go utworzyć przyciskiem „Utwórz okres”.';
+      alertBox.classList.remove('d-none');
+    }
+    if (btnCreate) btnCreate.disabled = false;
+    if (btnPending) btnPending.disabled = true;
+    if (btnClose) btnClose.disabled = true;
+    if (btnOpen) btnOpen.disabled = true;
+    if (btnUnlock) btnUnlock.disabled = true;
+    if (btnDelete) btnDelete.disabled = true;
+    return;
+  }
+
+  const status = periodInfo.status;
+  const statusLabel = PERIOD_STATUS_LABELS[status] || String(status || '—');
+  const template = PERIOD_STATUS_ALERTS[status] || { className: 'alert-info', message: 'Status okresu został zaktualizowany.' };
+
+  if (badge) {
+    const badgeClass = status === 'zamkniety'
+      ? 'badge text-bg-danger'
+      : status === 'otwarty'
+        ? 'badge text-bg-success'
+        : status === 'oczekuje_na_zamkniecie'
+          ? 'badge text-bg-warning'
+          : 'badge text-bg-info';
+    badge.className = badgeClass;
+    badge.textContent = statusLabel;
+  }
+  if (label) label.textContent = statusLabel;
+  if (lockedAt) lockedAt.textContent = formatDateTime(periodInfo.locked_at);
+  if (unlockedAt) unlockedAt.textContent = formatDateTime(periodInfo.unlocked_at);
+  if (alertBox) {
+    alertBox.className = `alert ${template.className}`;
+    alertBox.textContent = template.message;
+    alertBox.classList.remove('d-none');
+  }
+
+  // Akcje
+  if (btnCreate) btnCreate.disabled = true;
+  if (btnDelete) btnDelete.disabled = false;
+
+  if (btnClose) btnClose.disabled = (status === 'zamkniety');
+  if (btnOpen) btnOpen.disabled = (status === 'otwarty');
+  if (btnUnlock) btnUnlock.disabled = (status === 'odblokowany');
+  if (btnPending) btnPending.disabled = (status === 'oczekuje_na_zamkniecie');
+}
+
+async function loadPeriodInfo() {
+  // Backend oczekuje miesiąca 1-12
+  const month = currentMonth + 1;
+  const year = currentYear;
+
+  try {
+    const response = await fetch(`/periods/${year}/${month}`, {
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      window.location.replace('/');
+      return;
+    }
+
+    if (response.status === 404) {
+      periodInfo = null;
+      renderPeriodPanel();
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Błąd pobierania okresu');
+    }
+
+    periodInfo = await response.json();
+    renderPeriodPanel();
+  } catch (error) {
+    console.error('Nie udało się pobrać okresu:', error);
+    // Nie blokuj całej strony – pokaż brak danych
+    periodInfo = null;
+    renderPeriodPanel();
+  }
+}
+
+function getNotesPayload() {
+  const notes = (document.getElementById('periodNotes')?.value || '').trim();
+  return notes ? notes : null;
+}
+
+async function handleCreatePeriod() {
+  const month = currentMonth + 1;
+  const year = currentYear;
+
+  try {
+    const response = await fetch(`/periods/${year}/${month}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      window.location.replace('/');
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Nie udało się utworzyć okresu');
+    }
+
+    periodInfo = await response.json();
+    renderPeriodPanel();
+  } catch (error) {
+    alert('Błąd: ' + error.message);
+  }
+}
+
+async function handleUpdatePeriodStatus(status) {
+  const month = currentMonth + 1;
+  const year = currentYear;
+
+  if (!periodInfo) {
+    alert('Najpierw utwórz okres rozliczeniowy.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/periods/${year}/${month}/status`, {
+      method: 'POST',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        status,
+        notes: getNotesPayload()
+      })
+    });
+
+    if (response.status === 401) {
+      window.location.replace('/');
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Nie udało się zmienić statusu');
+    }
+
+    periodInfo = await response.json();
+    renderPeriodPanel();
+  } catch (error) {
+    alert('Błąd: ' + error.message);
+  }
+}
+
+async function handleDeletePeriod() {
+  const month = currentMonth + 1;
+  const year = currentYear;
+
+  if (!periodInfo) {
+    alert('Okres nie istnieje.');
+    return;
+  }
+
+  const confirmed = window.confirm('Czy na pewno chcesz usunąć ten okres rozliczeniowy? Operacja jest dozwolona tylko, jeśli brak danych w miesiącu.');
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/periods/${year}/${month}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': authHeader,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.status === 401) {
+      window.location.replace('/');
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Nie udało się usunąć okresu');
+    }
+
+    periodInfo = null;
+    renderPeriodPanel();
+  } catch (error) {
+    alert('Błąd: ' + error.message);
   }
 }
 

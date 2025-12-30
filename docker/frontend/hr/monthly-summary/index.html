@@ -164,6 +164,68 @@
                     </div>
                 </div>
 
+                <!-- Okres rozliczeniowy -->
+                <div class="card mb-4" id="periodPanel">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-calendar2-range me-2"></i>Okres rozliczeniowy</h5>
+                        <span class="badge text-bg-secondary" id="periodStatusBadge">Brak danych</span>
+                    </div>
+                    <div class="card-body">
+                        <div id="periodAlert" class="alert d-none" role="alert"></div>
+
+                        <div class="row g-3">
+                            <div class="col-lg-8">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <div class="small text-muted">Status</div>
+                                        <div id="periodStatusLabel" class="fw-semibold">—</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="small text-muted">Zamknięto</div>
+                                        <div id="periodLockedAt">—</div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="small text-muted">Odblokowano</div>
+                                        <div id="periodUnlockedAt">—</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-lg-4">
+                                <label for="periodNotes" class="form-label">Notatka (opcjonalnie)</label>
+                                <textarea id="periodNotes" class="form-control" rows="3" maxlength="2000" placeholder="Np. Zamykamy miesiąc po akceptacji wszystkich wpisów"></textarea>
+                            </div>
+                        </div>
+
+                        <hr class="my-3" />
+
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" class="btn btn-outline-primary" id="btnCreatePeriod">
+                                <i class="bi bi-plus-circle me-1"></i>Utwórz okres
+                            </button>
+                            <button type="button" class="btn btn-warning" id="btnPendingClose">
+                                <i class="bi bi-hourglass-split me-1"></i>Oczekuje na zamknięcie
+                            </button>
+                            <button type="button" class="btn btn-danger" id="btnClosePeriod">
+                                <i class="bi bi-lock-fill me-1"></i>Zamknij okres
+                            </button>
+                            <button type="button" class="btn btn-success" id="btnOpenPeriod">
+                                <i class="bi bi-unlock-fill me-1"></i>Otwórz okres
+                            </button>
+                            <button type="button" class="btn btn-info" id="btnUnlockPeriod">
+                                <i class="bi bi-arrow-counterclockwise me-1"></i>Odblokuj do korekt
+                            </button>
+                            <button type="button" class="btn btn-outline-danger ms-auto" id="btnDeletePeriod">
+                                <i class="bi bi-trash me-1"></i>Usuń okres
+                            </button>
+                        </div>
+
+                        <div class="small text-muted mt-2">
+                            Uwaga: „Usuń okres” zadziała tylko, jeśli w danym miesiącu nie ma żadnych danych (raporty, nieobecności, grafik, dostępność).
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Szybkie statystyki -->
                 <div class="row mb-4" id="statsContainer">
                     <div class="col-md-3 col-sm-6">

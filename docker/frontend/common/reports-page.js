@@ -1550,6 +1550,21 @@ async function syncPeriodStatus(isoDate) {
       return null;
     }
 
+    if (response.status === 404) {
+      const fallback = {
+        year,
+        month,
+        status: 'otwarty',
+        locked_by_user_id: null,
+        locked_at: null,
+        unlocked_at: null,
+        notes: null
+      };
+      periodStatusCache.set(cacheKey, { data: fallback, fetchedAt: Date.now() });
+      renderPeriodBanner(fallback);
+      return fallback;
+    }
+
     if (!response.ok) {
       throw new Error(await safeReadText(response));
     }

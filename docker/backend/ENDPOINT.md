@@ -84,7 +84,9 @@
 | **OKRESY ROZLICZENIOWE** |||||||
 | GET | `/periods/` | Lista okresów rozliczeniowych (opcjonalny filtr po roku) | ❌ | ✅ | ✅ | ❌ |
 | GET | `/periods/{year}/{month}` | Szczegóły okresu rozliczeniowego | ❌ | ✅ | ✅ | ❌ |
-| POST | `/periods/{year}/{month}/status` | Zmiana statusu okresu (zamykanie/otwieranie) | ❌ | ❌ | ✅ | ❌ |
+| POST | `/periods/{year}/{month}` | Utworzenie okresu rozliczeniowego (jeśli nie istnieje) | ❌ | ✅ | ✅ | ❌ |
+| POST | `/periods/{year}/{month}/status` | Zmiana statusu okresu (zamykanie/otwieranie) | ❌ | ✅ | ✅ | ❌ |
+| DELETE | `/periods/{year}/{month}` | Usunięcie okresu (tylko jeśli w miesiącu nie ma danych) | ❌ | ✅ | ✅ | ❌ |
 | **LOGI AUDYTU** |||||||
 | GET | `/audit_logs/` | Lista logów audytu z filtrowaniem i paginacją | ❌ | ✅ | ✅ | ❌ |
 | GET | `/audit_logs/actions` | Lista dostępnych akcji (do filtrów na froncie) | ❌ | ✅ | ✅ | ❌ |
@@ -142,5 +144,6 @@
   - HR/Admin przeglądają kolejkę oczekujących (`/review_queue`) i podejmują decyzje (`/review`). Odrzucenie wymaga komentarza.
   - Historia decyzji jest dostępna zarówno dla raportów, jak i nieobecności (`/{id}/history`).
 - Okresy rozliczeniowe:
-  - Administrator zarządza statusem okresów (`/periods/{year}/{month}/status`) – zamykanie blokuje dalsze modyfikacje i automatycznie utrwala zaakceptowane wpisy.
+  - HR/Administrator zarządza statusem okresów (`/periods/{year}/{month}/status`) – zamykanie blokuje dalsze modyfikacje i automatycznie utrwala zaakceptowane wpisy.
   - Odblokowanie okresu automatycznie przywraca status `zaakceptowany`, co pozwala na korekty i ponowne zgłoszenie.
+  - Usunięcie okresu jest możliwe tylko wtedy, gdy w danym miesiącu nie ma żadnych danych (raporty, nieobecności, grafik, dostępność).
