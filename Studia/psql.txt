@@ -1,0 +1,207 @@
+/* =================================================================
+ PROJEKT: SYSTEM ZARZĄDZANIA SCHRONISKIEM "TWÓJ ZWIERZAK"
+ ZADANIE 1: Skrypt tworzący bazę danych + przykładowe dane
+ SILNIK: PostgreSQL
+=================================================================
+*/
+
+BEGIN;
+
+-- 1. CZYSZCZENIE STAREJ STRUKTURY
+
+DROP TABLE IF EXISTS Umowy CASCADE;
+DROP TABLE IF EXISTS Wizyty CASCADE;
+DROP TABLE IF EXISTS Zwierzeta CASCADE;
+DROP TABLE IF EXISTS Adoptujacy CASCADE;
+DROP TABLE IF EXISTS Pracownicy CASCADE;
+DROP TABLE IF EXISTS Boksy CASCADE;
+DROP TABLE IF EXISTS Stanowiska CASCADE;
+DROP TABLE IF EXISTS Gatunki CASCADE;
+
+-- 2. TWORZENIE TABEL (DDL)
+
+-- Tabela 1: Słownik Gatunków
+CREATE TABLE Gatunki (
+    GatunekID SERIAL PRIMARY KEY,
+    Nazwa VARCHAR(50) NOT NULL
+);
+
+-- Tabela 2: Słownik Stanowisk
+CREATE TABLE Stanowiska (
+    StanowiskoID SERIAL PRIMARY KEY,
+    Nazwa VARCHAR(50) NOT NULL,
+    Opis TEXT
+);
+
+-- Tabela 3: Boksy i Sektory
+CREATE TABLE Boksy (
+    BoksID SERIAL PRIMARY KEY,
+    Numer VARCHAR(10) NOT NULL, -- np. K1, O5
+    Typ VARCHAR(20) CHECK (Typ IN ('Kwarantanna', 'Ogólny')),
+    Pojemnosc INT DEFAULT 1
+);
+
+-- Tabela 4: Pracownicy
+CREATE TABLE Pracownicy (
+    PracownikID SERIAL PRIMARY KEY,
+    Imie VARCHAR(50) NOT NULL,
+    Nazwisko VARCHAR(50) NOT NULL,
+    StanowiskoID INT NOT NULL,
+    DataZatrudnienia DATE DEFAULT CURRENT_DATE,
+    FOREIGN KEY (StanowiskoID) REFERENCES Stanowiska(StanowiskoID)
+);
+
+-- Tabela 5: Adoptujący (Klienci)
+CREATE TABLE Adoptujacy (
+    AdoptujacyID SERIAL PRIMARY KEY,
+    Imie VARCHAR(50) NOT NULL,
+    Nazwisko VARCHAR(50) NOT NULL,
+    PESEL VARCHAR(11) UNIQUE NOT NULL,
+    Adres VARCHAR(100),
+    Telefon VARCHAR(15)
+);
+
+-- Tabela 6: Zwierzęta
+CREATE TABLE Zwierzeta (
+    ZwierzeID SERIAL PRIMARY KEY,
+    Imie VARCHAR(50),
+    NrCzip VARCHAR(30) UNIQUE,
+    Plec VARCHAR(10), -- Samiec/Samica
+    Wiek INT,
+    Status VARCHAR(20) DEFAULT 'Kwarantanna', -- Kwarantanna, Do Adopcji, Adoptowane
+    DataPrzyjecia DATE DEFAULT CURRENT_DATE,
+    GatunekID INT NOT NULL,
+    BoksID INT, -- Może być NULL jeśli zwierzę jest adoptowane
+    FOREIGN KEY (GatunekID) REFERENCES Gatunki(GatunekID),
+    FOREIGN KEY (BoksID) REFERENCES Boksy(BoksID)
+);
+
+-- Tabela 7: Wizyty Lekarskie
+CREATE TABLE Wizyty (
+    WizytaID SERIAL PRIMARY KEY,
+    Data DATE DEFAULT CURRENT_DATE,
+    Opis TEXT,
+    Zalecenia TEXT,
+    ZwierzeID INT NOT NULL,
+    PracownikID INT NOT NULL,
+    FOREIGN KEY (ZwierzeID) REFERENCES Zwierzeta(ZwierzeID),
+    FOREIGN KEY (PracownikID) REFERENCES Pracownicy(PracownikID)
+);
+
+-- Tabela 8: Umowy Adopcyjne
+CREATE TABLE Umowy (
+    UmowaID SERIAL PRIMARY KEY,
+    DataPodpisania DATE DEFAULT CURRENT_DATE,
+    Warunki TEXT,
+    ZwierzeID INT UNIQUE NOT NULL,
+    AdoptujacyID INT NOT NULL,
+    PracownikID INT NOT NULL,
+    FOREIGN KEY (ZwierzeID) REFERENCES Zwierzeta(ZwierzeID),
+    FOREIGN KEY (AdoptujacyID) REFERENCES Adoptujacy(AdoptujacyID),
+    FOREIGN KEY (PracownikID) REFERENCES Pracownicy(PracownikID)
+);
+
+
+-- 3. WYPEŁNIANIE DANYMI 
+
+-- 1. Gatunki (10 rekordów)
+INSERT INTO Gatunki (Nazwa) VALUES 
+('Pies'), ('Kot'), ('Królik'), ('Chomik'), ('Świnka morska'),
+('Papuga'), ('Kanarek'), ('Szynszyla'), ('Fretka'), ('Żółw');
+
+-- 2. Stanowiska (10 rekordów)
+INSERT INTO Stanowiska (Nazwa, Opis) VALUES
+('Weterynarz', 'Diagnostyka i leczenie'),
+('Technik Weterynarii', 'Asysta przy zabiegach'),
+('Kierownik Schroniska', 'Zarządzanie placówką'),
+('Pracownik Biura', 'Obsługa adopcji'),
+('Opiekun Zwierząt', 'Codzienna opieka'),
+('Wolontariusz', 'Wyprowadzanie psów'),
+('Behawiorysta', 'Praca z trudnymi psami'),
+('Konserwator', 'Naprawy techniczne'),
+('Kierowca', 'Interwencje i transport'),
+('Specjalista PR', 'Social media i zbiórki');
+
+-- 3. Boksy (10 rekordów)
+INSERT INTO Boksy (Numer, Typ, Pojemnosc) VALUES
+('K1', 'Kwarantanna', 1), ('K2', 'Kwarantanna', 1), 
+('K3', 'Kwarantanna', 1), ('K4', 'Kwarantanna', 2), 
+('K5', 'Kwarantanna', 2), ('O1', 'Ogólny', 3), 
+('O2', 'Ogólny', 3), ('O3', 'Ogólny', 4), 
+('O4', 'Ogólny', 4), ('O5', 'Ogólny', 5);
+
+-- 4. Pracownicy (10 rekordów)
+INSERT INTO Pracownicy (Imie, Nazwisko, StanowiskoID, DataZatrudnienia) VALUES
+('Jan', 'Kowalski', 1, '2020-01-10'),
+('Anna', 'Nowak', 4, '2021-03-15'),
+('Piotr', 'Wiśniewski', 5, '2022-05-20'),
+('Maria', 'Wójcik', 1, '2023-02-01'),
+('Krzysztof', 'Kowalczyk', 3, '2019-11-11'),
+('Agnieszka', 'Kamińska', 5, '2024-01-05'),
+('Tomasz', 'Lewandowski', 6, '2024-06-01'),
+('Paweł', 'Zieliński', 8, '2021-09-09'),
+('Magdalena', 'Szymańska', 4, '2022-12-12'),
+('Marek', 'Woźniak', 9, '2023-07-07');
+
+-- 5. Adoptujący (10 rekordów)
+INSERT INTO Adoptujacy (Imie, Nazwisko, PESEL, Adres, Telefon) VALUES
+('Karolina', 'Dąbrowska', '85010112345', 'Warszawa, Złota 5', '500-100-100'),
+('Michał', 'Kozłowski', '90020223456', 'Kraków, Długa 10', '500-200-200'),
+('Julia', 'Jankowska', '92030334567', 'Gdańsk, Morska 3', '500-300-300'),
+('Mateusz', 'Mazur', '88040445678', 'Wrocław, Rynek 1', '500-400-400'),
+('Aleksandra', 'Wojciechowska', '95050556789', 'Poznań, Polna 7', '500-500-500'),
+('Jakub', 'Kwiatkowski', '80060667890', 'Łódź, Piotrkowska 2', '500-600-600'),
+('Zofia', 'Krawczyk', '99070778901', 'Szczecin, Leśna 9', '500-700-700'),
+('Antoni', 'Piotrowski', '83080889012', 'Lublin, Lipowa 4', '500-800-800'),
+('Maja', 'Grabowska', '91090990123', 'Katowice, Młyńska 6', '500-900-900'),
+('Franciszek', 'Pawłowski', '87101001234', 'Gdynia, Portowa 8', '600-000-000');
+
+-- 6. Zwierzęta (15 rekordów)
+-- Zwierzęta w schronisku (ID 1-5)
+INSERT INTO Zwierzeta (Imie, NrCzip, Plec, Wiek, Status, GatunekID, BoksID) VALUES
+('Burek', '111000111', 'Samiec', 5, 'Do Adopcji', 1, 6),
+('Mruczek', '222000222', 'Samiec', 2, 'Kwarantanna', 2, 1),
+('Reksio', '333000333', 'Samiec', 7, 'Do Adopcji', 1, 7),
+('Pusia', '444000444', 'Samica', 1, 'Leczenie', 2, 2),
+('Chrupek', NULL, 'Samiec', 1, 'Kwarantanna', 4, 3);
+
+-- Zwierzęta adoptowane (ID 6-15) - BoksID jest NULL
+INSERT INTO Zwierzeta (Imie, NrCzip, Plec, Wiek, Status, GatunekID, BoksID) VALUES
+('Luna', '555000555', 'Samica', 3, 'Adoptowane', 1, NULL),
+('Fela', '666000666', 'Samica', 2, 'Adoptowane', 2, NULL),
+('Dyzio', '777000777', 'Samiec', 4, 'Adoptowane', 1, NULL),
+('Kajtek', '888000888', 'Samiec', 6, 'Adoptowane', 1, NULL),
+('Zosia', '999000999', 'Samica', 2, 'Adoptowane', 3, NULL),
+('Azor', '121212121', 'Samiec', 8, 'Adoptowane', 1, NULL),
+('Mika', '232323232', 'Samica', 4, 'Adoptowane', 1, NULL),
+('Kropka', '343434343', 'Samica', 1, 'Adoptowane', 2, NULL),
+('Bruno', '454545454', 'Samiec', 5, 'Adoptowane', 1, NULL),
+('Tofik', '565656565', 'Samiec', 3, 'Adoptowane', 1, NULL);
+
+-- 7. Wizyty (10 rekordów)
+INSERT INTO Wizyty (Data, Opis, Zalecenia, ZwierzeID, PracownikID) VALUES
+('2024-01-01', 'Szczepienie wścieklizna', 'Obserwacja', 1, 1),
+('2024-01-02', 'Odpchlenie', 'Powtórzyć za miesiąc', 2, 1),
+('2024-01-03', 'Kontrola uszu', 'Krople 2x dziennie', 3, 4),
+('2024-01-05', 'Opatrzenie łapy', 'Zmiana opatrunku', 4, 1),
+('2024-01-10', 'Badanie ogólne', 'Zdrowy', 5, 4),
+('2024-01-12', 'Wizyta adopcyjna', 'Brak zastrzeżeń', 6, 1),
+('2024-01-15', 'Szczepienie wirusowe', 'Spokój', 7, 4),
+('2024-01-18', 'Badanie kontrolne', 'Wszystko w normie', 8, 1),
+('2024-01-20', 'Czyszczenie zębów', 'Dieta miękka', 9, 4),
+('2024-01-22', 'Obcięcie pazurów', 'Brak', 10, 1);
+
+-- 8. Umowy Adopcyjne (10 rekordów dla zwierząt o ID 6-15)
+INSERT INTO Umowy (DataPodpisania, Warunki, ZwierzeID, AdoptujacyID, PracownikID) VALUES
+('2024-02-01', 'Umowa standardowa', 6, 1, 2),
+('2024-02-02', 'Umowa standardowa', 7, 2, 9),
+('2024-02-03', 'Umowa tymczasowa', 8, 3, 2),
+('2024-02-04', 'Umowa standardowa', 9, 4, 9),
+('2024-02-05', 'Adopcja zagraniczna', 10, 5, 2),
+('2024-02-06', 'Umowa standardowa', 11, 6, 9),
+('2024-02-07', 'Umowa standardowa', 12, 7, 2),
+('2024-02-08', 'Umowa warunkowa', 13, 8, 9),
+('2024-02-09', 'Umowa standardowa', 14, 9, 2),
+('2024-02-10', 'Umowa standardowa', 15, 10, 9);
+
+COMMIT;
