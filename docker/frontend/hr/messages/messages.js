@@ -46,11 +46,12 @@ async function loadMessages(preferredMessageId = selectedMessageId) {
             return;
         }
 
-        if (allMessages.length > 0) {
-            selectMessage(allMessages[0].message_id);
-        } else {
+        if (allMessages.length === 0) {
             renderEmptyDetails('Brak komunikatów', 'Dodaj pierwszy komunikat, aby wyświetlił się tutaj podgląd i opcje edycji.');
+            return;
         }
+
+        clearMessageSelection();
     } catch (error) {
         console.error('Błąd podczas pobierania komunikatów:', error);
         showAlert(error.message || 'Nie udało się pobrać komunikatów.', 'danger');
@@ -132,6 +133,13 @@ function showCreateForm() {
     renderCreateForm();
 }
 
+function clearMessageSelection() {
+    isCreatingMessage = false;
+    selectedMessageId = null;
+    renderMessagesList();
+    renderEmptyDetails('Wybierz komunikat', 'Wybierz komunikat z listy po lewej stronie albo utwórz nowy, aby rozpocząć edycję.');
+}
+
 function renderCreateForm() {
     elements.messageDetails.innerHTML = getFormMarkup({
         heading: 'Nowy komunikat',
@@ -182,9 +190,15 @@ function getFormMarkup({ heading, lead, submitLabel, message, isExisting }) {
                 <div class="invalid-feedback">Podaj treść komunikatu.</div>
             </div>
 
-            <div class="form-check form-switch mb-4">
-                <input class="form-check-input" type="checkbox" role="switch" id="messageIsActive" ${message.is_active ? 'checked' : ''}>
-                <label class="form-check-label" for="messageIsActive">Komunikat aktywny</label>
+            <div class="message-switch-row mb-4">
+                <div>
+                    <p class="form-label mb-1">Status komunikatu</p>
+                    <p class="text-muted small mb-0">Zdecyduj, czy komunikat ma być widoczny dla użytkowników.</p>
+                </div>
+                <div class="form-check form-switch message-switch-control mb-0">
+                    <input class="form-check-input" type="checkbox" role="switch" id="messageIsActive" ${message.is_active ? 'checked' : ''}>
+                    <label class="form-check-label" for="messageIsActive">Aktywny</label>
+                </div>
             </div>
 
             <div class="message-form-actions mb-4">
@@ -290,13 +304,7 @@ function attachFormListeners(message = null) {
     });
 
     cancelButton.addEventListener('click', () => {
-        if (message && message.message_id) {
-            renderEditForm(message);
-            return;
-        }
-        form.reset();
-        isActiveInput.checked = true;
-        refreshPreview();
+        clearMessageSelection();
     });
 
     if (deleteButton && message && message.message_id) {
