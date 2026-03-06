@@ -70,6 +70,11 @@ REVIEWABLE_ABSENCE_STATUSES = {AbsenceStatus.pending, AbsenceStatus.approved}
 
 PERIOD_EDITABLE_STATUSES = {PeriodStatus.open, PeriodStatus.unlocked}
 SUMMARY_REPORT_STATUSES = (WorkReportStatus.approved, WorkReportStatus.locked)
+PERSONAL_SUMMARY_REPORT_STATUSES = (
+    WorkReportStatus.pending,
+    WorkReportStatus.approved,
+    WorkReportStatus.locked,
+)
 
 
 def _get_or_create_period(db: Session, year: int, month: int) -> PeriodClosure:
@@ -848,7 +853,7 @@ def get_monthly_summary(
         WorkReport.work_date < end_date,
     ]
     if not include_all_statuses:
-        base_filters.append(WorkReport.status.in_(SUMMARY_REPORT_STATUSES))
+        base_filters.append(WorkReport.status.in_(PERSONAL_SUMMARY_REPORT_STATUSES))
 
     # Pobierz sumę godzin i minut dla całego miesiąca
     total_time_query = db.query(
@@ -893,9 +898,11 @@ def get_monthly_summary(
     daily_flags = {}
     status_rows = db.query(WorkReport.work_date, WorkReport.status).filter(*base_filters).all()
     for work_date, status in status_rows:
-        flags = daily_flags.setdefault(work_date, {"has_rejected": False})
+        flags = daily_flags.setdefault(work_date, {"has_rejected": False, "has_pending": False})
         if status == WorkReportStatus.rejected:
             flags["has_rejected"] = True
+        if status == WorkReportStatus.pending:
+            flags["has_pending"] = True
 
     daily_summary_dict = {}
     for work_date, project_id, hours, minutes in daily_summaries:
@@ -934,16 +941,20 @@ def get_monthly_summary(
             "total_hours": summary["total_hours"],
             "total_minutes": summary["total_minutes"],
             "project_hours": summary["project_hours"],
-            "has_rejected": daily_flags.get(work_date, {}).get("has_rejected", False)
+            "has_rejected": daily_flags.get(work_date, {}).get("has_rejected", False),
+            "has_pending": daily_flags.get(work_date, {}).get("has_pending", False)
         }
         for work_date, summary in sorted(daily_summary_dict.items())
     ]
+
+    has_pending_entries = any(day["has_pending"] for day in daily_hours)
 
     return {
         "total_hours": total_hours,
         "total_minutes": total_minutes,
         "project_hours": project_hours,
-        "daily_hours": daily_hours
+        "daily_hours": daily_hours,
+        "has_pending_entries": has_pending_entries
     }
 
 def change_user_email(db: Session, user_id: int, new_email: str):

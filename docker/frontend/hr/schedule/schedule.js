@@ -55,6 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Event listenery
   setupEventListeners();
+  setMainFormMode(false);
   
   // Inicjalizacja kalendarza
   try {
@@ -2030,7 +2031,9 @@ function setMainFormMode(isEditing) {
   }
 
   if (cancelButton) {
-    cancelButton.innerHTML = '<i class="bi bi-x-circle me-1"></i>Anuluj zmiany';
+    cancelButton.innerHTML = isEditing
+      ? '<i class="bi bi-x-circle me-1"></i>Anuluj zmiany'
+      : '<i class="bi bi-x-circle me-1"></i>Wyczyść';
   }
 }
 

@@ -271,6 +271,13 @@ function renderSummary(data) {
     section.appendChild(newHeading);
   }
 
+  if (data.has_pending_entries) {
+    const pendingAlert = document.createElement('div');
+    pendingAlert.className = 'alert alert-warning';
+    pendingAlert.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Część wpisów ujętych w podsumowaniu nadal oczekuje na akceptację.';
+    section.appendChild(pendingAlert);
+  }
+
   // Kontener listy w stylu komunikatów
   const listContainer = document.createElement('div');
   listContainer.id = 'summary-details';
@@ -324,6 +331,13 @@ function renderSummary(data) {
     headerRow.appendChild(totalEl);
 
     dayItem.appendChild(headerRow);
+
+    if (dayData.has_pending) {
+      const pendingNote = document.createElement('div');
+      pendingNote.className = 'small text-warning mb-2';
+      pendingNote.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Ten dzień zawiera wpisy oczekujące na akceptację.';
+      dayItem.appendChild(pendingNote);
+    }
 
     // Lista szczegółowych wpisów dla dnia
     const entriesList = document.createElement('ul');
@@ -433,7 +447,10 @@ async function fetchDayReports(workDate) {
   }
   const data = await resp.json();
   if (!Array.isArray(data)) return [];
-  return data;
+  return data.filter(report => {
+    const status = (report.status || '').toLowerCase();
+    return status === 'oczekuje_na_akceptacje' || status === 'zaakceptowany' || status === 'zablokowany';
+  });
 }
 
 function handleUnauthorized() {

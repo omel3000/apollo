@@ -307,12 +307,14 @@ class DailySummary(BaseModel):
     total_minutes: int
     project_hours: Dict[int, Dict[str, int]]  # Dictionary with project_id as key and dict with hours and minutes
     has_rejected: bool = False
+    has_pending: bool = False
 
 class MonthlySummary(BaseModel):
     total_hours: int
     total_minutes: int
     project_hours: Dict[int, Dict[str, int]]  # Dictionary with project_id as key and dict with hours and minutes
     daily_hours: List[DailySummary]  # List of DailySummary objects
+    has_pending_entries: bool = False
 
 class MonthlySummaryRequest(BaseModel):
     month: int  # Month as an integer (1-12)
