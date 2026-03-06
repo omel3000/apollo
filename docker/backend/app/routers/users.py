@@ -75,6 +75,11 @@ def read_users(skip: int = 0, limit: int = 100, db: Session = Depends(get_db), c
 
 @router.delete("/{user_id}", status_code=204)
 def delete_user_endpoint(user_id: int, db: Session = Depends(get_db), current_user: User = Depends(admin_or_hr_required)):
+    if current_user.user_id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nie możesz usunąć własnego konta"
+        )
     # Tylko admin może usuwać użytkowników z rolą 'admin'
     target = get_user_by_id(db, user_id)
     if not target:

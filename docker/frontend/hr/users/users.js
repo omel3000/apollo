@@ -269,6 +269,7 @@ function renderUserDetails(user, assignedProjects) {
 
 function generateUserDetailsHtml(user, assignedProjects, availableProjects, suffix) {
     const adminLocked = user.role === 'admin' && currentUser?.role !== 'admin';
+    const isCurrentUser = currentUser?.user_id === user.user_id;
     const normalizedStatus = normalizeStatus(user.account_status);
     const isBlocked = normalizedStatus === 'zablokowany' || normalizedStatus === 'blocked';
     const fieldsDisabled = adminLocked || isBlocked;
@@ -291,6 +292,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
         <h5>Dane użytkownika</h5>
         ${adminLocked ? '<div class="alert alert-warning">Zmiany konta administratora wymagają uprawnień administratora.</div>' : ''}
         ${isBlocked ? '<div class="alert alert-danger"><i class="bi bi-lock-fill me-2"></i>To konto jest zablokowane. Możesz zmienić tylko status konta.</div>' : ''}
+        ${isCurrentUser ? '<div class="alert alert-info"><i class="bi bi-shield-lock me-2"></i>Nie możesz usunąć własnego konta.</div>' : ''}
         <form class="user-form" data-user-id="${user.user_id}" data-instance="${suffix}">
             <div class="row g-3">
                 <div class="col-md-6">
@@ -342,7 +344,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                 <button type="submit" class="btn btn-primary save-user-btn" id="saveBtn-${suffix}" ${fieldsDisabled ? 'disabled' : ''}>
                     <i class="bi bi-save me-2"></i>Zapisz zmiany
                 </button>
-                <button type="button" class="btn btn-danger delete-user-btn" data-user-id="${user.user_id}" ${fieldsDisabled ? 'disabled' : ''}>
+                <button type="button" class="btn btn-danger delete-user-btn" data-user-id="${user.user_id}" ${fieldsDisabled || isCurrentUser ? 'disabled' : ''}>
                     <i class="bi bi-trash me-2"></i>Usuń użytkownika
                 </button>
             </div>
@@ -608,6 +610,10 @@ function handleRemoveProject(event) {
 }
 
 async function deleteUserAccount(userId) {
+    if (currentUser?.user_id === userId) {
+        showError('Nie możesz usunąć własnego konta');
+        return;
+    }
     if (!confirm('Czy na pewno chcesz usunąć tego użytkownika?')) {
         return;
     }
