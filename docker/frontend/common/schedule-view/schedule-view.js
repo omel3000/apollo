@@ -1022,10 +1022,28 @@
     let totalMinutes = 0;
 
     const perProject = new Map();
+    const daysForCurrentUser = [];
 
 
 
-    state.dataByDate.forEach(entries => {
+    state.dataByDate.forEach((entries, isoDate) => {
+
+      const ownEntries = entries
+        .filter(entry => entry.user_id === state.currentUser.user_id)
+        .sort((a, b) => a.time_from.localeCompare(b.time_from));
+
+      if (ownEntries.length > 0) {
+        let dayMinutes = 0;
+        ownEntries.forEach(entry => {
+          dayMinutes += getDurationInMinutes(entry.time_from, entry.time_to);
+        });
+
+        daysForCurrentUser.push({
+          isoDate,
+          totalMinutes: dayMinutes,
+          entries: ownEntries
+        });
+      }
 
       entries.forEach(entry => {
 
@@ -1081,6 +1099,8 @@
 
       <strong>${formatDuration(totalMinutes)}</strong>
 
+      <small class="text-muted d-block mt-2">${daysForCurrentUser.length} ${daysForCurrentUser.length === 1 ? 'dzień w grafiku' : 'dni w grafiku'}</small>
+
     `;
 
     container.appendChild(totalBox);
@@ -1118,6 +1138,114 @@
 
 
     container.appendChild(list);
+
+    const detailsSection = document.createElement('div');
+    detailsSection.className = 'schedule-summary__days';
+
+    const detailsHeading = document.createElement('div');
+    detailsHeading.className = 'schedule-summary__days-header';
+    detailsHeading.innerHTML = '<strong>Dni z wpisami w grafiku</strong><span>Godziny i projekty w jednym miejscu</span>';
+    detailsSection.appendChild(detailsHeading);
+
+    daysForCurrentUser
+      .sort((a, b) => a.isoDate.localeCompare(b.isoDate))
+      .forEach(day => {
+        const dayCard = document.createElement('article');
+        dayCard.className = 'schedule-summary__day-card';
+
+        const dayHeader = document.createElement('div');
+        dayHeader.className = 'schedule-summary__day-header';
+
+        const dayDate = document.createElement('div');
+        dayDate.className = 'schedule-summary__day-date';
+        dayDate.innerHTML = `<strong>${formatSummaryDayLabel(day.isoDate)}</strong><span>${formatSummaryDaySubLabel(day.isoDate)}</span>`;
+
+        const dayTotal = document.createElement('div');
+        dayTotal.className = 'schedule-summary__day-total';
+        dayTotal.textContent = formatDuration(day.totalMinutes);
+
+        dayHeader.appendChild(dayDate);
+        dayHeader.appendChild(dayTotal);
+        dayCard.appendChild(dayHeader);
+
+        const entriesList = document.createElement('div');
+        entriesList.className = 'schedule-summary__entries';
+
+        day.entries.forEach(entry => {
+          const item = document.createElement('div');
+          item.className = 'schedule-summary__entry';
+
+          const entryMain = document.createElement('div');
+          entryMain.className = 'schedule-summary__entry-main';
+
+          const entryTime = document.createElement('div');
+          entryTime.className = 'schedule-summary__entry-time';
+          entryTime.textContent = `${entry.time_from.slice(0, 5)} – ${entry.time_to.slice(0, 5)}`;
+
+          const entryProject = document.createElement('div');
+          entryProject.className = 'schedule-summary__entry-project';
+          entryProject.textContent = entry.project_name || labelForShift(entry.shift_type);
+
+          entryMain.appendChild(entryTime);
+          entryMain.appendChild(entryProject);
+
+          const entryMeta = document.createElement('div');
+          entryMeta.className = 'schedule-summary__entry-meta';
+
+          const durationBadge = document.createElement('span');
+          durationBadge.className = 'schedule-summary__entry-duration';
+          durationBadge.textContent = formatDuration(getDurationInMinutes(entry.time_from, entry.time_to));
+          entryMeta.appendChild(durationBadge);
+
+          if (entry.shift_type && entry.shift_type !== 'normalna') {
+            const shiftBadge = document.createElement('span');
+            shiftBadge.className = `shift-pill shift-pill--${entry.shift_type}`;
+            shiftBadge.textContent = labelForShift(entry.shift_type);
+            entryMeta.appendChild(shiftBadge);
+          }
+
+          item.appendChild(entryMain);
+          item.appendChild(entryMeta);
+          entriesList.appendChild(item);
+        });
+
+        dayCard.appendChild(entriesList);
+        detailsSection.appendChild(dayCard);
+      });
+
+    container.appendChild(detailsSection);
+
+  }
+
+
+
+  function formatSummaryDayLabel(isoDate) {
+
+    const date = new Date(`${isoDate}T00:00:00`);
+
+    return date.toLocaleDateString('pl-PL', {
+
+      day: '2-digit',
+
+      month: 'long'
+
+    });
+
+  }
+
+
+
+  function formatSummaryDaySubLabel(isoDate) {
+
+    const date = new Date(`${isoDate}T00:00:00`);
+
+    return date.toLocaleDateString('pl-PL', {
+
+      weekday: 'long',
+
+      year: 'numeric'
+
+    });
 
   }
 
