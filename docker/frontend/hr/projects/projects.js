@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', async function() {
 async function loadProjects() {
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch('/projects', {
+        const response = await fetch('/projects/', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -42,7 +42,7 @@ async function loadProjects() {
 async function loadUsers() {
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch('/users', {
+        const response = await fetch('/users/', {
             headers: {
                 'Authorization': `Bearer ${token}`
             }
@@ -449,7 +449,7 @@ async function createProject(event) {
     };
     
     try {
-        const response = await fetch('/projects', {
+        const response = await fetch('/projects/', {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${token}`,
@@ -462,7 +462,9 @@ async function createProject(event) {
             const newProject = await response.json();
             showSuccess('Projekt utworzony pomyślnie');
             await loadProjects();
-            selectProject(newProject.project_id);
+            if (newProject && newProject.project_id) {
+                await selectProject(newProject.project_id);
+            }
         } else {
             const error = await response.json();
             showError(error.detail || 'Nie udało się utworzyć projektu');
