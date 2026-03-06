@@ -115,6 +115,16 @@ async def _periods_maintenance_loop() -> None:
 
 @app.on_event("startup")
 async def _startup_periods_maintenance() -> None:
+    db = SessionLocal()
+    try:
+        crud.ensure_initial_admin(db)
+    except ValueError as exc:
+        logging.warning(str(exc))
+    except Exception:
+        logging.exception("Błąd podczas tworzenia startowego konta administratora")
+    finally:
+        db.close()
+
     # Uruchom natychmiastową weryfikację + potem cykliczne sprawdzanie
     try:
         await asyncio.to_thread(_ensure_periods_precreated, date.today())

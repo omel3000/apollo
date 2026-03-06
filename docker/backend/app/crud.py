@@ -46,6 +46,7 @@ from typing import Optional, List
 from datetime import datetime, date, time
 import math
 from calendar import monthrange
+import os
 
 
 EDITABLE_REPORT_STATUSES = {
@@ -297,6 +298,54 @@ def create_user(db: Session, user: UserCreate):
         account_status="aktywny",
         birth_date=user.birth_date,
         address=user.address
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+def ensure_initial_admin(db: Session):
+    initial_admin_enabled = os.getenv("INITIAL_ADMIN_ENABLED", "false").strip().lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
+    if not initial_admin_enabled:
+        return None
+
+    existing_admin = db.query(User).filter(User.role == "admin").first()
+    if existing_admin:
+        return existing_admin
+
+    admin_email = (os.getenv("INITIAL_ADMIN_EMAIL") or "").strip().lower()
+    admin_password = (os.getenv("INITIAL_ADMIN_PASSWORD") or "").strip()
+    admin_first_name = (os.getenv("INITIAL_ADMIN_FIRST_NAME") or "Administrator").strip()
+    admin_last_name = (os.getenv("INITIAL_ADMIN_LAST_NAME") or "Systemu").strip()
+    admin_phone = (os.getenv("INITIAL_ADMIN_PHONE") or "").strip() or None
+
+    if not admin_email or not admin_password:
+        raise ValueError(
+            "Nie można utworzyć konta startowego administratora: brak INITIAL_ADMIN_EMAIL lub INITIAL_ADMIN_PASSWORD."
+        )
+
+    existing_email = get_user_by_email(db, admin_email)
+    if existing_email:
+        if existing_email.role != "admin":
+            raise ValueError(
+                "Nie można utworzyć konta startowego administratora: wskazany email jest już zajęty przez konto bez roli admin."
+            )
+        return existing_email
+
+    db_user = User(
+        first_name=admin_first_name,
+        last_name=admin_last_name,
+        email=admin_email,
+        phone_number=admin_phone,
+        password_hash=hash_password(admin_password),
+        role="admin",
+        account_status="aktywny",
     )
     db.add(db_user)
     db.commit()
