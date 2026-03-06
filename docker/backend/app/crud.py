@@ -431,6 +431,9 @@ def delete_project(db: Session, project_id: int):
 def get_active_messages(db: Session):
     return db.query(Message).filter(Message.is_active == True).all()
 
+def get_all_messages(db: Session):
+    return db.query(Message).order_by(Message.created_at.desc()).all()
+
 def create_message(db: Session, message: MessageCreate):
     db_message = Message(
         title=message.title,
@@ -443,7 +446,7 @@ def create_message(db: Session, message: MessageCreate):
     return db_message
 
 def update_message(db: Session, message_id: int, message_data):
-    """Aktualizuje komunikat (tylko admin)"""
+    """Aktualizuje komunikat"""
     db_message = db.query(Message).filter(Message.message_id == message_id).first()
     if not db_message:
         return None
@@ -460,7 +463,7 @@ def update_message(db: Session, message_id: int, message_data):
     return db_message
 
 def delete_message(db: Session, message_id: int):
-    """Usuwa komunikat (tylko admin)"""
+    """Usuwa komunikat"""
     db_message = db.query(Message).filter(Message.message_id == message_id).first()
     if db_message:
         db.delete(db_message)

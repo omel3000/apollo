@@ -34,7 +34,10 @@
 | POST | `/projects/user_detailed_report` | Szczegóły dni użytkownika w projekcie | ❌ | ✅ | ✅ | ❌ |
 | **KOMUNIKATY** |||||||
 | GET | `/messages` | Odczyt aktywnych komunikatów | ✅ | ✅ | ✅ | ❌ |
-| POST | `/messages` | Tworzenie nowego komunikatu | ❌ | ❌ | ✅ | ❌ |
+| GET | `/messages?include_inactive=true` | Odczyt wszystkich komunikatów (aktywnych i nieaktywnych) | ❌ | ✅ | ✅ | ❌ |
+| POST | `/messages` | Tworzenie nowego komunikatu | ❌ | ✅ | ✅ | ❌ |
+| PUT | `/messages/{message_id}` | Aktualizacja komunikatu | ❌ | ✅ | ✅ | ❌ |
+| DELETE | `/messages/{message_id}` | Usunięcie komunikatu | ❌ | ✅ | ✅ | ❌ |
 | **RAPORTY PRACY** |||||||
 | POST | `/work_reports` | Dodawanie nowego raportu pracy | ✅ | ✅ | ✅ | ❌ |
 | GET | `/work_reports` | Odczyt raportów pracy | ✅* | ✅ | ✅ | ❌ |

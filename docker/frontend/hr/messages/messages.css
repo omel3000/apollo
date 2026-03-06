@@ -1,0 +1,135 @@
+.messages-layout {
+    display: grid;
+    gap: 20px;
+}
+
+.messages-sidebar,
+.messages-details {
+    background: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: calc(100vh - 310px);
+    overflow-y: auto;
+}
+
+.message-list-item {
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.message-list-item:hover {
+    border-color: #BF6E50;
+    background: #f8f9fa;
+}
+
+.message-list-item.active {
+    border-color: #736A65;
+    background: #736A65;
+    color: #F2EEEB;
+}
+
+.message-list-item.active .text-muted,
+.message-list-item.active .message-list-preview,
+.message-list-item.active .badge {
+    color: inherit !important;
+}
+
+.message-list-title {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.message-list-preview {
+    color: #6c757d;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+}
+
+.message-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 0.85rem;
+}
+
+.message-status-badge {
+    border-radius: 999px;
+    padding: 0.35rem 0.7rem;
+    font-weight: 600;
+}
+
+.message-status-badge.is-active {
+    background: rgba(25, 135, 84, 0.12);
+    color: #198754;
+}
+
+.message-status-badge.is-inactive {
+    background: rgba(108, 117, 125, 0.14);
+    color: #495057;
+}
+
+.message-form-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.message-preview-card {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.message-preview-content {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 48px 20px;
+    color: #6c757d;
+}
+
+.empty-state i {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    display: block;
+}
+
+.form-check.form-switch .form-check-input {
+    width: 3rem;
+}
+
+@media (min-width: 992px) {
+    .messages-layout {
+        grid-template-columns: 380px minmax(0, 1fr);
+        align-items: start;
+    }
+
+    .messages-sidebar {
+        position: sticky;
+        top: 20px;
+    }
+}
+
+@media (max-width: 991px) {
+    .messages-list {
+        max-height: none;
+    }
+}
