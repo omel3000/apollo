@@ -1979,9 +1979,16 @@ async function handleDeleteShiftMain() {
 }
 
 function resetMainForm() {
+  const dateInput = document.getElementById('shiftDateMain');
+  const preservedDate = selectedDate || dateInput?.value || '';
+
   const form = document.getElementById('scheduleFormMain');
   if (form) {
     form.reset();
+  }
+
+  if (dateInput && preservedDate) {
+    dateInput.value = preservedDate;
   }
   
   isEditMode = false;
