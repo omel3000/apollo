@@ -171,6 +171,13 @@ def update_user_endpoint(user_id: int, user: UserUpdate, db: Session = Depends(g
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Tylko administrator może edytować użytkownika z rolą 'admin'"
         )
+    if current_user.user_id == user_id and user.account_status is not None:
+        normalized_status = str(user.account_status).strip().lower()
+        if normalized_status not in ("aktywny", "active"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nie możesz zmienić własnego statusu konta na inny niż aktywny"
+            )
     # Tylko admin może ustawić rolę na 'admin'
     if user.role is not None and str(user.role).lower() == "admin" and current_user.role != "admin":
         raise HTTPException(

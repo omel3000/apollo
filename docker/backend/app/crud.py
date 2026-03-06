@@ -323,7 +323,6 @@ def ensure_initial_hr_user(db: Session):
     admin_password = (os.getenv("INITIAL_ADMIN_PASSWORD") or "").strip()
     admin_first_name = (os.getenv("INITIAL_ADMIN_FIRST_NAME") or "Administrator").strip()
     admin_last_name = (os.getenv("INITIAL_ADMIN_LAST_NAME") or "Systemu").strip()
-    admin_phone = (os.getenv("INITIAL_ADMIN_PHONE") or "").strip() or None
 
     if not admin_email or not admin_password:
         raise ValueError(
@@ -342,7 +341,6 @@ def ensure_initial_hr_user(db: Session):
         first_name=admin_first_name,
         last_name=admin_last_name,
         email=admin_email,
-        phone_number=admin_phone,
         password_hash=hash_password(admin_password),
         role="hr",
         account_status="aktywny",

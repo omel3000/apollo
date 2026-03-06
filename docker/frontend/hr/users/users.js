@@ -292,7 +292,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
         <h5>Dane użytkownika</h5>
         ${adminLocked ? '<div class="alert alert-warning">Zmiany konta administratora wymagają uprawnień administratora.</div>' : ''}
         ${isBlocked ? '<div class="alert alert-danger"><i class="bi bi-lock-fill me-2"></i>To konto jest zablokowane. Możesz zmienić tylko status konta.</div>' : ''}
-        ${isCurrentUser ? '<div class="alert alert-info"><i class="bi bi-shield-lock me-2"></i>Nie możesz usunąć własnego konta.</div>' : ''}
+        ${isCurrentUser ? '<div class="alert alert-info"><i class="bi bi-shield-lock me-2"></i>Nie możesz usunąć własnego konta ani zmienić jego statusu na inny niż aktywny.</div>' : ''}
         <form class="user-form" data-user-id="${user.user_id}" data-instance="${suffix}">
             <div class="row g-3">
                 <div class="col-md-6">
@@ -325,7 +325,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                     <label class="form-label" for="status-${suffix}">Status konta</label>
                     <select class="form-select" id="status-${suffix}" name="account_status" ${adminLocked ? 'disabled' : ''}>
                         ${statusOptions.map(option => `
-                            <option value="${option.value}" ${option.value === normalizedStatus ? 'selected' : ''}>
+                            <option value="${option.value}" ${(isCurrentUser && option.value !== 'aktywny') ? 'disabled' : ''} ${option.value === normalizedStatus ? 'selected' : ''}>
                                 ${option.label}
                             </option>
                         `).join('')}
