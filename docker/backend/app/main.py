@@ -117,11 +117,11 @@ async def _periods_maintenance_loop() -> None:
 async def _startup_periods_maintenance() -> None:
     db = SessionLocal()
     try:
-        crud.ensure_initial_admin(db)
+        crud.ensure_initial_hr_user(db)
     except ValueError as exc:
         logging.warning(str(exc))
     except Exception:
-        logging.exception("Błąd podczas tworzenia startowego konta administratora")
+        logging.exception("Błąd podczas tworzenia startowego konta HR")
     finally:
         db.close()
 

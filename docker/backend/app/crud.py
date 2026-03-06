@@ -305,7 +305,7 @@ def create_user(db: Session, user: UserCreate):
     return db_user
 
 
-def ensure_initial_admin(db: Session):
+def ensure_initial_hr_user(db: Session):
     initial_admin_enabled = os.getenv("INITIAL_ADMIN_ENABLED", "false").strip().lower() in (
         "true",
         "1",
@@ -315,9 +315,9 @@ def ensure_initial_admin(db: Session):
     if not initial_admin_enabled:
         return None
 
-    existing_admin = db.query(User).filter(User.role == "admin").first()
-    if existing_admin:
-        return existing_admin
+    existing_hr = db.query(User).filter(User.role == "hr").first()
+    if existing_hr:
+        return existing_hr
 
     admin_email = (os.getenv("INITIAL_ADMIN_EMAIL") or "").strip().lower()
     admin_password = (os.getenv("INITIAL_ADMIN_PASSWORD") or "").strip()
@@ -327,14 +327,14 @@ def ensure_initial_admin(db: Session):
 
     if not admin_email or not admin_password:
         raise ValueError(
-            "Nie można utworzyć konta startowego administratora: brak INITIAL_ADMIN_EMAIL lub INITIAL_ADMIN_PASSWORD."
+            "Nie można utworzyć startowego konta HR: brak INITIAL_ADMIN_EMAIL lub INITIAL_ADMIN_PASSWORD."
         )
 
     existing_email = get_user_by_email(db, admin_email)
     if existing_email:
-        if existing_email.role != "admin":
+        if existing_email.role != "hr":
             raise ValueError(
-                "Nie można utworzyć konta startowego administratora: wskazany email jest już zajęty przez konto bez roli admin."
+                "Nie można utworzyć startowego konta HR: wskazany email jest już zajęty przez konto bez roli hr."
             )
         return existing_email
 
@@ -344,7 +344,7 @@ def ensure_initial_admin(db: Session):
         email=admin_email,
         phone_number=admin_phone,
         password_hash=hash_password(admin_password),
-        role="admin",
+        role="hr",
         account_status="aktywny",
     )
     db.add(db_user)
