@@ -145,6 +145,11 @@ def admin_set_password(
     current_user: User = Depends(admin_or_hr_required)
 ):
     """Reset hasła użytkownika przez admin/HR."""
+    if current_user.user_id == user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Nie możesz resetować własnego hasła w zarządzaniu użytkownikami. Użyj zakładki Konto."
+        )
     target = get_user_by_id(db, user_id)
     if not target:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Użytkownik nie istnieje")
@@ -177,6 +182,14 @@ def update_user_endpoint(user_id: int, user: UserUpdate, db: Session = Depends(g
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Nie możesz zmienić własnego statusu konta na inny niż aktywny"
+            )
+    if current_user.user_id == user_id and user.role is not None:
+        normalized_role = str(user.role).strip().lower()
+        current_role = str(current_user.role).strip().lower()
+        if normalized_role != current_role:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Nie możesz zmienić własnej roli"
             )
     # Tylko admin może ustawić rolę na 'admin'
     if user.role is not None and str(user.role).lower() == "admin" and current_user.role != "admin":

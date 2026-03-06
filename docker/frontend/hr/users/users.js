@@ -273,6 +273,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
     const normalizedStatus = normalizeStatus(user.account_status);
     const isBlocked = normalizedStatus === 'zablokowany' || normalizedStatus === 'blocked';
     const fieldsDisabled = adminLocked || isBlocked;
+    const passwordResetDisabled = fieldsDisabled || isCurrentUser;
     const normalizedRole = normalizeRoleValue(user.role);
     const statusOptions = [
         { value: 'aktywny', label: 'Aktywny' },
@@ -292,7 +293,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
         <h5>Dane użytkownika</h5>
         ${adminLocked ? '<div class="alert alert-warning">Zmiany konta administratora wymagają uprawnień administratora.</div>' : ''}
         ${isBlocked ? '<div class="alert alert-danger"><i class="bi bi-lock-fill me-2"></i>To konto jest zablokowane. Możesz zmienić tylko status konta.</div>' : ''}
-        ${isCurrentUser ? '<div class="alert alert-info"><i class="bi bi-shield-lock me-2"></i>Nie możesz usunąć własnego konta ani zmienić jego statusu na inny niż aktywny.</div>' : ''}
+        ${isCurrentUser ? '<div class="alert alert-info"><i class="bi bi-shield-lock me-2"></i>Nie możesz usunąć własnego konta, zmienić własnej roli ani ustawić własnego statusu na inny niż aktywny.</div>' : ''}
         <form class="user-form" data-user-id="${user.user_id}" data-instance="${suffix}">
             <div class="row g-3">
                 <div class="col-md-6">
@@ -313,7 +314,7 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="role-${suffix}">Rola</label>
-                    <select class="form-select" id="role-${suffix}" name="role" ${fieldsDisabled ? 'disabled' : ''}>
+                    <select class="form-select" id="role-${suffix}" name="role" ${fieldsDisabled || isCurrentUser ? 'disabled' : ''}>
                         ${roleOptions.map(option => `
                             <option value="${option.value}" ${option.disabled ? 'disabled' : ''} ${option.value === normalizedRole ? 'selected' : ''}>
                                 ${option.label}
@@ -354,18 +355,19 @@ function generateUserDetailsHtml(user, assignedProjects, availableProjects, suff
         <h6>Reset hasła</h6>
         ${adminLocked ? '<p class="text-muted"><small>Reset hasła administratora wymaga zalogowania jako administrator.</small></p>' : ''}
         ${isBlocked ? '<p class="text-muted"><small>Nie można zmienić hasła dla zablokowanego konta.</small></p>' : ''}
+        ${isCurrentUser ? '<p class="text-muted"><small>Zmiana hasła do własnego konta znajduje się w zakładce „Konto”.</small></p>' : ''}
         <form class="user-password-form" data-user-id="${user.user_id}" data-instance="${suffix}">
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="newPass-${suffix}">Nowe hasło</label>
-                    <input type="password" class="form-control" id="newPass-${suffix}" name="new_password" ${fieldsDisabled ? 'disabled' : ''}>
+                    <input type="password" class="form-control" id="newPass-${suffix}" name="new_password" ${passwordResetDisabled ? 'disabled' : ''}>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="confirmPass-${suffix}">Powtórz hasło</label>
-                    <input type="password" class="form-control" id="confirmPass-${suffix}" name="confirm_password" ${fieldsDisabled ? 'disabled' : ''}>
+                    <input type="password" class="form-control" id="confirmPass-${suffix}" name="confirm_password" ${passwordResetDisabled ? 'disabled' : ''}>
                 </div>
             </div>
-            <button type="submit" class="btn btn-outline-secondary mt-3" ${fieldsDisabled ? 'disabled' : ''}>
+            <button type="submit" class="btn btn-outline-secondary mt-3" ${passwordResetDisabled ? 'disabled' : ''}>
                 <i class="bi bi-key me-2"></i>Ustaw nowe hasło
             </button>
         </form>
@@ -461,6 +463,7 @@ async function handleUserUpdate(event) {
     }
 
     const formData = new FormData(form);
+    const isCurrentUser = currentUser?.user_id === userId;
     
     // Jeśli użytkownik jest zablokowany, pozwól tylko na zmianę statusu
     if (isBlocked) {
@@ -496,7 +499,9 @@ async function handleUserUpdate(event) {
     const firstName = formData.get('first_name').trim();
     const lastName = formData.get('last_name').trim();
     const email = formData.get('email').trim().toLowerCase();
-    const chosenRole = sanitizeRoleInput(formData.get('role'));
+    const chosenRole = isCurrentUser
+        ? normalizeRoleValue(currentUser?.role)
+        : sanitizeRoleInput(formData.get('role'));
 
     if (!firstName || !lastName || !email) {
         showError('Imię, nazwisko i email są obowiązkowe');
@@ -542,6 +547,10 @@ async function handlePasswordReset(event) {
     event.preventDefault();
     const form = event.currentTarget;
     const userId = Number(form.dataset.userId);
+    if (currentUser?.user_id === userId) {
+        showError('Własne hasło zmienisz w zakładce Konto');
+        return;
+    }
     if (form.querySelector('[name="new_password"]').disabled) {
         return;
     }

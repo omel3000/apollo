@@ -111,6 +111,11 @@
   - Edycję danych użytkownika z rolą "admin" może wykonać tylko "admin".
   - Usuwanie użytkownika z rolą "admin" może wykonać tylko "admin".
   - Reset hasła użytkownika z rolą "admin" może wykonać tylko "admin".
+- Ograniczenia dla edycji własnego konta w zarządzaniu użytkownikami:
+  - Nie można usunąć własnego konta.
+  - Nie można zmienić własnej roli.
+  - Nie można zmienić własnego statusu na inny niż aktywny.
+  - Nie można resetować własnego hasła — do tego służy zakładka „Konto”.
 - Dostępność:
   - Worker może dodawać, przeglądać, edytować i usuwać swoją dostępność (dostępny/niedostępny, przedziały czasowe).
   - HR/Admin mają dostęp do dostępności wszystkich użytkowników z filtrowaniem (user_id, zakres dat).
