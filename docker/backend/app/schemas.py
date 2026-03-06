@@ -687,6 +687,7 @@ class ScheduleRead(ScheduleBase):
     model_config = {"from_attributes": True}
 
 class ScheduleUpdate(BaseModel):
+    user_id: Optional[int] = None
     project_id: Optional[int] = None
     work_date: Optional[date] = None
     time_from: Optional[time] = None

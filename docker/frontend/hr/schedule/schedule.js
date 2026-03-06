@@ -1557,9 +1557,9 @@ async function editScheduleMain(scheduleId) {
   // Przejdź do trybu edycji
   isEditMode = true;
   editingScheduleId = scheduleId;
+  setMainFormMode(true);
   
   // Wypełnij formularz
-  document.getElementById('formTitle').textContent = 'Edytuj zmianę';
   document.getElementById('shiftDateMain').value = scheduleToEdit.work_date;
   document.getElementById('shiftWorkerMain').value = scheduleToEdit.user_id;
   
@@ -1993,9 +1993,7 @@ function resetMainForm() {
   
   isEditMode = false;
   editingScheduleId = null;
-  
-  // Reset tytułu
-  document.getElementById('formTitle').textContent = 'Dodaj zmianę do grafiku';
+  setMainFormMode(false);
   
   // Ukryj przycisk usuń
   document.getElementById('btnDeleteShiftMain').style.display = 'none';
@@ -2014,6 +2012,26 @@ function resetMainForm() {
   
   // Załaduj wszystkich pracowników do selecta
   populateWorkerSelectMain();
+}
+
+function setMainFormMode(isEditing) {
+  const formTitle = document.getElementById('formTitle');
+  const saveButton = document.getElementById('btnSaveShiftMain');
+  const cancelButton = document.getElementById('btnCancelShiftMain');
+
+  if (formTitle) {
+    formTitle.textContent = isEditing ? 'Edytuj zmianę' : 'Dodaj zmianę do grafiku';
+  }
+
+  if (saveButton) {
+    saveButton.innerHTML = isEditing
+      ? '<i class="bi bi-save me-1"></i>Zapisz zmiany'
+      : '<i class="bi bi-save me-1"></i>Zapisz zmianę';
+  }
+
+  if (cancelButton) {
+    cancelButton.innerHTML = '<i class="bi bi-x-circle me-1"></i>Anuluj zmiany';
+  }
 }
 
 function populateWorkerSelectMain() {

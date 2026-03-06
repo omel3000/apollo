@@ -2183,6 +2183,12 @@ def update_schedule(db: Session, schedule_id: int, schedule_update: ScheduleUpda
     db_schedule = get_schedule(db, schedule_id)
     if not db_schedule:
         raise ValueError(f"Wpis grafiku o id {schedule_id} nie istnieje")
+
+    if schedule_update.user_id is not None:
+        user = get_user_by_id(db, schedule_update.user_id)
+        if not user:
+            raise ValueError(f"Użytkownik o id {schedule_update.user_id} nie istnieje")
+        db_schedule.user_id = schedule_update.user_id
     
     # Aktualizuj tylko przekazane pola
     if schedule_update.project_id is not None:
