@@ -19,6 +19,7 @@ let scheduleData = new Map(); // Map<'YYYY-MM-DD', Array<schedule>>
 let availabilityData = new Map(); // Map<userId, Map<'YYYY-MM-DD', availability>>
 let absenceData = new Map(); // Map<userId, Array<absence>>
 let workerMonthlyHours = new Map(); // Map<userId, {totalMinutes, projects}>
+let selectedWorkerId = null;
 
 // Nazwy miesięcy
 const monthNamesPl = [
@@ -734,6 +735,10 @@ function renderWorkersList() {
     return a.first_name.localeCompare(b.first_name);
   });
 
+  if (selectedWorkerId !== null && !filtered.some(worker => worker.user_id === selectedWorkerId)) {
+    selectedWorkerId = null;
+  }
+
   // Render
   container.innerHTML = '';
 
@@ -752,6 +757,9 @@ function createWorkerCard(worker) {
   const card = document.createElement('div');
   card.className = 'worker-card';
   card.dataset.workerId = worker.user_id;
+  if (selectedWorkerId === worker.user_id) {
+    card.classList.add('expanded');
+  }
 
   // Avatar (inicjały)
   const initials = (worker.first_name[0] + worker.last_name[0]).toUpperCase();
@@ -810,8 +818,9 @@ function createWorkerCard(worker) {
       // Sprawdź dostępność
       checkWorkerAvailabilityMain();
     }
-    
-    card.classList.toggle('expanded');
+
+    selectedWorkerId = selectedWorkerId === worker.user_id ? null : worker.user_id;
+    renderWorkersList();
   });
 
   return card;
