@@ -357,6 +357,17 @@
   color: var(--apollo-primary);
 }
 
+#scheduleDayDetails,
+#scheduleMonthSummary {
+  min-height: 100%;
+}
+
+#scheduleMonthSummary {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
 .schedule-loader {
   display: none;
 }
@@ -384,7 +395,7 @@
   }
 
   .schedule-section--month {
-    grid-column: span 5;
+    grid-column: span 7;
   }
 }
 

@@ -9,6 +9,7 @@ let overviewData = null;
 let trendData = null;
 let filteredUsers = [];
 let filteredProjects = [];
+const MIN_MONTHLY_SUMMARY_YEAR = 2025;
 
 // Okresy rozliczeniowe
 let periodInfo = null;
@@ -80,7 +81,8 @@ function setupMonthYearSelects() {
   // Populate years (±5 from current)
   yearSelect.innerHTML = '';
   const baseYear = new Date().getFullYear();
-  for (let y = baseYear - 5; y <= baseYear + 5; y++) {
+  const startYear = Math.max(MIN_MONTHLY_SUMMARY_YEAR, baseYear - 5);
+  for (let y = startYear; y <= baseYear + 5; y++) {
     const opt = document.createElement('option');
     opt.value = String(y);
     opt.textContent = String(y);
@@ -90,9 +92,17 @@ function setupMonthYearSelects() {
   syncMonthYearSelects();
 }
 
+function clampMonthYearSelection() {
+  if (currentYear < MIN_MONTHLY_SUMMARY_YEAR) {
+    currentYear = MIN_MONTHLY_SUMMARY_YEAR;
+    currentMonth = 0;
+  }
+}
+
 function syncMonthYearSelects() {
   const monthSelect = document.getElementById('monthSelect');
   const yearSelect = document.getElementById('yearSelect');
+  clampMonthYearSelection();
   
   if (monthSelect) monthSelect.value = String(currentMonth);
   if (yearSelect) yearSelect.value = String(currentYear);
@@ -105,6 +115,7 @@ function setupNavigation() {
       currentMonth = 11;
       currentYear--;
     }
+    clampMonthYearSelection();
     syncMonthYearSelects();
     loadAllData();
   });
@@ -123,6 +134,7 @@ function setupNavigation() {
       currentMonth = 0;
       currentYear++;
     }
+    clampMonthYearSelection();
     syncMonthYearSelects();
     loadAllData();
   });
@@ -134,6 +146,7 @@ function setupNavigation() {
   
   document.getElementById('yearSelect').addEventListener('change', (e) => {
     currentYear = parseInt(e.target.value, 10);
+    clampMonthYearSelection();
     loadAllData();
   });
 }
@@ -143,6 +156,7 @@ function setupNavigation() {
 // ============================================================================
 
 async function loadAllData() {
+  clampMonthYearSelection();
   showSpinner();
   try {
     await Promise.all([

@@ -3,6 +3,7 @@ let currentYear = null;
 let currentMonth = null; // 0-11
 let projectsMap = {}; // Map project_id -> { name, time_type }
 let lastSummaryData = null; // do ponownego renderowania wykresu przy resize
+const MIN_SUMMARY_YEAR = 2025;
 
 const monthNamesPl = [
   'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -99,7 +100,8 @@ function populateMonthYearSelects(monthSelect, yearSelect) {
   // Lata w zakresie +/-5 od bieżącego
   yearSelect.innerHTML = '';
   const baseYear = new Date().getFullYear();
-  for (let y = baseYear - 5; y <= baseYear + 5; y++) {
+  const startYear = Math.max(MIN_SUMMARY_YEAR, baseYear - 5);
+  for (let y = startYear; y <= baseYear + 5; y++) {
     const opt = document.createElement('option');
     opt.value = String(y);
     opt.textContent = String(y);
@@ -107,7 +109,15 @@ function populateMonthYearSelects(monthSelect, yearSelect) {
   }
 }
 
+function clampSummaryDate() {
+  if (currentYear < MIN_SUMMARY_YEAR) {
+    currentYear = MIN_SUMMARY_YEAR;
+    currentMonth = 0;
+  }
+}
+
 function syncMonthYearSelects(monthSelect, yearSelect) {
+  clampSummaryDate();
   if (monthSelect) {
     monthSelect.value = String(currentMonth);
   }
@@ -155,6 +165,7 @@ function setupNavigation() {
       currentMonth = 11;
       currentYear--;
     }
+    clampSummaryDate();
     if (monthSelect && yearSelect) syncMonthYearSelects(monthSelect, yearSelect);
     loadMonthlySummary();
   });
@@ -173,12 +184,14 @@ function setupNavigation() {
       currentMonth = 0;
       currentYear++;
     }
+    clampSummaryDate();
     if (monthSelect && yearSelect) syncMonthYearSelects(monthSelect, yearSelect);
     loadMonthlySummary();
   });
 }
 
 async function loadMonthlySummary() {
+  clampSummaryDate();
   console.log('Loading summary for:', currentYear, currentMonth);
   
   // Update header
