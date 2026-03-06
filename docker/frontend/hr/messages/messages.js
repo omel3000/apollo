@@ -304,6 +304,14 @@ function attachFormListeners(message = null) {
     });
 
     cancelButton.addEventListener('click', () => {
+        if (!message || !message.message_id) {
+            form.reset();
+            isActiveInput.checked = true;
+            form.classList.remove('was-validated');
+            refreshPreview();
+            return;
+        }
+
         clearMessageSelection();
     });
 
