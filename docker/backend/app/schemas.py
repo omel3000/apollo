@@ -770,9 +770,13 @@ class PeriodClosureRead(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PeriodNotesUpdateRequest(BaseModel):
+    notes: Optional[str] = Field(default=None, max_length=2000)
+
+
 class PeriodStatusUpdateRequest(BaseModel):
     status: PeriodStatusEnum
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(default=None, max_length=2000)
 
 
 class AuditLogRead(BaseModel):

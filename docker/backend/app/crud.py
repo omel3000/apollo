@@ -154,7 +154,7 @@ def get_period(db: Session, year: int, month: int) -> PeriodClosure:
     )
 
 
-def create_period(db: Session, year: int, month: int) -> PeriodClosure:
+def create_period(db: Session, year: int, month: int, notes: Optional[str] = None) -> PeriodClosure:
     existing = (
         db.query(PeriodClosure)
         .filter(PeriodClosure.year == year, PeriodClosure.month == month)
@@ -163,7 +163,12 @@ def create_period(db: Session, year: int, month: int) -> PeriodClosure:
     if existing:
         return existing
 
-    period = PeriodClosure(year=year, month=month, status=PeriodStatus.open)
+    period = PeriodClosure(
+        year=year,
+        month=month,
+        status=PeriodStatus.open,
+        notes=notes,
+    )
     db.add(period)
     db.commit()
     db.refresh(period)
@@ -282,6 +287,27 @@ def set_period_status(
     period.notes = notes
 
     _log_action(db, "period", period.period_closure_id, f"status_{new_status.value}", actor_user_id, notes)
+    db.commit()
+    db.refresh(period)
+    return period
+
+
+def update_period_notes(
+    db: Session,
+    year: int,
+    month: int,
+    actor_user_id: int,
+    notes: Optional[str] = None,
+):
+    period = get_period(db, year, month)
+    if period is None:
+        raise ValueError("Najpierw utwórz okres rozliczeniowy.")
+
+    if period.notes == notes:
+        return period
+
+    period.notes = notes
+    _log_action(db, "period", period.period_closure_id, "notes_updated", actor_user_id, notes)
     db.commit()
     db.refresh(period)
     return period

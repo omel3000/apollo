@@ -75,3 +75,20 @@ Typ wyliczeniowy określający sposób rejestrowania czasu pracy:
 - `user_id` → `users.user_id` (fk_report_user)
 - `project_id` → `projects.project_id` (fk_report_project)
 
+## 6. Tabela: period_closures (okresy rozliczeniowe)
+
+- `period_closure_id` (PK, SERIAL) – unikalny identyfikator okresu
+- `year` (INTEGER, NOT NULL) – rok okresu
+- `month` (INTEGER, NOT NULL) – miesiąc okresu od 1 do 12
+- `status` (ENUM periodstatus, NOT NULL) – status okresu: `otwarty`, `oczekuje_na_zamkniecie`, `zamkniety`, `odblokowany`
+- `locked_by_user_id` (FK, INTEGER) – użytkownik, który zamknął okres
+- `locked_at` (TIMESTAMP WITH TIME ZONE) – data zamknięcia okresu
+- `unlocked_at` (TIMESTAMP WITH TIME ZONE) – data ponownego otwarcia okresu
+- `notes` (VARCHAR(2000)) – notatka operacyjna do okresu, zapisywana przez HR/Admin
+
+**Klucze obce:**
+- `locked_by_user_id` → `users.user_id`
+
+**Ograniczenia:**
+- unikalność pary `year` + `month`
+

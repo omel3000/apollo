@@ -195,13 +195,15 @@ function setupPeriodPanel() {
   const btnClose = document.getElementById('btnClosePeriod');
   const btnOpen = document.getElementById('btnOpenPeriod');
   const btnDelete = document.getElementById('btnDeletePeriod');
+  const btnSaveNotes = document.getElementById('btnSavePeriodNotes');
 
-  console.log('setupPeriodPanel: found buttons', { btnCreate: !!btnCreate, btnClose: !!btnClose, btnOpen: !!btnOpen, btnDelete: !!btnDelete });
+  console.log('setupPeriodPanel: found buttons', { btnCreate: !!btnCreate, btnClose: !!btnClose, btnOpen: !!btnOpen, btnDelete: !!btnDelete, btnSaveNotes: !!btnSaveNotes });
 
   if (btnCreate) btnCreate.addEventListener('click', () => handleCreatePeriod());
   if (btnClose) btnClose.addEventListener('click', () => handleUpdatePeriodStatus('zamkniety'));
   if (btnOpen) btnOpen.addEventListener('click', () => handleUpdatePeriodStatus('otwarty'));
   if (btnDelete) btnDelete.addEventListener('click', () => handleDeletePeriod());
+  if (btnSaveNotes) btnSaveNotes.addEventListener('click', () => handleSavePeriodNotes());
   
   // Renderuj od razu stan początkowy
   renderPeriodPanel();
@@ -252,12 +254,12 @@ function renderPeriodPanel() {
   const btnClose = document.getElementById('btnClosePeriod');
   const btnOpen = document.getElementById('btnOpenPeriod');
   const btnDelete = document.getElementById('btnDeletePeriod');
+  const btnSaveNotes = document.getElementById('btnSavePeriodNotes');
 
   const notesInput = document.getElementById('periodNotes');
 
-  if (periodInfo && notesInput && (notesInput.value || '') === '') {
-    // jeśli backend ma notatkę, pokaż ją w polu (użytkownik może zmienić)
-    notesInput.value = periodInfo.notes || '';
+  if (notesInput) {
+    notesInput.value = periodInfo?.notes || '';
   }
 
   if (!periodInfo) {
@@ -270,6 +272,7 @@ function renderPeriodPanel() {
     if (btnClose) btnClose.disabled = true;
     if (btnOpen) btnOpen.disabled = true;
     if (btnDelete) btnDelete.disabled = true;
+    if (btnSaveNotes) btnSaveNotes.disabled = true;
     return;
   }
 
@@ -296,6 +299,7 @@ function renderPeriodPanel() {
   // Akcje
   if (btnCreate) btnCreate.disabled = true;
   if (btnDelete) btnDelete.disabled = false;
+  if (btnSaveNotes) btnSaveNotes.disabled = false;
 
   if (btnClose) btnClose.disabled = (status === 'zamkniety');
   if (btnOpen) btnOpen.disabled = (status === 'otwarty');
@@ -354,8 +358,12 @@ async function handleCreatePeriod() {
       method: 'POST',
       headers: {
         'Authorization': authHeader,
+        'Content-Type': 'application/json',
         'Accept': 'application/json'
-      }
+      },
+      body: JSON.stringify({
+        notes: getNotesPayload()
+      })
     });
 
     if (response.status === 401) {
@@ -369,8 +377,8 @@ async function handleCreatePeriod() {
     }
 
     periodInfo = await response.json();
-    setPeriodPanelMessage('success', 'Okres rozliczeniowy został utworzony.');
     renderPeriodPanel();
+    setPeriodPanelMessage('success', 'Okres rozliczeniowy został utworzony.');
   } catch (error) {
     setPeriodPanelMessage('error', 'Błąd tworzenia okresu: ' + error.message);
   }
@@ -410,10 +418,50 @@ async function handleUpdatePeriodStatus(status) {
     }
 
     periodInfo = await response.json();
-    setPeriodPanelMessage('success', 'Status okresu został zaktualizowany.');
     renderPeriodPanel();
+    setPeriodPanelMessage('success', 'Status okresu został zaktualizowany.');
   } catch (error) {
     setPeriodPanelMessage('error', 'Błąd zmiany statusu: ' + error.message);
+  }
+}
+
+async function handleSavePeriodNotes() {
+  const month = currentMonth + 1;
+  const year = currentYear;
+
+  if (!periodInfo) {
+    setPeriodPanelMessage('error', 'Najpierw utwórz okres rozliczeniowy.');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/periods/${year}/${month}/notes`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': authHeader,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        notes: getNotesPayload()
+      })
+    });
+
+    if (response.status === 401) {
+      window.location.replace('/');
+      return;
+    }
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || 'Nie udało się zapisać notatki');
+    }
+
+    periodInfo = await response.json();
+    renderPeriodPanel();
+    setPeriodPanelMessage('success', periodInfo.notes ? 'Notatka okresu została zapisana.' : 'Notatka okresu została wyczyszczona.');
+  } catch (error) {
+    setPeriodPanelMessage('error', 'Błąd zapisu notatki: ' + error.message);
   }
 }
 
@@ -451,8 +499,8 @@ async function handleDeletePeriod() {
     }
 
     periodInfo = null;
-    setPeriodPanelMessage('success', 'Okres rozliczeniowy został usunięty.');
     renderPeriodPanel();
+    setPeriodPanelMessage('success', 'Okres rozliczeniowy został usunięty.');
   } catch (error) {
     setPeriodPanelMessage('error', 'Błąd usuwania okresu: ' + error.message);
   }

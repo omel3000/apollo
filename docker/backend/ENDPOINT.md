@@ -88,6 +88,7 @@
 | GET | `/periods/` | Lista okresów rozliczeniowych (opcjonalny filtr po roku) | ❌ | ✅ | ✅ | ❌ |
 | GET | `/periods/{year}/{month}` | Szczegóły okresu rozliczeniowego | ❌ | ✅ | ✅ | ❌ |
 | POST | `/periods/{year}/{month}` | Utworzenie okresu rozliczeniowego (jeśli nie istnieje) | ❌ | ✅ | ✅ | ❌ |
+| PATCH | `/periods/{year}/{month}/notes` | Zapis lub wyczyszczenie notatki okresu | ❌ | ✅ | ✅ | ❌ |
 | POST | `/periods/{year}/{month}/status` | Zmiana statusu okresu (zamykanie/otwieranie) | ❌ | ✅ | ✅ | ❌ |
 | DELETE | `/periods/{year}/{month}` | Usunięcie okresu (tylko jeśli w miesiącu nie ma danych) | ❌ | ✅ | ✅ | ❌ |
 | **LOGI AUDYTU** |||||||

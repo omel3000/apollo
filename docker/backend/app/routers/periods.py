@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from auth import admin_or_hr_required, admin_required, User, get_current_user
 from database import get_db
-from schemas import PeriodClosureRead, PeriodStatusUpdateRequest
+from schemas import PeriodClosureRead, PeriodNotesUpdateRequest, PeriodStatusUpdateRequest
 import crud
 
 router = APIRouter()
@@ -55,12 +55,33 @@ def update_period_status(
 
 @router.post("/{year}/{month}", response_model=PeriodClosureRead)
 def create_period(
+    payload: Optional[PeriodNotesUpdateRequest] = None,
     year: int = Path(..., ge=2000, le=2100, description="Rok okresu"),
     month: int = Path(..., ge=1, le=12, description="Miesiąc okresu"),
     db: Session = Depends(get_db),
     current_user: User = Depends(admin_or_hr_required),
 ):
-    return crud.create_period(db, year, month)
+    return crud.create_period(db, year, month, notes=payload.notes if payload else None)
+
+
+@router.patch("/{year}/{month}/notes", response_model=PeriodClosureRead)
+def update_period_notes(
+    payload: PeriodNotesUpdateRequest,
+    year: int = Path(..., ge=2000, le=2100, description="Rok okresu"),
+    month: int = Path(..., ge=1, le=12, description="Miesiąc okresu"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(admin_or_hr_required),
+):
+    try:
+        return crud.update_period_notes(
+            db=db,
+            year=year,
+            month=month,
+            actor_user_id=current_user.user_id,
+            notes=payload.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
 
 
 @router.delete("/{year}/{month}")

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import users, projects, messages, work_reports, user_projects, availability, absences, schedule, periods, audit_logs  
 from database import engine, Base, SessionLocal
 from audit_logging import AuditLoggingMiddleware
+from sqlalchemy import inspect, text
 import os
 import logging
 import asyncio
@@ -54,8 +55,24 @@ app.add_middleware(
 # Audit logging middleware (musi być po CORS)
 app.add_middleware(AuditLoggingMiddleware)
 
+
+def _ensure_schema_compatibility() -> None:
+    inspector = inspect(engine)
+
+    if not inspector.has_table("period_closures"):
+        return
+
+    column_names = {column["name"] for column in inspector.get_columns("period_closures")}
+    if "notes" in column_names:
+        return
+
+    with engine.begin() as connection:
+        connection.execute(text("ALTER TABLE period_closures ADD COLUMN notes VARCHAR(2000)"))
+    logging.info("Dodano brakującą kolumnę notes do tabeli period_closures")
+
 # Tworzymy tabele w bazie (jeśli jeszcze nie istnieją)
 Base.metadata.create_all(bind=engine)
+_ensure_schema_compatibility()
 
 # Dodajemy router użytkowników pod ścieżką /users
 app.include_router(users.router, prefix="/users", tags=["Users"])
