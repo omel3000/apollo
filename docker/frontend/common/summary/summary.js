@@ -334,7 +334,7 @@ function renderSummary(data) {
 
     if (dayData.has_pending) {
       const pendingNote = document.createElement('div');
-      pendingNote.className = 'small text-warning mb-2';
+      pendingNote.className = 'small text-danger-emphasis fw-semibold mb-2';
       pendingNote.innerHTML = '<i class="bi bi-hourglass-split me-1"></i>Ten dzień zawiera wpisy oczekujące na akceptację.';
       dayItem.appendChild(pendingNote);
     }
