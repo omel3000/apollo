@@ -547,12 +547,12 @@ function renderUsersChart() {
     usersChart.destroy();
   }
   
-  // Get top 10 users by time
+  // Get top 5 users by time
   const sortedUsers = [...filteredUsers].sort((a, b) => {
     const timeA = a.total_hours * 60 + a.total_minutes;
     const timeB = b.total_hours * 60 + b.total_minutes;
     return timeB - timeA;
-  }).slice(0, 10);
+  }).slice(0, 5);
   
   const labels = sortedUsers.map(u => `${u.first_name} ${u.last_name}`);
   const data = sortedUsers.map(u => u.total_hours + u.total_minutes / 60);

@@ -21,7 +21,7 @@ Strona **Podsumowania miesięczne pracowników** to zaawansowany moduł w panelu
 - Średni czas pracy na pracownika
 
 ### 2. **Wizualizacje**
-- **Wykres słupkowy** - Top 10 pracowników według czasu pracy
+- **Wykres słupkowy** - Top 5 pracowników według czasu pracy
 - **Wykres kołowy** - Rozkład czasu według projektów
 - **Wykres liniowy** - Trend czasu pracy w ostatnich 6 miesiącach
 
