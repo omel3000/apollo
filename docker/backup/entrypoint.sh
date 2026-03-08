@@ -10,26 +10,19 @@ LAST_SCHEDULED_MARKER="${BACKUP_DIR}/.last_scheduled_backup"
 
 mkdir -p "${BACKUP_DIR}"
 
-set -- ${BACKUP_CRON_EXPR}
-
-if [ "$#" -ne 5 ]; then
-    echo "Blad: BACKUP_CRON musi miec format 'minuta godzina * * *'. Otrzymano: ${BACKUP_CRON_EXPR}" >&2
-    exit 1
-fi
-
-BACKUP_MINUTE="$1"
-BACKUP_HOUR="$2"
+BACKUP_MINUTE="$(echo "${BACKUP_CRON_EXPR}" | awk '{print $1}')"
+BACKUP_HOUR="$(echo "${BACKUP_CRON_EXPR}" | awk '{print $2}')"
 
 case "${BACKUP_MINUTE}" in
     ''|*[!0-9]*)
-        echo "Blad: minuta w BACKUP_CRON musi byc liczba 0-59. Otrzymano: ${BACKUP_MINUTE}" >&2
+        echo "Blad: minuta w BACKUP_CRON musi byc liczba 0-59. Otrzymano: '${BACKUP_MINUTE}'" >&2
         exit 1
         ;;
 esac
 
 case "${BACKUP_HOUR}" in
     ''|*[!0-9]*)
-        echo "Blad: godzina w BACKUP_CRON musi byc liczba 0-23. Otrzymano: ${BACKUP_HOUR}" >&2
+        echo "Blad: godzina w BACKUP_CRON musi byc liczba 0-23. Otrzymano: '${BACKUP_HOUR}'" >&2
         exit 1
         ;;
 esac
