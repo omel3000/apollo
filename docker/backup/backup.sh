@@ -39,6 +39,6 @@ pg_dump \
     -Fc \
     -f "${BACKUP_FILE}"
 
-find "${BACKUP_DIR}" -daystart -type f -name '*.dump' -mtime "+$((BACKUP_RETENTION_DAYS - 1))" -delete
+find "${BACKUP_DIR}" -type f -name '*.dump' -mtime "+$((BACKUP_RETENTION_DAYS - 1))" -delete
 
 echo "[$(date '+%Y-%m-%d %H:%M:%S')] Backup zakonczony: ${BACKUP_FILE}"
