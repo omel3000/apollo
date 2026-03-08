@@ -68,7 +68,7 @@ TZ=Europe/Warsaw
 
 - `BACKUP_CRON` określa godzinę wykonywania backupu
 - `BACKUP_RETENTION_DAYS` określa ile dni pliki mają być trzymane
-- `BACKUP_RUN_ON_STARTUP=true` wymusza dodatkowy backup od razu po starcie kontenera
+- `BACKUP_RUN_ON_STARTUP=true` wymusza dodatkowy backup od razu po starcie kontenera, ale tylko raz dziennie
 - `TZ` ustawia strefę czasową dla harmonogramu
 
 ## Jak działa retencja 32 dni

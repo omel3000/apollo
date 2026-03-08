@@ -4,6 +4,7 @@ set -eu
 
 export TZ="${TZ:-Europe/Warsaw}"
 export BACKUP_DIR="${BACKUP_DIR:-/backups}"
+STARTUP_MARKER="${BACKUP_DIR}/.startup_backup_$(date +%Y-%m-%d)"
 
 mkdir -p /etc/crontabs "${BACKUP_DIR}"
 
@@ -22,14 +23,16 @@ cat > /etc/crontabs/root <<EOF
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 TZ=${TZ}
-${BACKUP_CRON:-0 3 * * *} set -a; . /app/backup.env; set +a; /app/backup.sh >> /var/log/backup.log 2>&1
+${BACKUP_CRON:-0 3 * * *} /app/run_backup.sh >> /var/log/backup.log 2>&1
 EOF
 
 if [ "${BACKUP_RUN_ON_STARTUP:-false}" = "true" ]; then
-    set -a
-    . /app/backup.env
-    set +a
-    /app/backup.sh
+    if [ ! -f "${STARTUP_MARKER}" ]; then
+        /app/run_backup.sh
+        touch "${STARTUP_MARKER}"
+    else
+        echo "Pominieto backup startowy: istnieje znacznik ${STARTUP_MARKER}"
+    fi
 fi
 
 echo "Uruchomiono harmonogram backupu: ${BACKUP_CRON:-0 3 * * *}"
