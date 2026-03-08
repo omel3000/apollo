@@ -2,7 +2,7 @@ FROM postgres:16-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache dcron tzdata
+RUN apk add --no-cache tzdata
 
 COPY backup.sh /app/backup.sh
 COPY entrypoint.sh /app/entrypoint.sh

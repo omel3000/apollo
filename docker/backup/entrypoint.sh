@@ -5,8 +5,37 @@ set -eu
 export TZ="${TZ:-Europe/Warsaw}"
 export BACKUP_DIR="${BACKUP_DIR:-/backups}"
 STARTUP_MARKER="${BACKUP_DIR}/.startup_backup_$(date +%Y-%m-%d)"
+BACKUP_CRON_EXPR="${BACKUP_CRON:-0 3 * * *}"
+LAST_SCHEDULED_MARKER="${BACKUP_DIR}/.last_scheduled_backup"
 
-mkdir -p /etc/crontabs "${BACKUP_DIR}"
+mkdir -p "${BACKUP_DIR}"
+
+set -- ${BACKUP_CRON_EXPR}
+
+if [ "$#" -ne 5 ]; then
+    echo "Blad: BACKUP_CRON musi miec format 'minuta godzina * * *'. Otrzymano: ${BACKUP_CRON_EXPR}" >&2
+    exit 1
+fi
+
+BACKUP_MINUTE="$1"
+BACKUP_HOUR="$2"
+
+case "${BACKUP_MINUTE}" in
+    ''|*[!0-9]*)
+        echo "Blad: minuta w BACKUP_CRON musi byc liczba 0-59. Otrzymano: ${BACKUP_MINUTE}" >&2
+        exit 1
+        ;;
+esac
+
+case "${BACKUP_HOUR}" in
+    ''|*[!0-9]*)
+        echo "Blad: godzina w BACKUP_CRON musi byc liczba 0-23. Otrzymano: ${BACKUP_HOUR}" >&2
+        exit 1
+        ;;
+esac
+
+BACKUP_MINUTE_PADDED="$(printf '%02d' "${BACKUP_MINUTE}")"
+BACKUP_HOUR_PADDED="$(printf '%02d' "${BACKUP_HOUR}")"
 
 cat > /app/backup.env <<EOF
 POSTGRES_HOST=${POSTGRES_HOST:-postgres-db}
@@ -19,13 +48,6 @@ BACKUP_DIR=${BACKUP_DIR}
 TZ=${TZ}
 EOF
 
-cat > /etc/crontabs/root <<EOF
-SHELL=/bin/sh
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-TZ=${TZ}
-${BACKUP_CRON:-0 3 * * *} /app/run_backup.sh >> /var/log/backup.log 2>&1
-EOF
-
 if [ "${BACKUP_RUN_ON_STARTUP:-false}" = "true" ]; then
     if [ ! -f "${STARTUP_MARKER}" ]; then
         /app/run_backup.sh
@@ -35,6 +57,23 @@ if [ "${BACKUP_RUN_ON_STARTUP:-false}" = "true" ]; then
     fi
 fi
 
-echo "Uruchomiono harmonogram backupu: ${BACKUP_CRON:-0 3 * * *}"
+echo "Uruchomiono harmonogram backupu: ${BACKUP_CRON_EXPR}"
 
-exec crond -f -l 2
+while true; do
+    NOW_DATE="$(date +%Y-%m-%d)"
+    NOW_HOUR="$(date +%H)"
+    NOW_MINUTE="$(date +%M)"
+    LAST_RUN_DATE="$(cat "${LAST_SCHEDULED_MARKER}" 2>/dev/null || true)"
+
+    if [ "${NOW_HOUR}" = "${BACKUP_HOUR_PADDED}" ] && [ "${NOW_MINUTE}" = "${BACKUP_MINUTE_PADDED}" ]; then
+        if [ "${LAST_RUN_DATE}" != "${NOW_DATE}" ]; then
+            if /app/run_backup.sh; then
+                echo "${NOW_DATE}" > "${LAST_SCHEDULED_MARKER}"
+            fi
+        fi
+        sleep 60
+        continue
+    fi
+
+    sleep 20
+done

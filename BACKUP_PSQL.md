@@ -6,7 +6,7 @@ Backup działa automatycznie jako osobna usługa Docker Compose. Po pobraniu rep
 
 ## Co robi skrypt
 
-- usługa `postgres-backup` uruchamia harmonogram backupów wewnątrz kontenera
+- usługa `postgres-backup` uruchamia własny harmonogram wewnątrz kontenera
 - tworzy backup bazy PostgreSQL codziennie o 03:00
 - zapisuje plik w formacie `pg_dump -Fc`
 - nadaje nazwę z datą i godziną wykonania
@@ -66,7 +66,7 @@ BACKUP_RUN_ON_STARTUP=false
 TZ=Europe/Warsaw
 ```
 
-- `BACKUP_CRON` określa godzinę wykonywania backupu
+- `BACKUP_CRON` określa godzinę wykonywania backupu w formacie `minuta godzina * * *`
 - `BACKUP_RETENTION_DAYS` określa ile dni pliki mają być trzymane
 - `BACKUP_RUN_ON_STARTUP=true` wymusza dodatkowy backup od razu po starcie kontenera, ale tylko raz dziennie
 - `TZ` ustawia strefę czasową dla harmonogramu
