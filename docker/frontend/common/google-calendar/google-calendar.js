@@ -76,10 +76,32 @@
       <p class="text-muted small mb-3">
         Połącz swoje konto Google, aby synchronizować grafik miesięczny z&nbsp;Google Calendar.
       </p>
-      <a href="/integrations/google/connect" class="btn btn-outline-danger btn-sm" id="gcalConnectBtn">
+      <button type="button" class="btn btn-outline-danger btn-sm" id="gcalConnectBtn">
         <i class="bi bi-google me-1"></i> Połącz z Google
-      </a>
+      </button>
+      <div id="gcalMessage" class="mt-2"></div>
     `;
+    document.getElementById('gcalConnectBtn').addEventListener('click', handleConnect);
+  }
+
+  async function handleConnect() {
+    const btn = document.getElementById('gcalConnectBtn');
+    if (btn) { btn.disabled = true; btn.textContent = 'Łączenie...'; }
+    try {
+      const resp = await fetch('/integrations/google/connect', {
+        headers: authHeaders(),
+      });
+      if (!resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.detail || 'Błąd połączenia z Google.');
+      }
+      const data = await resp.json();
+      window.location.href = data.url;
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bi bi-google me-1"></i> Połącz z Google'; }
+      const msgEl = document.getElementById('gcalMessage');
+      if (msgEl) msgEl.innerHTML = `<div class="alert alert-danger py-1 px-2 small mb-0">${escapeHtml(err.message)}</div>`;
+    }
   }
 
   function renderConnected(panel, status) {

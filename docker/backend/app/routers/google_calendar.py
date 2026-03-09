@@ -103,7 +103,8 @@ def initiate_google_connect(
     current_user: User = Depends(get_current_user),
 ):
     """
-    Generuje URL autoryzacji Google OAuth i przekierowuje użytkownika.
+    Generuje URL autoryzacji Google OAuth i zwraca go jako JSON.
+    Frontend sam przekierowuje użytkownika — dzięki temu zachowany jest nagłówek Authorization.
     Parametr state jest podpisanym JWT — zabezpiecza przed CSRF.
     """
     if not gcal.GOOGLE_CLIENT_ID or not gcal.GOOGLE_CLIENT_SECRET:
@@ -114,7 +115,7 @@ def initiate_google_connect(
 
     state = _create_state_token(current_user.user_id)
     auth_url = gcal.generate_auth_url(state=state)
-    return RedirectResponse(url=auth_url)
+    return {"url": auth_url}
 
 
 @router.get("/callback")
