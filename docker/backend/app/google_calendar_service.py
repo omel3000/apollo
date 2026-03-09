@@ -20,10 +20,11 @@ import secrets
 import base64
 from datetime import datetime, timezone, date, time
 from typing import Optional
+from urllib.parse import urlencode
 
+import requests
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
-from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from cryptography.fernet import Fernet
@@ -97,24 +98,30 @@ def generate_code_verifier() -> str:
     return base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b'=').decode()
 
 
+def _generate_code_challenge(code_verifier: str) -> str:
+    """Generuje PKCE code_challenge (S256) z code_verifier."""
+    digest = hashlib.sha256(code_verifier.encode("ascii")).digest()
+    return base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+
+
 def generate_auth_url(state: str, code_verifier: str) -> str:
     """
     Generuje URL autoryzacji Google OAuth z PKCE.
     Parametr state powinien być podpisanym tokenem JWT zawierającym user_id i code_verifier.
     """
-    flow = Flow.from_client_config(
-        _client_config(),
-        scopes=GOOGLE_OAUTH_SCOPES,
-        redirect_uri=GOOGLE_OAUTH_REDIRECT_URI,
-    )
-    flow.code_verifier = code_verifier
-    auth_url, _ = flow.authorization_url(
-        access_type="offline",
-        include_granted_scopes="false",
-        prompt="consent",
-        state=state,
-    )
-    return auth_url
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_OAUTH_REDIRECT_URI,
+        "response_type": "code",
+        "scope": " ".join(GOOGLE_OAUTH_SCOPES),
+        "access_type": "offline",
+        "include_granted_scopes": "false",
+        "prompt": "consent",
+        "state": state,
+        "code_challenge": _generate_code_challenge(code_verifier),
+        "code_challenge_method": "S256",
+    }
+    return "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode(params)
 
 
 def exchange_code_for_tokens(code: str, code_verifier: str) -> dict:
@@ -123,20 +130,26 @@ def exchange_code_for_tokens(code: str, code_verifier: str) -> dict:
     Wymaga code_verifier użytego przy generowaniu auth URL (PKCE).
     Zwraca słownik: {access_token, refresh_token, token_expiry, scope, id_token}.
     """
-    flow = Flow.from_client_config(
-        _client_config(),
-        scopes=GOOGLE_OAUTH_SCOPES,
-        redirect_uri=GOOGLE_OAUTH_REDIRECT_URI,
+    response = requests.post(
+        "https://oauth2.googleapis.com/token",
+        data={
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "code": code,
+            "code_verifier": code_verifier,
+            "grant_type": "authorization_code",
+            "redirect_uri": GOOGLE_OAUTH_REDIRECT_URI,
+        },
+        timeout=30,
     )
-    flow.code_verifier = code_verifier
-    flow.fetch_token(code=code)
-    credentials = flow.credentials
+    response.raise_for_status()
+    token_data = response.json()
     return {
-        "access_token": credentials.token,
-        "refresh_token": credentials.refresh_token,
-        "token_expiry": credentials.expiry,
-        "scope": " ".join(credentials.scopes) if credentials.scopes else "",
-        "id_token": getattr(credentials, "id_token", None),
+        "access_token": token_data.get("access_token"),
+        "refresh_token": token_data.get("refresh_token"),
+        "token_expiry": token_data.get("expiry"),
+        "scope": token_data.get("scope", ""),
+        "id_token": token_data.get("id_token"),
     }
 
 
