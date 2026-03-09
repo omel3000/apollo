@@ -44,7 +44,7 @@ services:
     restart: always
     working_dir: /app
     # Development override - włącz hot-reload
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload --proxy-headers --forwarded-allow-ips='*'
     volumes:
       - ./backend/app:/app
     # Port 8000 USUNIĘTY - backend dostępny tylko przez Nginx w sieci Docker
