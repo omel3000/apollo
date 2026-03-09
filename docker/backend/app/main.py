@@ -1,7 +1,8 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import users, projects, messages, work_reports, user_projects, availability, absences, schedule, periods, audit_logs  
+from routers import users, projects, messages, work_reports, user_projects, availability, absences, schedule, periods, audit_logs
+from routers import google_calendar
 from database import engine, Base, SessionLocal
 from audit_logging import AuditLoggingMiddleware
 from sqlalchemy import inspect, text
@@ -94,6 +95,8 @@ app.include_router(schedule.router, prefix="/schedule", tags=["Schedule"])
 app.include_router(periods.router, prefix="/periods", tags=["Periods"])
 
 app.include_router(audit_logs.router, prefix="/audit_logs", tags=["AuditLogs"])
+
+app.include_router(google_calendar.router, prefix="/integrations/google", tags=["Google Calendar"])
 
 
 def _next_month(year: int, month: int) -> tuple[int, int]:

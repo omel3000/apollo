@@ -16,6 +16,7 @@
     <script src="/logout.js" defer></script>
     <script src="/project-colors.js" defer></script>
     <script src="/common/schedule-view/schedule-view.js" defer></script>
+    <script src="/common/google-calendar/google-calendar.js" defer></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const sidebar = document.getElementById('sidebarMenu');
@@ -254,6 +255,17 @@
                         </div>
                         <div class="card-body" id="scheduleMonthSummary">
                             <p class="text-muted mb-0">Brak danych do podsumowania.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="schedule-section schedule-section--google">
+                    <div class="card shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="bi bi-google me-2"></i>Google Calendar</h5>
+                        </div>
+                        <div class="card-body" id="googleCalendarPanel">
+                            <p class="text-muted small mb-0">Ładowanie...</p>
                         </div>
                     </div>
                 </section>

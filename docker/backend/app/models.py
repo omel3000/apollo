@@ -210,3 +210,39 @@ class AuditLog(Base):
     detail = Column(String(2000), nullable=True)
     duration_ms = Column(Integer, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class GoogleCalendarConnection(Base):
+    """Przechowuje połączenie użytkownika z kontem Google OAuth."""
+    __tablename__ = "google_calendar_connections"
+
+    google_connection_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False, unique=True)
+    google_email = Column(String(255), nullable=False)
+    # Zaszyfrowany refresh_token — nigdy nie przesyłamy go na frontend
+    encrypted_refresh_token = Column(String(2000), nullable=False)
+    scope = Column(String(1000), nullable=True)
+    # ID kalendarza Apollo po stronie Google (tworzonego automatycznie)
+    calendar_id = Column(String(500), nullable=True)
+    calendar_summary = Column(String(255), nullable=True)
+    connected_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_sync_at = Column(DateTime(timezone=True), nullable=True)
+    is_active = Column(Boolean, nullable=False, default=True)
+
+
+class GoogleCalendarEventMap(Base):
+    """Mapowanie wpisu grafiku Apollo do eventu Google Calendar — zapobiega duplikatom."""
+    __tablename__ = "google_calendar_event_maps"
+
+    google_calendar_event_map_id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.user_id", ondelete="CASCADE"), nullable=False)
+    schedule_id = Column(Integer, ForeignKey("schedule.schedule_id", ondelete="CASCADE"), nullable=False)
+    calendar_id = Column(String(500), nullable=False)
+    google_event_id = Column(String(500), nullable=False)
+    synced_at = Column(DateTime(timezone=True), server_default=func.now())
+    # Hash payloadu — pozwala wykryć zmiany bez zbędnych requestów do Google API
+    last_payload_hash = Column(String(64), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "schedule_id", name="uq_google_event_map_user_schedule"),
+    )

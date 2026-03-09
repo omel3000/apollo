@@ -813,3 +813,33 @@ class AuditLogUserOption(BaseModel):
     user_email: Optional[str]
     user_role: Optional[str]
 
+
+# ===== Google Calendar Integration =====
+
+class GoogleConnectionStatusRead(BaseModel):
+    """Status połączenia użytkownika z Google Calendar."""
+    is_connected: bool
+    google_email: Optional[str] = None
+    calendar_id: Optional[str] = None
+    calendar_summary: Optional[str] = None
+    connected_at: Optional[datetime] = None
+    last_sync_at: Optional[datetime] = None
+
+    model_config = {"from_attributes": True}
+
+
+class GoogleSyncMonthRequest(BaseModel):
+    """Żądanie synchronizacji grafiku wybranego miesiąca z Google Calendar."""
+    year: int
+    month: int
+
+
+class GoogleSyncMonthResult(BaseModel):
+    """Wynik synchronizacji miesiąca."""
+    created: int
+    updated: int
+    deleted: int
+    skipped: int
+    errors: int
+    message: str
+
