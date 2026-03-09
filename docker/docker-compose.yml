@@ -71,6 +71,8 @@ services:
       - postgres-db
     dns:
       - 127.0.0.11
+      - 8.8.8.8
+      - 8.8.4.4
     networks:
       - apollo-network
 
