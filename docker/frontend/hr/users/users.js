@@ -75,7 +75,7 @@ async function loadCurrentUser() {
 async function loadProjects() {
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch('/projects', {
+        const response = await fetch('/projects/', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (response.ok) {
@@ -90,7 +90,7 @@ async function loadProjects() {
 async function loadUsers() {
     const token = localStorage.getItem('token');
     try {
-        const response = await fetch('/users', {
+        const response = await fetch('/users/', {
             headers: { 'Authorization': `Bearer ${token}` }
         });
         if (!response.ok) {

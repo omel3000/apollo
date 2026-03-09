@@ -1213,7 +1213,7 @@ async function loadWorkerProjects() {
   
   try {
     // Pobierz wszystkie projekty
-    const projectsResponse = await fetch('/projects', {
+    const projectsResponse = await fetch('/projects/', {
       headers: {
         'Authorization': authHeader,
         'Accept': 'application/json'
@@ -1229,7 +1229,7 @@ async function loadWorkerProjects() {
     const allProjects = await projectsResponse.json();
     
     // Pobierz przypisania dla wybranego użytkownika
-    const assignmentsResponse = await fetch(`/user_projects?user_id=${userId}`, {
+    const assignmentsResponse = await fetch(`/user_projects/?user_id=${userId}`, {
       headers: {
         'Authorization': authHeader,
         'Accept': 'application/json'
@@ -1731,7 +1731,7 @@ async function loadWorkerProjectsMain() {
   
   try {
     // Załaduj przypisania projektów dla tego użytkownika
-    const userProjectsResponse = await fetch(`/user_projects?user_id=${userId}`, {
+    const userProjectsResponse = await fetch(`/user_projects/?user_id=${userId}`, {
       headers: {
         'Authorization': authHeader,
         'Accept': 'application/json'
