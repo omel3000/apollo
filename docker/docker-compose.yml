@@ -61,6 +61,12 @@ services:
       - INITIAL_ADMIN_PASSWORD=${INITIAL_ADMIN_PASSWORD:-}
       - INITIAL_ADMIN_FIRST_NAME=${INITIAL_ADMIN_FIRST_NAME:-}
       - INITIAL_ADMIN_LAST_NAME=${INITIAL_ADMIN_LAST_NAME:-}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
+      - GOOGLE_OAUTH_REDIRECT_URI=${GOOGLE_OAUTH_REDIRECT_URI:-http://localhost:8000/integrations/google/callback}
+      - GOOGLE_OAUTH_SCOPES=${GOOGLE_OAUTH_SCOPES:-openid,email,profile,https://www.googleapis.com/auth/calendar.events,https://www.googleapis.com/auth/calendar.calendars,https://www.googleapis.com/auth/calendar.calendarlist.readonly}
+      - GOOGLE_TOKEN_ENCRYPTION_KEY=${GOOGLE_TOKEN_ENCRYPTION_KEY:-}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
     depends_on:
       - postgres-db
     dns:
