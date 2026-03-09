@@ -16,6 +16,8 @@ import os
 import json
 import hashlib
 import logging
+import secrets
+import base64
 from datetime import datetime, timezone, date, time
 from typing import Optional
 
@@ -90,17 +92,22 @@ def _client_config() -> dict:
     }
 
 
-def generate_auth_url(state: str) -> str:
+def generate_code_verifier() -> str:
+    """Generuje PKCE code_verifier (RFC 7636)."""
+    return base64.urlsafe_b64encode(secrets.token_bytes(32)).rstrip(b'=').decode()
+
+
+def generate_auth_url(state: str, code_verifier: str) -> str:
     """
-    Generuje URL autoryzacji Google OAuth.
-    Parametr state powinien być podpisanym tokenem powiązanym z user_id
-    (obsługuje CSRF — sprawdzane w callbacku).
+    Generuje URL autoryzacji Google OAuth z PKCE.
+    Parametr state powinien być podpisanym tokenem JWT zawierającym user_id i code_verifier.
     """
     flow = Flow.from_client_config(
         _client_config(),
         scopes=GOOGLE_OAUTH_SCOPES,
         redirect_uri=GOOGLE_OAUTH_REDIRECT_URI,
     )
+    flow.code_verifier = code_verifier
     auth_url, _ = flow.authorization_url(
         access_type="offline",
         include_granted_scopes="false",
@@ -110,9 +117,10 @@ def generate_auth_url(state: str) -> str:
     return auth_url
 
 
-def exchange_code_for_tokens(code: str) -> dict:
+def exchange_code_for_tokens(code: str, code_verifier: str) -> dict:
     """
     Wymienia authorization_code na access_token i refresh_token.
+    Wymaga code_verifier użytego przy generowaniu auth URL (PKCE).
     Zwraca słownik: {access_token, refresh_token, token_expiry, scope, id_token}.
     """
     flow = Flow.from_client_config(
@@ -120,6 +128,7 @@ def exchange_code_for_tokens(code: str) -> dict:
         scopes=GOOGLE_OAUTH_SCOPES,
         redirect_uri=GOOGLE_OAUTH_REDIRECT_URI,
     )
+    flow.code_verifier = code_verifier
     flow.fetch_token(code=code)
     credentials = flow.credentials
     return {

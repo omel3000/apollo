@@ -44,26 +44,26 @@ FRONTEND_REDIRECT_AFTER_CONNECT = os.getenv("FRONTEND_URL", "http://localhost")
 
 # ===== POMOCNICZE: STATE TOKEN =====
 
-def _create_state_token(user_id: int) -> str:
-    """Tworzy krótkotrwały JWT jako state dla OAuth, zawierający user_id."""
+def _create_state_token(user_id: int, code_verifier: str) -> str:
+    """Tworzy krótkotrwały JWT jako state dla OAuth, zawierający user_id i code_verifier (PKCE)."""
     expire = datetime.now(tz=timezone.utc) + timedelta(minutes=STATE_TOKEN_EXPIRE_MINUTES)
     return jwt.encode(
-        {"sub": str(user_id), "exp": expire, "purpose": "google_oauth_state"},
+        {"sub": str(user_id), "exp": expire, "purpose": "google_oauth_state", "cv": code_verifier},
         SECRET_KEY,
         algorithm=ALGORITHM,
     )
 
 
-def _decode_state_token(state: str) -> int:
+def _decode_state_token(state: str) -> tuple:
     """
     Weryfikuje i dekoduje state JWT.
-    Zwraca user_id lub rzuca HTTPException 400.
+    Zwraca (user_id, code_verifier) lub rzuca HTTPException 400.
     """
     try:
         payload = jwt.decode(state, SECRET_KEY, algorithms=[ALGORITHM])
         if payload.get("purpose") != "google_oauth_state":
             raise JWTError("Nieprawidłowy cel tokena")
-        return int(payload["sub"])
+        return int(payload["sub"]), payload.get("cv", "")
     except JWTError as e:
         logger.warning("Nieprawidłowy lub wygasły parametr state OAuth: %s", e)
         raise HTTPException(status_code=400, detail="Nieprawidłowy lub wygasły parametr state. Spróbuj ponownie.")
@@ -113,8 +113,9 @@ def initiate_google_connect(
             detail="Integracja Google Calendar nie jest skonfigurowana. Skontaktuj się z administratorem.",
         )
 
-    state = _create_state_token(current_user.user_id)
-    auth_url = gcal.generate_auth_url(state=state)
+    code_verifier = gcal.generate_code_verifier()
+    state = _create_state_token(current_user.user_id, code_verifier=code_verifier)
+    auth_url = gcal.generate_auth_url(state=state, code_verifier=code_verifier)
     return {"url": auth_url}
 
 
@@ -130,7 +131,7 @@ def google_oauth_callback(
     tworzy kalendarz Apollo (jeśli nie istnieje).
     """
     # Weryfikacja state — ochrona CSRF
-    user_id = _decode_state_token(state)
+    user_id, code_verifier = _decode_state_token(state)
 
     user = db.query(User).filter(User.user_id == user_id).first()
     if not user:
@@ -138,7 +139,7 @@ def google_oauth_callback(
 
     # Wymiana kodu na tokeny
     try:
-        tokens = gcal.exchange_code_for_tokens(code)
+        tokens = gcal.exchange_code_for_tokens(code, code_verifier=code_verifier)
     except Exception as e:
         logger.error("Błąd wymiany authorization_code na tokeny: %s", e)
         raise HTTPException(status_code=400, detail="Nie udało się autoryzować z Google. Spróbuj ponownie.")
