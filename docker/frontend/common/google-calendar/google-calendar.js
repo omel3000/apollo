@@ -29,7 +29,7 @@
   function getSelectedMonth() {
     const monthEl = document.getElementById('scheduleMonthSelect');
     const yearEl = document.getElementById('scheduleYearSelect');
-    const month = monthEl ? parseInt(monthEl.value, 10) : new Date().getMonth() + 1;
+    const month = monthEl ? parseInt(monthEl.value, 10) + 1 : new Date().getMonth() + 1;
     const year = yearEl ? parseInt(yearEl.value, 10) : new Date().getFullYear();
     return { month, year };
   }
